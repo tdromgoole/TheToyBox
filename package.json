@@ -2,7 +2,7 @@
   "name": "theToyBox",
   "displayName": "The Toy Box",
   "description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "publisher": "ThomasDromgoole",
   "repository": {
     "type": "git",
