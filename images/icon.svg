@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="boxBodyGrad" x1="0" y1="68" x2="0" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="boxRimGrad" x1="0" y1="62" x2="0" y2="71" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="lidGrad" x1="0" y1="36" x2="0" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="128" height="128" rx="22" fill="#0F172A"/>
+
+  <!-- Lid (open — drawn first so blocks render in front of it) -->
+  <rect x="16" y="36" width="96" height="26" rx="6" fill="url(#lidGrad)"/>
+  <rect x="18" y="38" width="92" height="3" rx="2" fill="rgba(255,255,255,0.15)"/>
+  <rect x="16" y="59" width="96" height="3" fill="rgba(0,0,0,0.2)"/>
+
+  <!-- Box interior (dark opening visible at top) -->
+  <rect x="18" y="62" width="92" height="8" fill="#0B1120"/>
+
+  <!-- Block 1 — Red (medium height) -->
+  <rect x="20" y="28" width="16" height="52" rx="3" fill="#F87171"/>
+  <rect x="20" y="28" width="16" height="7"  rx="3" fill="#FCA5A5"/>
+
+  <!-- Block 2 — Green (tallest) -->
+  <rect x="44" y="18" width="16" height="62" rx="3" fill="#34D399"/>
+  <rect x="44" y="18" width="16" height="7"  rx="3" fill="#A7F3D0"/>
+
+  <!-- Block 3 — Amber/Yellow -->
+  <rect x="68" y="22" width="16" height="58" rx="3" fill="#FBBF24"/>
+  <rect x="68" y="22" width="16" height="7"  rx="3" fill="#FDE68A"/>
+
+  <!-- Block 4 — Purple (shortest) -->
+  <rect x="92" y="32" width="16" height="48" rx="3" fill="#A78BFA"/>
+  <rect x="92" y="32" width="16" height="7"  rx="3" fill="#DDD6FE"/>
+
+  <!-- Box front face — covers lower halves of blocks, making them look "inside" -->
+  <rect x="14" y="68" width="100" height="50" rx="5" fill="url(#boxBodyGrad)"/>
+  <!-- Decorative band -->
+  <rect x="14" y="87" width="100" height="3" fill="rgba(0,0,0,0.25)"/>
+
+  <!-- Box rim — drawn over everything as the top edge -->
+  <rect x="12" y="62" width="104" height="9" rx="3" fill="url(#boxRimGrad)"/>
+
+  <!-- Left hinge -->
+  <rect   x="19" y="60" width="10" height="13" rx="3" fill="#F59E0B"/>
+  <circle cx="24" cy="66.5" r="2.5" fill="#7C2D12"/>
+
+  <!-- Right hinge -->
+  <rect   x="99" y="60" width="10" height="13" rx="3" fill="#F59E0B"/>
+  <circle cx="104" cy="66.5" r="2.5" fill="#7C2D12"/>
+
+  <!-- Clasp / latch -->
+  <rect   x="55" y="84" width="18" height="11" rx="3" fill="#F59E0B"/>
+  <circle cx="64" cy="89.5" r="3" fill="#7C2D12"/>
+</svg>

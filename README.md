@@ -1,9 +1,9 @@
 ﻿# The Toy Box
 
-![Version](https://img.shields.io)
-![Downloads](https://img.shields.io)
-![Installs](https://img.shields.io)
-![License](https://img.shields.io)
+![Version](https://img.shields.io/visual-studio-marketplace/v/ThomasDromgoole.theToyBox)
+![Downloads](https://img.shields.io/visual-studio-marketplace/d/ThomasDromgoole.theToyBox)
+![Installs](https://img.shields.io/visual-studio-marketplace/i/ThomasDromgoole.theToyBox)
+![License](https://img.shields.io/github/license/tdromgoole/TheToyBox)
 
 > A high-performance VS Code extension for structural organization, whitespace cleanup, visual clarity, and synchronized HTML/XML tag renaming.
 
@@ -71,8 +71,8 @@ Categorize important notes visually in both the editor and the outline.
 
 All settings are unified under the `theToyBox` namespace.
 
-| Setting                              | Description                                                       |
-| :----------------------------------- | :---------------------------------------------------------------- |
+| Setting                            | Description                                                       |
+| :--------------------------------- | :---------------------------------------------------------------- |
 | `theToyBox.showRegionsInOutline`   | Enable/Disable the Better Outline panel.                          |
 | `theToyBox.cleanOnSave`            | Run cleanup automatically on save.                                |
 | `theToyBox.customComments.enabled` | Enable or disable custom comment highlighting.                    |
