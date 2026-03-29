@@ -1,5 +1,5 @@
 ﻿import * as vscode from "vscode";
-import { updateDecorations } from "./decorations";
+import { updateDecorations, initDecorations } from "./decorations";
 import { refreshIndentRainbow, updateIndentRainbow } from "./indentRainbow";
 import { registerAutoTagRenaming } from "./tagRenaming";
 import { registerCleanupCommand, registerSaveListener } from "./cleanup";
@@ -14,6 +14,7 @@ import {
 
 export function activate(context: vscode.ExtensionContext) {
   // 1. Initial Setup & Module Registration
+  initDecorations(context);
   refreshComments();
   refreshIndentRainbow();
   registerAutoTagRenaming(context);

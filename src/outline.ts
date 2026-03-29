@@ -6,8 +6,12 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _isFetching = false;
   private _updateTimeout?: NodeJS.Timeout;
+  private _commandsRegistered = false;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly _extensionUri: vscode.Uri,
+    private readonly _context: vscode.ExtensionContext,
+  ) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
@@ -38,43 +42,51 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
     // Sync selection highlight (debounced lightly)
     let selectionTimeout: NodeJS.Timeout | undefined;
 
-    vscode.window.onDidChangeTextEditorSelection((e) => {
-      if (!this._view?.visible) {
-        return;
-      }
-      if (e.textEditor !== vscode.window.activeTextEditor) {
-        return;
-      }
-      if (e.selections.length === 0) {
-        return;
-      }
+    this._context.subscriptions.push(
+      vscode.window.onDidChangeTextEditorSelection((e) => {
+        if (!this._view?.visible) {
+          return;
+        }
+        if (e.textEditor !== vscode.window.activeTextEditor) {
+          return;
+        }
+        if (e.selections.length === 0) {
+          return;
+        }
 
-      if (selectionTimeout) {
-        clearTimeout(selectionTimeout);
-      }
+        if (selectionTimeout) {
+          clearTimeout(selectionTimeout);
+        }
 
-      selectionTimeout = setTimeout(() => {
-        this._view?.webview.postMessage({
-          command: "syncSelection",
-          line: e.selections[0].active.line,
-        });
-      }, 100);
-    });
+        selectionTimeout = setTimeout(() => {
+          this._view?.webview.postMessage({
+            command: "syncSelection",
+            line: e.selections[0].active.line,
+          });
+        }, 100);
+      }),
+    );
 
-    vscode.commands.registerCommand("betterOutline.collapseAll", () => {
-      this._view?.webview.postMessage({ command: "collapseAll" });
-    });
+    if (!this._commandsRegistered) {
+      this._commandsRegistered = true;
+      this._context.subscriptions.push(
+        vscode.commands.registerCommand("betterOutline.collapseAll", () => {
+          this._view?.webview.postMessage({ command: "collapseAll" });
+        }),
+        vscode.commands.registerCommand("betterOutline.expandAll", () => {
+          this._view?.webview.postMessage({ command: "expandAll" });
+        }),
+      );
+    }
 
-    vscode.commands.registerCommand("betterOutline.expandAll", () => {
-      this._view?.webview.postMessage({ command: "expandAll" });
-    });
-
-    vscode.window.onDidChangeActiveTextEditor(() => this.scheduleUpdate());
-    vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document === vscode.window.activeTextEditor?.document) {
-        this.scheduleUpdate();
-      }
-    });
+    this._context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(() => this.scheduleUpdate()),
+      vscode.workspace.onDidChangeTextDocument((e) => {
+        if (e.document === vscode.window.activeTextEditor?.document) {
+          this.scheduleUpdate();
+        }
+      }),
+    );
 
     this.scheduleUpdate();
   }
@@ -682,7 +694,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 }
 
 export function registerBetterOutline(context: vscode.ExtensionContext) {
-  const provider = new BetterOutlineProvider(context.extensionUri);
+  const provider = new BetterOutlineProvider(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
