@@ -30,7 +30,8 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 - **✔ SQL & PostgreSQL Entity Support**: Automatically identifies and displays **Tables**, **Stored Procedures**, **Functions**, and **Views** with unique icons.
 - **✔ PHP Function Support**: Detects `public`, `private`, `protected`, `static`, and standalone functions and displays them with a dedicated Function icon.
 - **✔ Structural Nesting**: Comments, variables, and inner functions nest under their parent class/function.
-- **✔ #region Support**: Full support for collapsible `#region` folders.
+- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL and PHP.
+- **✔ SQL & PHP region nesting**: Tables, views, procedures, functions, and PHP functions detected inside a `#region` block are correctly nested under it as collapsible children.
 - **✔ Smart Comment Integration**: Displays comments directly in the outline. Standard comments are cleaned of code prefixes (e.g., `//` is removed) for a professional look.
 - **✔ Material Symbols Icons**: All outline icons use Google's Material Symbols font, bundled locally — no internet connection required.
 

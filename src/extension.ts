@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
   // 2. Configuration Change Listener
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      // Watch for Indent Rainbow toggle
+      // Watch for Indent Rainbow toggle or color changes
       if (e.affectsConfiguration("theToyBox.indentRainbow")) {
         refreshIndentRainbow(); // Rebuild or Dispose the styles
         triggerVisualUpdates();
