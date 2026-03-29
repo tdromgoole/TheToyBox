@@ -185,7 +185,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             isRegion: false,
             children: [],
           });
-          claimedLines.add(i);
           continue;
         }
       }
@@ -212,7 +211,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             isRegion: false,
             children: [],
           });
-          claimedLines.add(i);
           continue;
         } else if (procMatch) {
           sqlEntities.push({
@@ -222,7 +220,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             isRegion: false,
             children: [],
           });
-          claimedLines.add(i);
           continue;
         } else if (funcMatch) {
           sqlEntities.push({
@@ -232,7 +229,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             isRegion: false,
             children: [],
           });
-          claimedLines.add(i);
           continue;
         } else if (viewMatch) {
           sqlEntities.push({
@@ -242,7 +238,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             isRegion: false,
             children: [],
           });
-          claimedLines.add(i);
           continue;
         }
       }
@@ -397,8 +392,30 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
             range.contains(s.range) && !claimedLines.has(s.range.start.line),
         );
         region.children.push(...nestContent(internalSymbols));
-        region.children.sort((a: any, b: any) => a.line - b.line);
         internalSymbols.forEach((s) => claimedLines.add(s.range.start.line));
+
+        const internalSqlEntities = sqlEntities.filter(
+          (e) =>
+            e.line > region.line && e.line < i && !claimedLines.has(e.line),
+        );
+        internalSqlEntities.forEach((e) => claimedLines.add(e.line));
+        region.children.push(...internalSqlEntities);
+
+        const internalPhpFunctions = phpFunctions.filter(
+          (f) =>
+            f.line > region.line && f.line < i && !claimedLines.has(f.line),
+        );
+        internalPhpFunctions.forEach((f) => claimedLines.add(f.line));
+        region.children.push(...internalPhpFunctions);
+
+        const internalComments = allComments.filter(
+          (c) =>
+            c.line > region.line && c.line < i && !claimedLines.has(c.line),
+        );
+        internalComments.forEach((c) => claimedLines.add(c.line));
+        region.children.push(...internalComments);
+
+        region.children.sort((a: any, b: any) => a.line - b.line);
         claimedLines.add(region.line);
         claimedLines.add(i);
         if (regionStack.length > 0) {
@@ -415,8 +432,8 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
     );
     return [
       ...rootItems,
-      ...sqlEntities,
-      ...phpFunctions,
+      ...sqlEntities.filter((e) => !claimedLines.has(e.line)),
+      ...phpFunctions.filter((f) => !claimedLines.has(f.line)),
       ...nestContent(standaloneSymbols),
       ...allComments.filter((c) => !claimedLines.has(c.line)),
     ].sort((a, b) => a.line - b.line);
@@ -567,12 +584,8 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						'</span>' +
 						item.label;
 
-					row.onclick = (e) => {
-						if (
-							hasChildren &&
-							(e.target.classList.contains('caret') ||
-								e.offsetX < 25)
-						) {
+					row.onclick = () => {
+						if (hasChildren) {
 							const container =
 								wrapper.querySelector('.children-container');
 							const caretEl =
