@@ -1,0 +1,86 @@
+@font-face {
+	font-family: "Material Symbols Outlined";
+	font-style: normal;
+	font-weight: 400;
+	src: url("./fonts/MaterialSymbolsOutlined.woff2") format("woff2");
+}
+
+.markdown-alert {
+	padding: 12px 16px;
+	margin: 16px 0;
+	border-left: 4px solid;
+	border-radius: 4px;
+}
+
+.alert-title {
+	font-weight: 600;
+	margin: 0 0 6px 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.alert-icon {
+	font-family: "Material Symbols Outlined";
+	font-size: 20px;
+	font-weight: normal;
+	font-style: normal;
+	line-height: 1;
+	display: inline-block;
+	text-transform: none;
+	white-space: nowrap;
+	-webkit-font-smoothing: antialiased;
+}
+
+.markdown-alert p {
+	margin: 0;
+}
+
+.markdown-alert p:not(:first-child) {
+	margin-top: 6px;
+}
+
+/* NOTE - Blue */
+.markdown-alert.note {
+	border-left-color: #0969da;
+	background-color: rgba(9, 105, 218, 0.15);
+}
+.markdown-alert.note .alert-title {
+	color: #58a6ff;
+}
+
+/* TIP - Green */
+.markdown-alert.tip {
+	border-left-color: #1a7f37;
+	background-color: rgba(26, 127, 55, 0.15);
+}
+.markdown-alert.tip .alert-title {
+	color: #3fb950;
+}
+
+/* IMPORTANT - Purple */
+.markdown-alert.important {
+	border-left-color: #8250df;
+	background-color: rgba(130, 80, 223, 0.15);
+}
+.markdown-alert.important .alert-title {
+	color: #d2a8ff;
+}
+
+/* WARNING - Orange */
+.markdown-alert.warning {
+	border-left-color: #9e6a03;
+	background-color: rgba(158, 106, 3, 0.15);
+}
+.markdown-alert.warning .alert-title {
+	color: #d29922;
+}
+
+/* CAUTION - Red */
+.markdown-alert.caution {
+	border-left-color: #d1242f;
+	background-color: rgba(209, 36, 47, 0.15);
+}
+.markdown-alert.caution .alert-title {
+	color: #f85149;
+}

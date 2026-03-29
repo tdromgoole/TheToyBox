@@ -1,0 +1,265 @@
+﻿{
+	"name": "theToyBox",
+	"displayName": "The Toy Box",
+	"description": "This will remove trailing whitespace, convert tabs, and highlight custom comments with structural tag renaming and a better outline.",
+	"version": "0.0.9",
+	"publisher": "Thomas Dromgoole",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com"
+	},
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"extensionDependencies": [
+		"vscode.markdown-language-features"
+	],
+	"activationEvents": [
+		"onView:betterOutlineView",
+    "onCommand:theToyBox.openMarkdownPreview",
+		"onLanguage:markdown",
+		"onLanguage:php",
+		"onLanguage:javascript",
+		"onLanguage:typescript",
+		"onLanguage:sql",
+		"onLanguage:mssql",
+		"onLanguage:postgresql",
+		"onLanguage:html",
+		"onLanguage:xml"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"markdown.markdownItPlugins": true,
+		"markdown.previewStyles": [
+			"./markdown-alerts.css"
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "better-outline-container",
+					"title": "Better Outline",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"views": {
+			"better-outline-container": [
+				{
+					"type": "webview",
+					"id": "betterOutlineView",
+					"name": "Regions & Symbols"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "theToyBox.alignEquals",
+				"title": "The Toy Box: Align Equals with Tabs"
+			},
+			{
+				"command": "theToyBox.cleanFile",
+				"title": "The Toy Box: Fix Tabs and Trim"
+			},
+			{
+				"command": "betterOutline.collapseAll",
+				"title": "Collapse All",
+				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "betterOutline.expandAll",
+				"title": "Expand All",
+				"icon": "$(expand-all)"
+			},
+			{
+				"command": "theToyBox.formatJson",
+				"title": "The Toy Box: Format JSON Selection"
+			},
+			{
+				"command": "theToyBox.openMarkdownPreview",
+				"title": "The Toy Box: Open Markdown Preview with Alerts"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "betterOutline.collapseAll",
+					"when": "view == betterOutlineView",
+					"group": "navigation@1"
+				},
+				{
+					"command": "betterOutline.expandAll",
+					"when": "view == betterOutlineView",
+					"group": "navigation@2"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "theToyBox.alignEquals",
+					"group": "modification",
+					"when": "editorHasSelection"
+				},
+				{
+					"command": "theToyBox.formatJson",
+					"group": "modification",
+					"when": "editorHasSelection"
+				}
+			]
+		},
+		"configuration": {
+			"title": "The Toy Box",
+			"properties": {
+				"theToyBox.cleanOnSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run cleanup automatically on save."
+				},
+				"theToyBox.ignoreTabConversion": {
+					"type": "array",
+					"description": "List of file extensions to ignore when converting spaces to tabs (e.g., .yaml, .json).",
+					"default": [
+						".yaml",
+						".yml",
+						".json"
+					],
+					"items": {
+						"type": "string"
+					}
+				},
+				"theToyBox.indentRainbow": {
+					"type": "boolean",
+					"default": true,
+					"description": "Display rainbow colors for indentation levels on file load and when editing."
+				},
+				"theToyBox.showRegionsInOutline": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable the Better Outline panel to show #region markers and nested symbols."
+				},
+				"theToyBox.autoRenameMatchingTags": {
+					"type": "boolean",
+					"default": true,
+					"description": "Rename Matching Tags: Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
+				},
+				"theToyBox.performance.maxLinesForTagRename": {
+					"type": "number",
+					"default": 5000,
+					"description": "Rename Matching Tags: Maximum file length (in lines) for auto-renaming to be active."
+				},
+				"theToyBox.autoRenameTag.activationOnLanguage": {
+					"type": "array",
+					"description": "Rename Matching Tags: List of language IDs where auto tag renaming should be active.",
+					"default": [
+						"html",
+						"xml",
+						"php",
+						"javascript",
+						"javascriptreact",
+						"typescriptreact"
+					],
+					"items": {
+						"type": "string"
+					}
+				},
+				"theToyBox.autoRenameTag.voidElements": {
+					"type": "array",
+					"description": "Rename Matching Tags: List of tags that are self-closing and should not be renamed.",
+					"default": [
+						"area",
+						"base",
+						"br",
+						"col",
+						"embed",
+						"hr",
+						"img",
+						"input",
+						"link",
+						"meta",
+						"param",
+						"source",
+						"track",
+						"wbr"
+					],
+					"items": {
+						"type": "string"
+					}
+				},
+				"theToyBox.customComments.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Custom Comments: Enable or disable custom comment highlighting."
+				},
+				"theToyBox.customComments.showBackground": {
+					"type": "boolean",
+					"default": true,
+					"description": "Custom Comments: If enabled, comments will have a background highlight across the entire line."
+				},
+				"theToyBox.customComments.fullLineHighlight": {
+					"type": "boolean",
+					"default": true,
+					"description": "Custom Comments: If enabled, highlighting covers the entire line."
+				},
+				"theToyBox.customComments.colors": {
+					"type": "object",
+					"default": {
+						"!": "#FF4500",
+						"*": "#474747",
+						"?": "#1E90FF",
+						"#": "#32CD32",
+						"@": "#5a69ff",
+						"$": "#911EB4",
+						"%": "#F032E6",
+						"^": "#42D4F4",
+						"&": "#E6194B",
+						"~": "#FFE119"
+					},
+					"description": "Custom Comments: Map special characters to hex colors."
+				},
+				"theToyBox.customComments.labels": {
+					"type": "object",
+					"default": {
+						"!": "CRITICAL",
+						"?": "QUESTION",
+						"#": "DONE",
+						"*": "NOTE",
+						"@": "REFERENCE",
+						"$": "VARIABLE",
+						"%": "TODO",
+						"^": "URGENT",
+						"&": "WARNING",
+						"~": "TEMPORARY"
+					},
+					"description": "Custom Comments: Map symbols to specific label words (e.g., ! -> CRITICAL)."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"lint": "eslint src",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.10",
+		"@types/node": "22.x",
+		"@types/vscode": "^1.90.0",
+		"@vscode/test-cli": "^0.0.11",
+		"@vscode/test-electron": "^2.5.2",
+		"eslint": "^10.0.2",
+		"markdown-it": "^14.1.1",
+		"markdown-it-container": "^4.0.0",
+		"ts-loader": "^9.2.1",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.56.1",
+		"webpack": "^5.105.3",
+		"webpack-cli": "^4.10.0"
+	}
+}
