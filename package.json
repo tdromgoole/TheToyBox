@@ -2,7 +2,7 @@
   "name": "theToyBox",
   "displayName": "The Toy Box",
   "description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "publisher": "ThomasDromgoole",
   "repository": {
     "type": "git",
@@ -61,18 +61,18 @@
         "title": "The Toy Box: Align Equals with Tabs"
       },
       {
-        "command": "theToyBox.cleanFile",
-        "title": "The Toy Box: Fix Tabs and Trim"
-      },
-      {
         "command": "betterOutline.collapseAll",
         "title": "Collapse All",
-        "icon": "$(collapse-all)"
+        "icon": "$(remove)"
       },
       {
         "command": "betterOutline.expandAll",
         "title": "Expand All",
-        "icon": "$(expand-all)"
+        "icon": "$(add)"
+      },
+      {
+        "command": "theToyBox.cleanFile",
+        "title": "The Toy Box: Fix Tabs and Trim"
       },
       {
         "command": "theToyBox.formatJson",
@@ -159,28 +159,6 @@
             "type": "boolean",
             "default": true,
             "description": "Display rainbow colors for indentation levels on file load and when editing."
-          },
-          "theToyBox.indentRainbow.colors": {
-            "type": "array",
-            "description": "List of hex colors used for indentation levels (cycles through the list).",
-            "default": [
-              "#FF6B6B",
-              "#4ECDC4",
-              "#ff9900",
-              "#9B59B6",
-              "#eeff00",
-              "#45B7D1",
-              "#E74C3C",
-              "#2e46cc",
-              "#52f312",
-              "#451abc",
-              "#C0392B",
-              "#ff2da7"
-            ],
-            "items": {
-              "type": "string",
-              "format": "color-hex"
-            }
           }
         }
       },

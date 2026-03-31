@@ -59,7 +59,15 @@ Align assignment operators (`=`) across multiple lines perfectly using the least
 - **✔ Indentation Aware**: Correctly calculates visual width so that `=` symbols align even when lines are at different indentation levels.
 - **✔ Tab-Based**: Uses your editor's specific tab size to calculate the perfect visual gutter.
 
-## 🎨 Custom Comment Highlighting
+## � Indent Rainbow
+
+Adds a subtle pastel background highlight to each indentation level so nesting depth is instantly visible at a glance.
+
+- **✔ Alternating Warm/Cool Palette**: 12 curated pastel tones (pink, sky blue, peach, lavender, rose, mint, yellow, periwinkle, blush, sage, mauve, lilac) alternate between warm and cool so adjacent levels are never visually similar.
+- **✔ Subtle 10% Opacity**: The tints are intentionally low-contrast — just enough to guide the eye without distracting from the code.
+- **✔ Tab-Level Aware**: Highlights are applied per tab stop so mixed-indent files still display correctly.
+
+## �🎨 Custom Comment Highlighting
 
 Categorize important notes visually in both the editor and the outline.
 
@@ -76,6 +84,7 @@ All settings are unified under the `theToyBox` namespace.
 | :--------------------------------- | :---------------------------------------------------------------- |
 | `theToyBox.showRegionsInOutline`   | Enable/Disable the Better Outline panel.                          |
 | `theToyBox.cleanOnSave`            | Run cleanup automatically on save.                                |
+| `theToyBox.indentRainbow`          | Enable/Disable the Indent Rainbow indent guides.                  |
 | `theToyBox.customComments.enabled` | Enable or disable custom comment highlighting.                    |
 | `theToyBox.customComments.labels`  | Map symbols (like `!`) to words (like `CRITICAL`) in the outline. |
 | `theToyBox.customComments.colors`  | Map special characters to hex colors.                             |

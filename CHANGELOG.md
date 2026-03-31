@@ -2,7 +2,15 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
-## [0.0.11]
+## [0.0.12]
+
+- **Bug Fix**: **Better Outline — Collapse/Expand buttons no longer duplicated** — buttons were contributed via `view/title` in a single-view activity bar container, causing VS Code to render them twice. Commands are now registered once in the factory function instead of inside `resolveWebviewView`, and `postToWebview` is exposed as a public method so handlers always reference the live provider instance.
+- **Bug Fix**: **Spaces-to-tabs conversion now writes to disk on save** — the save listener was using `onDidSaveTextDocument` which fires after the file is already written, so converted tabs appeared in the buffer but were never persisted. Switched to `onWillSaveTextDocument` + `event.waitUntil()` so edits are injected directly into the save pipeline.
+- **Bug Fix**: **Spaces-to-tabs conversion respects the file's actual indentation unit** — the converter previously divided by `editor.tabSize`, so 2-space-indented files with `tabSize=4` never converted (`Math.floor(2/4)=0`). It now detects the minimum qualifying space width (≥2) scoped to the lines being processed, giving the correct unit regardless of editor settings.
+- **Bug Fix**: **Spaces-to-tabs conversion preserves indent hierarchy when pasting code** — converting pasted code with irregular space widths now produces the fewest tabs needed. The minimum space width in the processed range is used as the base unit, so e.g. 3/6/9 spaces → 1/2/3 tabs correctly.
+- **Bug Fix**: **Tab/trailing-whitespace edits no longer corrupt code** — two separate edits (one for leading whitespace, one for trailing) were both computed from original character positions. If the leading replace shortened the line first, the trailing delete's positions became stale and could land inside code content. Both transformations are now applied in-memory and emitted as a single `replace` per line.
+- **Enhancement**: **Indent Rainbow colors updated to pastels at 10% opacity** — replaced the saturated rainbow palette with soft alternating warm/cool pastel tones (pink, sky blue, peach, lavender, rose, mint, yellow, periwinkle, blush, sage, mauve, lilac) at 10% opacity for a subtle, non-distracting indent guide.
+- **Enhancement**: **Indent Rainbow colors no longer user-configurable** — the `theToyBox.indentRainbow.colors` setting has been removed; colors are now hardcoded to the curated pastel palette.
 
 - **Bug Fix**: **Spaces-to-Tabs conversion now handles all leading whitespace** — the regex was previously anchored to pure-space lines, leaving spaces behind on lines that began with a tab. The converter now processes any mixed tab/space leading whitespace, computes the correct effective width using proper tab-stop arithmetic, and preserves sub-tab-width remainders as spaces so indentation depth is never silently lost.
 - **Bug Fix**: **Custom Comments config namespace corrected** — `updateComments` was reading settings from `'customComments'` instead of `'theToyBox.customComments'`, causing the `fullLineHighlight` setting to always fall back to its hardcoded default and ignore the user's preference.
