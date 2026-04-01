@@ -2,6 +2,11 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.14]
+
+- **Bug Fix**: **Better Outline — Markdown headings no longer show hash symbols** — the `#` prefix characters are no longer included in the heading label displayed in the outline panel.
+- **Bug Fix**: **Better Outline — Markdown headings are no longer collapsible** — heading rows now always keep their children visible and clicking a heading jumps to it, rather than toggling expand/collapse.
+
 ## [0.0.13]
 
 - **New Feature**: **Markdown Heading Highlights** — each heading level (`#` through `######`) in Markdown files is now color-highlighted in the editor. Six colors (one per level) are configurable via `theToyBox.markdownHeadings.colors`. Background color and full-line vs. text-only highlight are also toggleable.
