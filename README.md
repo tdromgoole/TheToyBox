@@ -41,8 +41,10 @@ The built-in VS Code Markdown preview now renders GitHub-style alert callouts wi
 
 - **✔ Built-in Preview Integration**: Works directly in the standard Markdown preview (Ctrl+Shift+V) — no separate command needed.
 - **✔ Five Alert Types**: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`, each with a distinct color and Material Symbols icon.
+- **✔ Custom Heading**: Add a custom heading after the alert type — e.g. `[!NOTE][My Heading]` — to replace the default title with your own text.
 - **✔ Offline Font**: The Material Symbols icon font is bundled with the extension — no Google Fonts network request needed.
 - **✔ Custom Webview Preview**: Also available as **"The Toy Box: Open Markdown Preview with Alerts"** for a standalone dark-themed preview panel.
+- **✔ Enable/Disable**: Toggle the entire feature on or off via `theToyBox.markdownPreview.enabled`.
 
 ## 📦 JSON Formatter
 
@@ -73,6 +75,7 @@ Categorize important notes visually in both the editor and the outline.
 
 - **✔ Custom Label Mapping**: Map symbols (e.g., `!`, `?`) to specific words like **CRITICAL** or **QUESTION** in the sidebar.
 - **✔ SQL-Safe & PHP-Safe Scanning**: Intelligent detection that ignores SQL strings, temp tables, and PHP variable references (e.g., `$varName`) while still highlighting actual comments.
+- **✔ Excluded File Types**: Specify file extensions (e.g., `.md`) to skip comment highlighting entirely.
 
 ---
 
@@ -80,14 +83,21 @@ Categorize important notes visually in both the editor and the outline.
 
 All settings are unified under the `theToyBox` namespace.
 
-| Setting                            | Description                                                       |
-| :--------------------------------- | :---------------------------------------------------------------- |
-| `theToyBox.showRegionsInOutline`   | Enable/Disable the Better Outline panel.                          |
-| `theToyBox.cleanOnSave`            | Run cleanup automatically on save.                                |
-| `theToyBox.indentRainbow`          | Enable/Disable the Indent Rainbow indent guides.                  |
-| `theToyBox.customComments.enabled` | Enable or disable custom comment highlighting.                    |
-| `theToyBox.customComments.labels`  | Map symbols (like `!`) to words (like `CRITICAL`) in the outline. |
-| `theToyBox.customComments.colors`  | Map special characters to hex colors.                             |
+| Setting                                        | Description                                                               |
+| :--------------------------------------------- | :------------------------------------------------------------------------ |
+| `theToyBox.showRegionsInOutline`               | Enable/Disable the Better Outline panel.                                  |
+| `theToyBox.cleanOnSave`                        | Run cleanup automatically on save.                                        |
+| `theToyBox.indentRainbow`                      | Enable/Disable the Indent Rainbow indent guides.                          |
+| `theToyBox.indentRainbowOpacity`               | Opacity of the indent rainbow background colors, as a percentage (1–100). |
+| `theToyBox.markdownPreview.enabled`            | Enable/Disable Markdown Preview with Alerts (built-in & webview).         |
+| `theToyBox.markdownHeadings.enabled`           | Enable/Disable heading highlighting in Markdown files.                    |
+| `theToyBox.markdownHeadings.showBackground`    | Toggle background color on heading highlights.                            |
+| `theToyBox.markdownHeadings.fullLineHighlight` | Highlight the full line or just the heading text.                         |
+| `theToyBox.markdownHeadings.colors`            | Map each heading level (h1–h6) to a hex color.                            |
+| `theToyBox.customComments.enabled`             | Enable or disable custom comment highlighting.                            |
+| `theToyBox.customComments.labels`              | Map symbols (like `!`) to words (like `CRITICAL`) in the outline.         |
+| `theToyBox.customComments.colors`              | Map special characters to hex colors.                                     |
+| `theToyBox.customComments.excludedFileTypes`   | File extensions to skip custom comment highlighting (e.g. `.md`).         |
 
 ---
 

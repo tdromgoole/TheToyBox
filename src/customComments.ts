@@ -4,125 +4,151 @@
 let decorationTypes: { [key: string]: vscode.TextEditorDecorationType } = {};
 
 export function refreshComments() {
-  // 1. Dispose old decorations to prevent memory leaks/ghosting
-  Object.values(decorationTypes).forEach((d) => d.dispose());
-  decorationTypes = {};
+	// 1. Dispose old decorations to prevent memory leaks/ghosting
+	Object.values(decorationTypes).forEach((d) => d.dispose());
+	decorationTypes = {};
 
-  // 2. Access the 'customComments' section of your package.json
-  const config = vscode.workspace.getConfiguration("theToyBox.customComments");
+	// 2. Access the 'customComments' section of your package.json
+	const config = vscode.workspace.getConfiguration(
+		"theToyBox.customComments",
+	);
 
-  // Check if the feature is enabled (matches "theToyBox.customComments.enabled")
-  const isEnabled = config.get<boolean>("enabled", true);
-  if (!isEnabled) {
-    return;
-  }
+	// Check if the feature is enabled (matches "theToyBox.customComments.enabled")
+	const isEnabled = config.get<boolean>("enabled", true);
+	if (!isEnabled) {
+		return;
+	}
 
-  const colors = config.get<{ [key: string]: string }>("colors") || {};
-  const showBackground = config.get<boolean>("showBackground", true);
-  const fullLineHighlight = config.get<boolean>("fullLineHighlight", true);
+	const colors = config.get<{ [key: string]: string }>("colors") || {};
+	const showBackground = config.get<boolean>("showBackground", true);
+	const fullLineHighlight = config.get<boolean>("fullLineHighlight", true);
 
-  // 3. Create new decoration types based on user settings
-  for (const [char, hexColor] of Object.entries(colors)) {
-    const style: vscode.DecorationRenderOptions = {
-      color: hexColor,
-      fontWeight: char === "!" ? "bold" : "normal",
-    };
+	// 3. Create new decoration types based on user settings
+	for (const [char, hexColor] of Object.entries(colors)) {
+		const style: vscode.DecorationRenderOptions = {
+			color: hexColor,
+			fontWeight: char === "!" ? "bold" : "normal",
+		};
 
-    if (showBackground) {
-      // Append '33' for ~20% opacity background
-      style.backgroundColor = hexColor + "33";
-      style.isWholeLine = fullLineHighlight;
-    }
-    decorationTypes[char] = vscode.window.createTextEditorDecorationType(style);
-  }
+		if (showBackground) {
+			// Append '33' for ~20% opacity background
+			style.backgroundColor = hexColor + "33";
+			style.isWholeLine = fullLineHighlight;
+		}
+		decorationTypes[char] =
+			vscode.window.createTextEditorDecorationType(style);
+	}
 
-  // Trigger an initial update for the visible editor
-  updateComments();
+	// Trigger an initial update for the visible editor
+	updateComments();
 }
 
 export function updateComments(editor = vscode.window.activeTextEditor) {
-  if (!editor || Object.keys(decorationTypes).length === 0) {
-    return;
-  }
+	if (!editor || Object.keys(decorationTypes).length === 0) {
+		return;
+	}
 
-  const config = vscode.workspace.getConfiguration("theToyBox.customComments");
-  const fullLineHighlight = config.get<boolean>("fullLineHighlight", true);
+	const config = vscode.workspace.getConfiguration(
+		"theToyBox.customComments",
+	);
 
-  const symbols = Object.keys(decorationTypes);
-  const rangesMap = new Map<string, vscode.Range[]>();
-  symbols.forEach((s) => rangesMap.set(s, []));
+	// Check if the current file's extension is excluded
+	const excludedFileTypes = config.get<string[]>("excludedFileTypes", [
+		".md",
+	]);
+	const fileExtension = editor.document.fileName.includes(".")
+		? "." + editor.document.fileName.split(".").pop()!.toLowerCase()
+		: "";
+	if (excludedFileTypes.map((e) => e.toLowerCase()).includes(fileExtension)) {
+		// Clear any existing decorations for this editor and bail out
+		Object.values(decorationTypes).forEach((d) =>
+			editor.setDecorations(d, []),
+		);
+		return;
+	}
+	const fullLineHighlight = config.get<boolean>("fullLineHighlight", true);
 
-  // Handle language-specific comment logic
-  let commentPrefixes = ["//", "--", "#", "%", "'"];
-  const lang = editor.document.languageId.toLowerCase();
-  const excludeSingleQuote = [
-    "php",
-    "javascript",
-    "typescript",
-    "sql",
-    "mssql",
-    "postgres",
-    "mysql",
-  ];
+	const symbols = Object.keys(decorationTypes);
+	const rangesMap = new Map<string, vscode.Range[]>();
+	symbols.forEach((s) => rangesMap.set(s, []));
 
-  if (excludeSingleQuote.some((l) => lang.includes(l))) {
-    commentPrefixes = commentPrefixes.filter((p) => p !== "'");
-  }
-  commentPrefixes.sort((a, b) => b.length - a.length);
+	// Handle language-specific comment logic
+	let commentPrefixes = ["//", "--", "#", "%", "'"];
+	const lang = editor.document.languageId.toLowerCase();
+	const excludeSingleQuote = [
+		"php",
+		"javascript",
+		"typescript",
+		"sql",
+		"mssql",
+		"postgres",
+		"mysql",
+	];
 
-  for (let i = 0; i < editor.document.lineCount; i++) {
-    const line = editor.document.lineAt(i);
-    const text = line.text;
-    let foundPrefix: string | undefined;
-    let prefixIndex = -1;
+	if (excludeSingleQuote.some((l) => lang.includes(l))) {
+		commentPrefixes = commentPrefixes.filter((p) => p !== "'");
+	}
 
-    // String-aware comment scanning
-    for (let charIdx = 0; charIdx < text.length; charIdx++) {
-      const textBefore = text.substring(0, charIdx);
-      const isInsideSingle = (textBefore.split("'").length - 1) % 2 !== 0;
-      const isInsideDouble = (textBefore.split('"').length - 1) % 2 !== 0;
+	const excludeHash = ["javascript", "typescript", "html", "xml", "css"];
+	if (excludeHash.some((l) => lang.includes(l))) {
+		commentPrefixes = commentPrefixes.filter((p) => p !== "#");
+	}
 
-      if (isInsideSingle || isInsideDouble) {
-        continue;
-      }
+	commentPrefixes.sort((a, b) => b.length - a.length);
 
-      const currentPrefix = commentPrefixes.find((p) =>
-        text.startsWith(p, charIdx),
-      );
-      if (currentPrefix) {
-        prefixIndex = charIdx;
-        foundPrefix = currentPrefix;
-        break;
-      }
-    }
+	for (let i = 0; i < editor.document.lineCount; i++) {
+		const line = editor.document.lineAt(i);
+		const text = line.text;
+		let foundPrefix: string | undefined;
+		let prefixIndex = -1;
 
-    if (!foundPrefix || prefixIndex === -1) {
-      continue;
-    }
+		// String-aware comment scanning
+		for (let charIdx = 0; charIdx < text.length; charIdx++) {
+			const textBefore = text.substring(0, charIdx);
+			const isInsideSingle = (textBefore.split("'").length - 1) % 2 !== 0;
+			const isInsideDouble = (textBefore.split('"').length - 1) % 2 !== 0;
 
-    const afterPrefix = text
-      .substring(prefixIndex + foundPrefix.length)
-      .trimStart();
-    const matchedSymbol = symbols.find((s) => afterPrefix.startsWith(s));
+			if (isInsideSingle || isInsideDouble) {
+				continue;
+			}
 
-    if (matchedSymbol) {
-      const charAfterSymbol = afterPrefix.charAt(matchedSymbol.length);
-      // Check if it's a standalone symbol, not part of a variable (e.g., // $var)
-      const isVariableOrWord = /^[a-zA-Z0-9_]/.test(charAfterSymbol);
+			const currentPrefix = commentPrefixes.find((p) =>
+				text.startsWith(p, charIdx),
+			);
+			if (currentPrefix) {
+				prefixIndex = charIdx;
+				foundPrefix = currentPrefix;
+				break;
+			}
+		}
 
-      if (!isVariableOrWord) {
-        const startColumn = fullLineHighlight ? 0 : prefixIndex;
-        const range = new vscode.Range(i, startColumn, i, text.length);
-        rangesMap.get(matchedSymbol)?.push(range);
-      }
-    }
-  }
+		if (!foundPrefix || prefixIndex === -1) {
+			continue;
+		}
 
-  // Apply the decorations to the editor
-  for (const [symbol, ranges] of rangesMap) {
-    const decorationType = decorationTypes[symbol];
-    if (decorationType) {
-      editor.setDecorations(decorationType, ranges);
-    }
-  }
+		const afterPrefix = text
+			.substring(prefixIndex + foundPrefix.length)
+			.trimStart();
+		const matchedSymbol = symbols.find((s) => afterPrefix.startsWith(s));
+
+		if (matchedSymbol) {
+			const charAfterSymbol = afterPrefix.charAt(matchedSymbol.length);
+			// Check if it's a standalone symbol, not part of a variable (e.g., // $var)
+			const isVariableOrWord = /^[a-zA-Z0-9_]/.test(charAfterSymbol);
+
+			if (!isVariableOrWord) {
+				const startColumn = fullLineHighlight ? 0 : prefixIndex;
+				const range = new vscode.Range(i, startColumn, i, text.length);
+				rangesMap.get(matchedSymbol)?.push(range);
+			}
+		}
+	}
+
+	// Apply the decorations to the editor
+	for (const [symbol, ranges] of rangesMap) {
+		const decorationType = decorationTypes[symbol];
+		if (decorationType) {
+			editor.setDecorations(decorationType, ranges);
+		}
+	}
 }
