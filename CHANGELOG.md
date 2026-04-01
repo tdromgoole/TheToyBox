@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.15]
+
+- **Bug Fix**: **TypeScript timeout types resolved** — added `"types": ["node"]` to `tsconfig.json` so that `@types/node` is properly referenced, resolving `Cannot find namespace 'NodeJS'` and `Cannot find name 'setTimeout'` compile errors in the Better Outline provider.
+
 ## [0.0.14]
 
 - **Bug Fix**: **Better Outline — Markdown headings no longer show hash symbols** — the `#` prefix characters are no longer included in the heading label displayed in the outline panel.
