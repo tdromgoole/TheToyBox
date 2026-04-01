@@ -2,6 +2,17 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.13]
+
+- **New Feature**: **Markdown Heading Highlights** — each heading level (`#` through `######`) in Markdown files is now color-highlighted in the editor. Six colors (one per level) are configurable via `theToyBox.markdownHeadings.colors`. Background color and full-line vs. text-only highlight are also toggleable.
+- **New Feature**: **Markdown Heading Outline** — opening a Markdown file now populates the Better Outline panel with a nested heading tree, color-matched to the configured heading colors.
+- **New Feature**: **Markdown Preview enable/disable** — `theToyBox.markdownPreview.enabled` toggles both the custom webview command and the built-in preview alert rendering in real time.
+- **New Feature**: **Custom alert headings** — Markdown alerts now support an optional custom title: `[!NOTE][My Custom Title]` replaces the default "Note" label with your own text. Works in both the built-in preview and the custom webview.
+- **New Feature**: **Indent Rainbow opacity setting** — `theToyBox.indentRainbowOpacity` accepts a percentage (1–100, default 10) and is applied in real time when changed.
+- **New Feature**: **Custom Comments excluded file types** — `theToyBox.customComments.excludedFileTypes` (default `[".md"]`) lists extensions that skip custom comment highlighting. The Better Outline panel respects this same list.
+- **Bug Fix**: **Custom Comments — `#` prefix no longer flags regex literals** — JavaScript, TypeScript, HTML, XML, and CSS files no longer treat `#` as a comment prefix, so patterns like `/^## heading/` are no longer incorrectly highlighted.
+- **Bug Fix**: **Indent Rainbow opacity change now applies in real time** — the config listener was only watching `theToyBox.indentRainbow`, not `theToyBox.indentRainbowOpacity`, so opacity changes required a reload. Both settings are now watched.
+
 ## [0.0.12]
 
 - **Bug Fix**: **Better Outline — Collapse/Expand buttons no longer duplicated** — buttons were contributed via `view/title` in a single-view activity bar container, causing VS Code to render them twice. Commands are now registered once in the factory function instead of inside `resolveWebviewView`, and `postToWebview` is exposed as a public method so handlers always reference the live provider instance.

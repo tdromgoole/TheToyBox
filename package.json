@@ -1,308 +1,367 @@
 {
-  "name": "theToyBox",
-  "displayName": "The Toy Box",
-  "description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-  "version": "0.0.12",
-  "publisher": "ThomasDromgoole",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tdromgoole/TheToyBox"
-  },
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "icon": "images/icon.png",
-  "categories": [
-    "Other"
-  ],
-  "extensionDependencies": [
-    "vscode.markdown-language-features"
-  ],
-  "activationEvents": [
-    "onView:betterOutlineView",
-    "onCommand:theToyBox.openMarkdownPreview",
-    "onLanguage:markdown",
-    "onLanguage:php",
-    "onLanguage:javascript",
-    "onLanguage:typescript",
-    "onLanguage:sql",
-    "onLanguage:mssql",
-    "onLanguage:postgresql",
-    "onLanguage:html",
-    "onLanguage:xml"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "markdown.markdownItPlugins": true,
-    "markdown.previewStyles": [
-      "./markdown-alerts.css"
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "better-outline-container",
-          "title": "Better Outline",
-          "icon": "$(list-tree)"
-        }
-      ]
-    },
-    "views": {
-      "better-outline-container": [
-        {
-          "type": "webview",
-          "id": "betterOutlineView",
-          "name": "Regions & Symbols"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "command": "theToyBox.alignEquals",
-        "title": "The Toy Box: Align Equals with Tabs"
-      },
-      {
-        "command": "betterOutline.collapseAll",
-        "title": "Collapse All",
-        "icon": "$(remove)"
-      },
-      {
-        "command": "betterOutline.expandAll",
-        "title": "Expand All",
-        "icon": "$(add)"
-      },
-      {
-        "command": "theToyBox.cleanFile",
-        "title": "The Toy Box: Fix Tabs and Trim"
-      },
-      {
-        "command": "theToyBox.formatJson",
-        "title": "The Toy Box: Format JSON Selection"
-      },
-      {
-        "command": "theToyBox.openMarkdownPreview",
-        "title": "The Toy Box: Open Markdown Preview with Alerts"
-      }
-    ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "betterOutline.collapseAll",
-          "when": "view == betterOutlineView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "betterOutline.expandAll",
-          "when": "view == betterOutlineView",
-          "group": "navigation@2"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "theToyBox.alignEquals",
-          "group": "modification",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "theToyBox.formatJson",
-          "group": "modification",
-          "when": "editorHasSelection"
-        }
-      ]
-    },
-    "configuration": [
-      {
-        "title": "Cleanup",
-        "properties": {
-          "theToyBox.cleanOnSave": {
-            "type": "boolean",
-            "default": true,
-            "description": "Run cleanup automatically on save."
-          },
-          "theToyBox.trimTrailingWhitespace": {
-            "type": "boolean",
-            "default": true,
-            "description": "Trim trailing whitespace from lines during cleanup."
-          },
-          "theToyBox.ignoreTrimWhitespace": {
-            "type": "array",
-            "description": "List of file extensions to skip trailing whitespace trimming (e.g., .md, .txt).",
-            "default": [
-              ".md"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "theToyBox.convertSpacesToTabs": {
-            "type": "boolean",
-            "default": true,
-            "description": "Convert leading spaces to tabs during cleanup."
-          },
-          "theToyBox.ignoreTabConversion": {
-            "type": "array",
-            "description": "List of file extensions to ignore when converting spaces to tabs (e.g., .yaml, .json).",
-            "default": [
-              ".yaml",
-              ".yml",
-              ".json"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      {
-        "title": "Indent Rainbow",
-        "properties": {
-          "theToyBox.indentRainbow": {
-            "type": "boolean",
-            "default": true,
-            "description": "Display rainbow colors for indentation levels on file load and when editing."
-          }
-        }
-      },
-      {
-        "title": "Outline",
-        "properties": {
-          "theToyBox.showRegionsInOutline": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable the Better Outline panel to show #region markers and nested symbols."
-          }
-        }
-      },
-      {
-        "title": "Rename Matching Tags",
-        "properties": {
-          "theToyBox.autoRenameMatchingTags": {
-            "type": "boolean",
-            "default": true,
-            "description": "Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
-          },
-          "theToyBox.performance.maxLinesForTagRename": {
-            "type": "number",
-            "default": 5000,
-            "description": "Maximum file length (in lines) for auto-renaming to be active."
-          },
-          "theToyBox.autoRenameTag.activationOnLanguage": {
-            "type": "array",
-            "description": "List of language IDs where auto tag renaming should be active.",
-            "default": [
-              "html",
-              "xml",
-              "php",
-              "javascript",
-              "javascriptreact",
-              "typescriptreact"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "theToyBox.autoRenameTag.voidElements": {
-            "type": "array",
-            "description": "List of tags that are self-closing and should not be renamed.",
-            "default": [
-              "area",
-              "base",
-              "br",
-              "col",
-              "embed",
-              "hr",
-              "img",
-              "input",
-              "link",
-              "meta",
-              "param",
-              "source",
-              "track",
-              "wbr"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      {
-        "title": "Custom Comments",
-        "properties": {
-          "theToyBox.customComments.enabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable or disable custom comment highlighting."
-          },
-          "theToyBox.customComments.showBackground": {
-            "type": "boolean",
-            "default": true,
-            "description": "If enabled, comments will have a background highlight across the entire line."
-          },
-          "theToyBox.customComments.fullLineHighlight": {
-            "type": "boolean",
-            "default": true,
-            "description": "If enabled, highlighting covers the entire line."
-          },
-          "theToyBox.customComments.colors": {
-            "type": "object",
-            "default": {
-              "!": "#FF4500",
-              "*": "#474747",
-              "?": "#1E90FF",
-              "#": "#32CD32",
-              "@": "#5a69ff",
-              "$": "#911EB4",
-              "%": "#F032E6",
-              "^": "#42D4F4",
-              "&": "#E6194B",
-              "~": "#FFE119"
-            },
-            "description": "Map special characters to hex colors."
-          },
-          "theToyBox.customComments.labels": {
-            "type": "object",
-            "default": {
-              "!": "CRITICAL",
-              "?": "QUESTION",
-              "#": "DONE",
-              "*": "NOTE",
-              "@": "REFERENCE",
-              "$": "VARIABLE",
-              "%": "TODO",
-              "^": "URGENT",
-              "&": "WARNING",
-              "~": "TEMPORARY"
-            },
-            "description": "Map symbols to specific label words (e.g., ! -> CRITICAL)."
-          }
-        }
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "@types/vscode": "^1.90.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "eslint": "^10.0.2",
-    "markdown-it": "^14.1.1",
-    "markdown-it-container": "^4.0.0",
-    "ts-loader": "^9.2.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "webpack": "^5.105.3",
-    "webpack-cli": "^4.10.0"
-  }
+	"name": "theToyBox",
+	"displayName": "The Toy Box",
+	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
+	"version": "0.0.12",
+	"publisher": "ThomasDromgoole",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tdromgoole/TheToyBox"
+	},
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"icon": "images/icon.png",
+	"categories": [
+		"Other"
+	],
+	"extensionDependencies": [
+		"vscode.markdown-language-features"
+	],
+	"activationEvents": [
+		"onView:betterOutlineView",
+		"onCommand:theToyBox.openMarkdownPreview",
+		"onLanguage:markdown",
+		"onLanguage:php",
+		"onLanguage:javascript",
+		"onLanguage:typescript",
+		"onLanguage:sql",
+		"onLanguage:mssql",
+		"onLanguage:postgresql",
+		"onLanguage:html",
+		"onLanguage:xml"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"markdown.markdownItPlugins": true,
+		"markdown.previewStyles": [
+			"./markdown-alerts.css"
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "better-outline-container",
+					"title": "Better Outline",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"views": {
+			"better-outline-container": [
+				{
+					"type": "webview",
+					"id": "betterOutlineView",
+					"name": "Regions & Symbols"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "theToyBox.alignEquals",
+				"title": "The Toy Box: Align Equals with Tabs"
+			},
+			{
+				"command": "betterOutline.collapseAll",
+				"title": "Collapse All",
+				"icon": "$(remove)"
+			},
+			{
+				"command": "betterOutline.expandAll",
+				"title": "Expand All",
+				"icon": "$(add)"
+			},
+			{
+				"command": "theToyBox.cleanFile",
+				"title": "The Toy Box: Fix Tabs and Trim"
+			},
+			{
+				"command": "theToyBox.formatJson",
+				"title": "The Toy Box: Format JSON Selection"
+			},
+			{
+				"command": "theToyBox.openMarkdownPreview",
+				"title": "The Toy Box: Open Markdown Preview with Alerts"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "betterOutline.collapseAll",
+					"when": "view == betterOutlineView",
+					"group": "navigation@1"
+				},
+				{
+					"command": "betterOutline.expandAll",
+					"when": "view == betterOutlineView",
+					"group": "navigation@2"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "theToyBox.alignEquals",
+					"group": "modification",
+					"when": "editorHasSelection"
+				},
+				{
+					"command": "theToyBox.formatJson",
+					"group": "modification",
+					"when": "editorHasSelection"
+				}
+			]
+		},
+		"configuration": [
+			{
+				"title": "Markdown Preview",
+				"properties": {
+					"theToyBox.markdownPreview.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Markdown Preview with Alerts command."
+					}
+				}
+			},
+			{
+				"title": "Cleanup",
+				"properties": {
+					"theToyBox.cleanOnSave": {
+						"type": "boolean",
+						"default": true,
+						"description": "Run cleanup automatically on save."
+					},
+					"theToyBox.trimTrailingWhitespace": {
+						"type": "boolean",
+						"default": true,
+						"description": "Trim trailing whitespace from lines during cleanup."
+					},
+					"theToyBox.ignoreTrimWhitespace": {
+						"type": "array",
+						"description": "List of file extensions to skip trailing whitespace trimming (e.g., .md, .txt).",
+						"default": [
+							".md"
+						],
+						"items": {
+							"type": "string"
+						}
+					},
+					"theToyBox.convertSpacesToTabs": {
+						"type": "boolean",
+						"default": true,
+						"description": "Convert leading spaces to tabs during cleanup."
+					},
+					"theToyBox.ignoreTabConversion": {
+						"type": "array",
+						"description": "List of file extensions to ignore when converting spaces to tabs (e.g., .yaml, .json).",
+						"default": [
+							".yaml",
+							".yml",
+							".json"
+						],
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			{
+				"title": "Indent Rainbow",
+				"properties": {
+					"theToyBox.indentRainbow": {
+						"type": "boolean",
+						"default": true,
+						"description": "Display rainbow colors for indentation levels on file load and when editing."
+					},
+					"theToyBox.indentRainbowOpacity": {
+						"type": "number",
+						"default": 10,
+						"minimum": 1,
+						"maximum": 100,
+						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
+					}
+				}
+			},
+			{
+				"title": "Outline",
+				"properties": {
+					"theToyBox.showRegionsInOutline": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Better Outline panel to show #region markers and nested symbols."
+					}
+				}
+			},
+			{
+				"title": "Rename Matching Tags",
+				"properties": {
+					"theToyBox.autoRenameMatchingTags": {
+						"type": "boolean",
+						"default": true,
+						"description": "Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
+					},
+					"theToyBox.performance.maxLinesForTagRename": {
+						"type": "number",
+						"default": 5000,
+						"description": "Maximum file length (in lines) for auto-renaming to be active."
+					},
+					"theToyBox.autoRenameTag.activationOnLanguage": {
+						"type": "array",
+						"description": "List of language IDs where auto tag renaming should be active.",
+						"default": [
+							"html",
+							"xml",
+							"php",
+							"javascript",
+							"javascriptreact",
+							"typescriptreact"
+						],
+						"items": {
+							"type": "string"
+						}
+					},
+					"theToyBox.autoRenameTag.voidElements": {
+						"type": "array",
+						"description": "List of tags that are self-closing and should not be renamed.",
+						"default": [
+							"area",
+							"base",
+							"br",
+							"col",
+							"embed",
+							"hr",
+							"img",
+							"input",
+							"link",
+							"meta",
+							"param",
+							"source",
+							"track",
+							"wbr"
+						],
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			{
+				"title": "Custom Comments",
+				"properties": {
+					"theToyBox.customComments.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable custom comment highlighting."
+					},
+					"theToyBox.customComments.showBackground": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, comments will have a background highlight across the entire line."
+					},
+					"theToyBox.customComments.fullLineHighlight": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, highlighting covers the entire line."
+					},
+					"theToyBox.customComments.colors": {
+						"type": "object",
+						"default": {
+							"!": "#FF4500",
+							"*": "#474747",
+							"?": "#1E90FF",
+							"#": "#32CD32",
+							"@": "#5a69ff",
+							"$": "#911EB4",
+							"%": "#F032E6",
+							"^": "#42D4F4",
+							"&": "#E6194B",
+							"~": "#FFE119"
+						},
+						"description": "Map special characters to hex colors."
+					},
+					"theToyBox.customComments.excludedFileTypes": {
+						"type": "array",
+						"default": [
+							".md"
+						],
+						"description": "List of file extensions to exclude from custom comment highlighting (e.g., .md, .txt).",
+						"items": {
+							"type": "string"
+						}
+					},
+					"theToyBox.customComments.labels": {
+						"type": "object",
+						"default": {
+							"!": "CRITICAL",
+							"?": "QUESTION",
+							"#": "DONE",
+							"*": "NOTE",
+							"@": "REFERENCE",
+							"$": "VARIABLE",
+							"%": "TODO",
+							"^": "URGENT",
+							"&": "WARNING",
+							"~": "TEMPORARY"
+						},
+						"description": "Map symbols to specific label words (e.g., ! -> CRITICAL)."
+					}
+				}
+			},
+			{
+				"title": "Markdown Headings",
+				"properties": {
+					"theToyBox.markdownHeadings.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable heading highlighting in Markdown files."
+					},
+					"theToyBox.markdownHeadings.showBackground": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, headings will have a background color highlight."
+					},
+					"theToyBox.markdownHeadings.fullLineHighlight": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, the background highlight covers the entire line."
+					},
+					"theToyBox.markdownHeadings.colors": {
+						"type": "object",
+						"default": {
+							"h1": "#FF6B6B",
+							"h2": "#FFD93D",
+							"h3": "#6BCB77",
+							"h4": "#4D96FF",
+							"h5": "#C77DFF",
+							"h6": "#FF9A3C"
+						},
+						"description": "Map each heading level (h1–h6) to a hex color."
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"lint": "eslint src",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.10",
+		"@types/node": "22.x",
+		"@types/vscode": "^1.90.0",
+		"@vscode/test-cli": "^0.0.11",
+		"@vscode/test-electron": "^2.5.2",
+		"eslint": "^10.0.2",
+		"markdown-it": "^14.1.1",
+		"markdown-it-container": "^4.0.0",
+		"ts-loader": "^9.2.1",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.56.1",
+		"webpack": "^5.105.3",
+		"webpack-cli": "^4.10.0"
+	}
 }
