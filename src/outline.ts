@@ -201,7 +201,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				const color = headingEnabled ? headingColors[levelKey] : null;
 
 				const item: any = {
-					label: `${"#".repeat(level)} ${match[2].trim()}`,
+					label: match[2].trim(),
 					line: i,
 					isMarkdownHeading: true,
 					headingLevel: level,
@@ -224,7 +224,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				if (stack.length > 0) {
 					const parent = stack[stack.length - 1].item;
 					parent.children.push(item);
-					parent.isRegion = true; // show caret
 				} else {
 					rootHeadings.push(item);
 				}
@@ -659,8 +658,9 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 
 					const hasChildren =
 						item.children && item.children.length > 0;
+					const collapsible = hasChildren && !item.isMarkdownHeading;
 
-					const caret = hasChildren
+					const caret = collapsible
 						? '<span class="caret">▼</span>'
 						: '<span class="caret"></span>';
 
@@ -672,7 +672,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						item.label;
 
 					row.onclick = () => {
-						if (hasChildren) {
+						if (collapsible) {
 							const container =
 								wrapper.querySelector('.children-container');
 							const caretEl =
