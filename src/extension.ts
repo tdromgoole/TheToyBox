@@ -16,6 +16,7 @@ import {
 	extendMarkdownItWithAlerts,
 } from "./markdownPreview";
 import { installJetBrainsMonoNerdFont } from "./fontInstaller";
+import { registerWordFrequency } from "./wordFrequency";
 
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
@@ -33,6 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	registerBetterOutline(context);
 	registerMarkdownPreviewProvider(context);
+	registerWordFrequency(context);
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
@@ -90,6 +92,10 @@ export function activate(context: vscode.ExtensionContext) {
 			// enabled/disabled state takes effect immediately.
 			if (e.affectsConfiguration("theToyBox.markdownPreview")) {
 				vscode.commands.executeCommand("markdown.api.reloadPlugins");
+			}
+
+			if (e.affectsConfiguration("theToyBox.wordFrequency")) {
+				vscode.commands.executeCommand("wordFrequency.refresh");
 			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {

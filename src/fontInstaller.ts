@@ -71,7 +71,7 @@ function downloadFile(
 				);
 			}
 
-			https
+			const req = https
 				.get(
 					requestUrl,
 					{ headers: { "User-Agent": "VSCode-TheToyBox" } },
@@ -130,15 +130,21 @@ function downloadFile(
 					},
 				)
 				.on("error", reject);
+			req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+				req.destroy();
+				reject(new Error("Request timed out"));
+			});
 		}
 
 		doRequest(url);
 	});
 }
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 async function getLatestNerdFontsVersion(): Promise<string> {
 	return new Promise((resolve) => {
-		https
+		const req = https
 			.get(
 				"https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest",
 				{ headers: { "User-Agent": "VSCode-TheToyBox" } },
@@ -161,6 +167,10 @@ async function getLatestNerdFontsVersion(): Promise<string> {
 				},
 			)
 			.on("error", () => resolve("v3.3.0"));
+		req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+			req.destroy();
+			resolve("v3.3.0");
+		});
 	});
 }
 

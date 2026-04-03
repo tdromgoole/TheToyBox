@@ -29,16 +29,33 @@ Most productivity extensions solve one small problem. **The Toy Box solves the s
 
 A dedicated sidebar that provides a deep, hierarchical view of your code with specialized language support and Material Symbols icons.
 
-![Better Outline Panel](images/betterOutline.png)
+![Better Outline Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/betterOutline.png)
 
 - **✔ SQL & PostgreSQL Entity Support**: Automatically identifies and displays **Tables**, **Stored Procedures**, **Functions**, and **Views** with unique icons.
 - **✔ PHP Function Support**: Detects `public`, `private`, `protected`, `static`, and standalone functions and displays them with a dedicated Function icon.
 - **✔ JavaScript / TypeScript Support**: Detects named functions, arrow functions, and ES6 classes. jQuery `.on()` and `.delegate()` handlers are detected and labelled as `selector.Event` or `selector.Event.Delegate` with class/ID icons. Comments inside functions are nested as collapsible children.
+- **✔ CSS / SCSS / Less Support**: Detects element selectors, `.class` selectors, `#id` selectors, custom properties (`--var`), `@media` queries, `@keyframes` blocks, and generic at-rules — each with a distinct icon.
 - **✔ Structural Nesting**: Comments nest under their parent function. Functions with nested comments are collapsible — clicking also jumps to the line.
-- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL, PHP, and JavaScript.
+- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL, PHP, JavaScript, CSS, and SCSS.
 - **✔ SQL & PHP region nesting**: Tables, views, procedures, functions, and PHP functions detected inside a `#region` block are correctly nested under it as collapsible children.
 - **✔ Smart Comment Integration**: Displays comments directly in the outline. Standard comments are cleaned of code prefixes (e.g., `//` is removed) for a professional look.
+- **✔ Highlight on Click**: Briefly flashes the target line using the theme's find-match highlight color when you click an outline item — making it easy to spot where the cursor landed. Toggle with `theToyBox.outline.highlightOnClick`.
+- **✔ Empty State Guidance**: When a file type is unsupported or no language extension is installed, the panel shows a clear "No symbols found" message with a hint rather than a blank panel.
 - **✔ Material Symbols Icons**: All outline icons use Google's Material Symbols font, bundled locally — no internet connection required.
+
+---
+
+## 📊 Word Frequency Panel
+
+A sidebar panel that tallies every unique word and token in the active file and displays them ranked by frequency.
+
+![Word Frequency Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/wordFrequency.png)
+
+- **✔ Frequency Ranking**: All tokens sorted highest-to-lowest so the most-used identifiers surface immediately.
+- **✔ Expandable Occurrences**: Click any row to expand it and see every line number where that word appears as clickable chips — each chip jumps the cursor to that exact line.
+- **✔ Real-Time Filter**: A search box narrows the list as you type. Expanding a row is preserved through filtering.
+- **✔ Auto-Refresh**: The panel updates automatically when you switch files or edit the document.
+- **✔ Enable/Disable**: Toggle the panel on or off via `theToyBox.wordFrequency.enabled`.
 
 ---
 
@@ -46,7 +63,7 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 
 Categorize important notes visually in both the editor and the outline with color-coded comment markers.
 
-![Custom Comment Highlighting](images/customComments.png)
+![Custom Comment Highlighting](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/customComments.png)
 
 - **✔ 10 Trigger Symbols**: `!` `*` `?` `#` `@` `$` `%` `^` `&` `~` — each maps to a distinct color and label (e.g. `!` → **CRITICAL**, `?` → **QUESTION**).
 - **✔ Full-Line Background Highlight**: Optional background color wash across the entire line for instant visual scanning.
@@ -61,7 +78,7 @@ Categorize important notes visually in both the editor and the outline with colo
 
 Adds a subtle pastel background highlight to each indentation level so nesting depth is instantly visible at a glance.
 
-![Indent Rainbow](images/indentRainbow.png)
+![Indent Rainbow](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/indentRainbow.png)
 
 - **✔ Alternating Warm/Cool Palette**: 12 curated pastel tones alternate between warm and cool so adjacent levels are never visually similar.
 - **✔ Adjustable Opacity**: Set the intensity from 1–100% to match your preference (default: 10%).
@@ -75,7 +92,7 @@ Adds a subtle pastel background highlight to each indentation level so nesting d
 
 The built-in VS Code Markdown preview now renders GitHub-style alert callouts with color-coded styling and icons.
 
-![GitHub-Style Markdown Alerts](images/githubStyleAlerts.png)
+![GitHub-Style Markdown Alerts](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/githubStyleAlerts.png)
 
 - **✔ Built-in Preview Integration**: Works directly in the standard Markdown preview (`Ctrl+Shift+V`) — no separate command needed.
 - **✔ Five Alert Types**: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`, each with a distinct color and Material Symbols icon.
@@ -85,13 +102,15 @@ The built-in VS Code Markdown preview now renders GitHub-style alert callouts wi
 - **✔ Custom Webview Preview**: Also available as **"The Toy Box: Open Markdown Preview with Alerts"** for a standalone dark-themed preview panel.
 - **✔ Enable/Disable**: Toggle the entire feature on or off via `theToyBox.markdownPreview.enabled`.
 
+![markdownTask](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/markdownTask.png)
+
 ---
 
 ## 📦 JSON Formatter
 
 Instantly turn messy, single-line JSON strings into perfectly indented, readable code.
 
-![JSON Formatter](images/jsonFormatting.png)
+![JSON Formatter](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/jsonFormatting.png)
 
 - **✔ Smart Parsing**: Validates JSON structure before formatting to prevent data loss.
 - **✔ Tab-Aware**: Automatically uses your editor's current tab/space settings.
@@ -103,7 +122,7 @@ Instantly turn messy, single-line JSON strings into perfectly indented, readable
 
 Align operators across multiple lines perfectly using the least number of tabs possible.
 
-![Smart Code Alignment](images/smartCodeAlignment.png)
+![Smart Code Alignment](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/smartCodeAlignment.png)
 
 - **✔ Multi-Operator Support**: Aligns `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`.
 - **✔ Auto-Detection**: The operator is detected automatically from the selection — more specific operators take priority (e.g. `=>` before `=`). A picker only appears when detection is ambiguous.
@@ -117,7 +136,7 @@ Align operators across multiple lines perfectly using the least number of tabs p
 
 Keeps files consistently formatted every time you save — no manual effort required.
 
-![Auto-Cleanup on Save](images/auto-CleanupOnSave.png)
+![Auto-Cleanup on Save](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/auto-CleanupOnSave.png)
 
 - **✔ Trim Trailing Whitespace**: Removes invisible trailing spaces and tabs from every line.
 - **✔ Convert Spaces to Tabs**: Intelligently converts leading spaces to tabs based on detected indentation width.
@@ -144,7 +163,7 @@ Automatically keeps opening and closing HTML/XML tags in sync as you type.
 
 Get native operator ligatures (`==` → `⩵`, `!=` → `≠`, `=>` → `⇒`, `->` → `→`, and more) with correct cursor placement — no extension hacks needed.
 
-![JetBrainsMono Nerd Font comparison](images/nerdFont.png)
+![JetBrainsMono Nerd Font comparison](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/nerdFont.png)
 
 Run the command **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette to:
 
@@ -164,9 +183,16 @@ All settings are unified under the `theToyBox` namespace.
 
 ### Outline
 
-| Setting                          | Default | Description                              |
-| :------------------------------- | :-----: | :--------------------------------------- |
-| `theToyBox.showRegionsInOutline` | `true`  | Enable/Disable the Better Outline panel. |
+| Setting                              | Default | Description                                                                       |
+| :----------------------------------- | :-----: | :-------------------------------------------------------------------------------- |
+| `theToyBox.showRegionsInOutline`     | `true`  | Enable/Disable the Better Outline panel.                                          |
+| `theToyBox.outline.highlightOnClick` | `true`  | Briefly highlight the navigated line in the editor when clicking an outline item. |
+
+### Word Frequency
+
+| Setting                           | Default | Description                                      |
+| :-------------------------------- | :-----: | :----------------------------------------------- |
+| `theToyBox.wordFrequency.enabled` | `true`  | Enable/Disable the Word Frequency sidebar panel. |
 
 ### Cleanup
 

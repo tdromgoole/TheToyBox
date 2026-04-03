@@ -2,6 +2,15 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.18]
+
+- **New Feature**: **CSS / SCSS / Less Outline** — the Better Outline panel now parses CSS, SCSS, and Less files. Detected constructs include element selectors, `.class` selectors, `#id` selectors, custom properties (`--var`), `@media` queries, `@keyframes` blocks, and generic at-rules. Each has a distinct Material Symbols icon. `#region` / `#endregion` comments create collapsible folders in the same way as all other supported languages.
+- **New Feature**: **Word Frequency Panel** — a new sidebar panel lists every unique word/token in the active file sorted by frequency. Click any row to expand it and reveal clickable line-number chips, each of which jumps the cursor to that exact occurrence. A filter box narrows the list in real time. Toggle with `theToyBox.wordFrequency.enabled`.
+- **Enhancement**: **Better Outline — Highlight on Click** — clicking an outline item now briefly flashes the target line in the editor using the theme's find-match highlight color, making it easy to spot where the cursor landed. Controlled by the new `theToyBox.outline.highlightOnClick` setting (default `true`).
+- **Enhancement**: **Better Outline — Empty State Message** — when a file has no symbols (unsupported language, no language extension installed), the outline now shows a `manage_search` icon and the message "No symbols found — a language extension may be needed" instead of a blank panel.
+- **Security**: **Font Installer — Network Timeout** — the GitHub API call in `getLatestNerdFontsVersion` and the font download request in `downloadFile` now both carry a 10-second socket timeout. Previously a slow or unreachable server would cause the command to hang indefinitely; it now falls back to the bundled version string automatically.
+- **Security**: **Markdown Webview CSP — Removed `script-src 'unsafe-inline'`** — the Content Security Policy for the custom Markdown preview webview contained `script-src 'unsafe-inline'` despite the webview containing no `<script>` tags. The directive has been removed so the CSP is now strictly `default-src 'none'` plus the necessary `style-src` and `font-src` allowances.
+
 ## [0.0.17]
 
 - **New Feature**: **Space-Based Indent Rainbow** — indent rainbow coloring now works for space-indented files (Python, YAML, etc.), not just tab-indented files. Each group of `tabSize` leading spaces is colored as one indentation level, using the editor's own tab size setting.
