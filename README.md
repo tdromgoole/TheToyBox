@@ -33,8 +33,9 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 
 - **✔ SQL & PostgreSQL Entity Support**: Automatically identifies and displays **Tables**, **Stored Procedures**, **Functions**, and **Views** with unique icons.
 - **✔ PHP Function Support**: Detects `public`, `private`, `protected`, `static`, and standalone functions and displays them with a dedicated Function icon.
-- **✔ Structural Nesting**: Comments, variables, and inner functions nest under their parent class/function.
-- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL and PHP.
+- **✔ JavaScript / TypeScript Support**: Detects named functions, arrow functions, and ES6 classes. jQuery `.on()` and `.delegate()` handlers are detected and labelled as `selector.Event` or `selector.Event.Delegate` with class/ID icons. Comments inside functions are nested as collapsible children.
+- **✔ Structural Nesting**: Comments nest under their parent function. Functions with nested comments are collapsible — clicking also jumps to the line.
+- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL, PHP, and JavaScript.
 - **✔ SQL & PHP region nesting**: Tables, views, procedures, functions, and PHP functions detected inside a `#region` block are correctly nested under it as collapsible children.
 - **✔ Smart Comment Integration**: Displays comments directly in the outline. Standard comments are cleaned of code prefixes (e.g., `//` is removed) for a professional look.
 - **✔ Material Symbols Icons**: All outline icons use Google's Material Symbols font, bundled locally — no internet connection required.
@@ -64,7 +65,8 @@ Adds a subtle pastel background highlight to each indentation level so nesting d
 
 - **✔ Alternating Warm/Cool Palette**: 12 curated pastel tones alternate between warm and cool so adjacent levels are never visually similar.
 - **✔ Adjustable Opacity**: Set the intensity from 1–100% to match your preference (default: 10%).
-- **✔ Tab-Level Aware**: Highlights are applied per tab stop so mixed-indent files display correctly.
+- **✔ Tab & Space Support**: Highlights work for both tab-indented and space-indented files (Python, YAML, etc.). Space levels are grouped by the editor's tab size setting.
+- **✔ Custom Color Palette**: Override the built-in colors with your own hex values via `theToyBox.indentRainbowColors`. Leave the setting empty to revert to the default pastel palette.
 - **✔ Enable/Disable**: Toggle on or off without restarting VS Code.
 
 ---
@@ -99,11 +101,13 @@ Instantly turn messy, single-line JSON strings into perfectly indented, readable
 
 ## 📏 Smart Code Alignment
 
-Align assignment operators (`=`) across multiple lines perfectly using the least amount of tabs possible.
+Align operators across multiple lines perfectly using the least number of tabs possible.
 
 ![Smart Code Alignment](images/smartCodeAlignment.png)
 
-- **✔ Indentation Aware**: Correctly calculates visual width so that `=` symbols align even when lines are at different indentation levels.
+- **✔ Multi-Operator Support**: Aligns `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`.
+- **✔ Auto-Detection**: The operator is detected automatically from the selection — more specific operators take priority (e.g. `=>` before `=`). A picker only appears when detection is ambiguous.
+- **✔ Indentation Aware**: Correctly calculates visual width so operators align even across lines at different indentation levels.
 - **✔ Tab-Based**: Uses your editor's specific tab size to calculate the perfect visual gutter.
 - **✔ Selection-Scoped**: Only aligns the lines you select — the rest of the file is untouched.
 
@@ -176,10 +180,11 @@ All settings are unified under the `theToyBox` namespace.
 
 ### Indent Rainbow
 
-| Setting                          | Default | Description                                       |
-| :------------------------------- | :-----: | :------------------------------------------------ |
-| `theToyBox.indentRainbow`        | `true`  | Enable/Disable rainbow indent guides.             |
-| `theToyBox.indentRainbowOpacity` |  `10`   | Opacity of indent colors as a percentage (1–100). |
+| Setting                          | Default | Description                                                                            |
+| :------------------------------- | :-----: | :------------------------------------------------------------------------------------- |
+| `theToyBox.indentRainbow`        | `true`  | Enable/Disable rainbow indent guides.                                                  |
+| `theToyBox.indentRainbowOpacity` |  `10`   | Opacity of indent colors as a percentage (1–100).                                      |
+| `theToyBox.indentRainbowColors`  |  `[]`   | Custom hex color palette (e.g. `["#FF6B6B","#FFD93D"]`). Empty = use built-in pastels. |
 
 ### Rename Matching Tags
 

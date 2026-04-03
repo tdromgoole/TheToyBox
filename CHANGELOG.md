@@ -2,6 +2,24 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.17]
+
+- **New Feature**: **Space-Based Indent Rainbow** — indent rainbow coloring now works for space-indented files (Python, YAML, etc.), not just tab-indented files. Each group of `tabSize` leading spaces is colored as one indentation level, using the editor's own tab size setting.
+- **New Feature**: **Configurable Indent Rainbow Colors** — added `theToyBox.indentRainbowColors` setting. Provide a custom `string[]` of hex colors (e.g. `["#FF6B6B", "#FFD93D"]`) to replace the built-in pastel palette. Leave empty to keep the default colors. Changes apply in real time.
+- **New Feature**: **Multi-Operator Code Alignment** — the "Align with Tabs" command now supports five operators: `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`. The operator is **auto-detected** from the selection (more specific operators take priority, e.g. `=>` before `=`), so no picker appears for unambiguous selections. A QuickPick fallback is shown only when no operator is found.
+- **New Feature**: **JavaScript / TypeScript Outline Specialization** — the Better Outline panel now detects JS/TS-specific constructs:
+    - Named `function` declarations
+    - Arrow function expressions (`const foo = () =>`)
+    - ES6 `class` declarations (TypeScript/TSX only)
+    - jQuery `.on()` event handlers — displayed as `selector.Event` with a class or ID icon
+    - jQuery `.delegate()` event handlers — displayed as `selector.Event.Delegate`
+- **New Feature**: **JavaScript Outline — Comments Nested Inside Functions** — custom comments found within a function or jQuery handler body are now displayed as indented children of that function in the outline panel. The function item becomes collapsible.
+- **Enhancement**: **Better Outline — Clicking Any Item Navigates to Its Line** — collapsible items (functions, regions, etc.) now both toggle their children AND jump to the line in the editor on click. Previously, clicking a collapsible item only toggled expand/collapse.
+- **Enhancement**: **Better Outline — JS Files Show Only Functions, jQuery Handlers, and Comments** — language server symbols (variables, imports, etc.) are suppressed in `.js`/`.jsx` files to reduce noise. TypeScript files retain full language server output.
+- **Bug Fix**: **Better Outline — Correct Icon for Functions With Nested Comments** — when a JS function gained nested comments, `isRegion` was set to `true`, causing `getIcon()` to return a folder icon before reaching the `tsJsType` checks. Specific type checks (`tsJsType`, `phpType`, `sqlType`) now take priority over the generic region folder fallback.
+- **Bug Fix**: **Better Outline — JS Functions No Longer Hidden After LS Enrichment** — the language server enrichment step was calling `claimedLines.add(item.line)` for every JS function it matched. Since the final assembly filters with `!claimedLines.has(t.line)`, this caused many functions to be silently removed. For JS files, `claimedLines` is no longer modified during enrichment.
+- **Bug Fix**: **Better Outline — JS Function Children Limited to Comments Only** — LS symbol children (methods, inner variables) are no longer pushed into JS function items. Only comments detected in step 5 appear as children.
+
 ## [0.0.16]
 
 - **New Feature**: **Install JetBrainsMono Nerd Font** — new command **"The Toy Box: Install JetBrainsMono Nerd Font"** downloads the latest release from the official Nerd Fonts GitHub repository, installs fonts to the per-user fonts folder (no admin rights required), and optionally updates `editor.fontFamily`, `editor.fontLigatures`, and `terminal.integrated.fontFamily` with your confirmation. Works on Windows, macOS, and Linux.

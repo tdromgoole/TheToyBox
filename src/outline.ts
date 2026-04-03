@@ -1,5 +1,34 @@
 ﻿import * as vscode from "vscode";
 
+const debugOut = vscode.window.createOutputChannel("Toy Box – Outline Debug");
+
+/**
+ * Starting from the line where a jQuery handler is detected, scan forward
+ * counting braces to find the line of the closing `});`.
+ */
+function findJqueryHandlerEnd(
+	document: vscode.TextDocument,
+	startLine: number,
+): number {
+	let depth = 0;
+	let started = false;
+	for (let i = startLine; i < document.lineCount; i++) {
+		const text = document.lineAt(i).text;
+		for (const ch of text) {
+			if (ch === "{") {
+				depth++;
+				started = true;
+			} else if (ch === "}" && started) {
+				depth--;
+				if (depth === 0) {
+					return i;
+				}
+			}
+		}
+	}
+	return document.lineCount - 1;
+}
+
 export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = "betterOutlineView";
 
@@ -170,6 +199,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 		const allComments: any[] = [];
 		const sqlEntities: any[] = [];
 		const phpFunctions: any[] = [];
+		const tsJsItems: any[] = [];
 
 		const lang = document.languageId.toLowerCase();
 		const isSqlFile = ["sql", "postgresql", "mssql", "postgres"].includes(
@@ -177,6 +207,17 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 		);
 		const isPhpFile = lang === "php";
 		const isMarkdownFile = lang === "markdown";
+		const isTsJsFile = [
+			"javascript",
+			"typescript",
+			"javascriptreact",
+			"typescriptreact",
+		].includes(lang);
+		const isJsFile = ["javascript", "javascriptreact"].includes(lang);
+
+		debugOut.appendLine(
+			`[Outline] lang=${lang} isTsJsFile=${isTsJsFile} lines=${document.lineCount}`,
+		);
 
 		// 2a. Markdown: parse headings into a nested tree
 		if (isMarkdownFile) {
@@ -257,6 +298,113 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						label: phpFuncMatch[2] + "()",
 						line: i,
 						phpType: "function",
+						isRegion: false,
+						children: [],
+					});
+					continue;
+				}
+			}
+
+			// --- TypeScript / JavaScript Detection ---
+			if (isTsJsFile) {
+				// Classes: TS only — JS outline is limited to functions, jQuery events, and comments
+				if (!isJsFile) {
+					const classMatch = text.match(
+						/^\s*(?:export\s+(?:default\s+)?)?(?:abstract\s+)?class\s+(\w+)/,
+					);
+					if (classMatch) {
+						tsJsItems.push({
+							label: classMatch[1],
+							line: i,
+							tsJsType: "class",
+							isRegion: false,
+							children: [],
+						});
+						continue;
+					}
+				}
+
+				const funcMatch = text.match(
+					/^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/,
+				);
+				if (funcMatch) {
+					tsJsItems.push({
+						label: funcMatch[1] + "()",
+						line: i,
+						tsJsType: "function",
+						isRegion: false,
+						children: [],
+					});
+					continue;
+				}
+
+				const arrowMatch = text.match(
+					/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>/,
+				);
+				if (arrowMatch) {
+					tsJsItems.push({
+						label: arrowMatch[1] + "()",
+						line: i,
+						tsJsType: "arrowFunction",
+						isRegion: false,
+						children: [],
+					});
+					continue;
+				}
+
+				// jQuery .on() — $("#id").on("event", fn) or $(".cls").on("event", fn)
+				const jqOnMatch = text.match(
+					/\$\(["']([.#][\w-]+)["']\)\.on\(["'](\w+)["']\s*,\s*function/,
+				);
+				if (text.includes(".on(") || text.includes(".delegate(")) {
+					debugOut.appendLine(
+						`[jQuery] line ${i}: ${text.trimStart()}`,
+					);
+					debugOut.appendLine(
+						`  .on() match: ${JSON.stringify(jqOnMatch)}`,
+					);
+				}
+				if (jqOnMatch) {
+					const raw = jqOnMatch[1];
+					const isId = raw.startsWith("#");
+					const name = raw.slice(1);
+					const event =
+						jqOnMatch[2].charAt(0).toUpperCase() +
+						jqOnMatch[2].slice(1);
+					tsJsItems.push({
+						label: `${name}.${event}`,
+						line: i,
+						endLine: findJqueryHandlerEnd(document, i),
+						tsJsType: "jqueryEvent",
+						jquerySelector: isId ? "id" : "class",
+						isRegion: false,
+						children: [],
+					});
+					continue;
+				}
+
+				// jQuery .delegate() — $(...).delegate(".cls", "event", fn) or $(...).delegate("#id", "event", fn)
+				const jqDelegateMatch = text.match(
+					/\.delegate\(["']([.#][\w-]+)["']\s*,\s*["'](\w+)["']\s*,\s*function/,
+				);
+				if (text.includes(".delegate(")) {
+					debugOut.appendLine(
+						`  .delegate() match: ${JSON.stringify(jqDelegateMatch)}`,
+					);
+				}
+				if (jqDelegateMatch) {
+					const raw = jqDelegateMatch[1];
+					const isId = raw.startsWith("#");
+					const name = raw.slice(1);
+					const event =
+						jqDelegateMatch[2].charAt(0).toUpperCase() +
+						jqDelegateMatch[2].slice(1);
+					tsJsItems.push({
+						label: `${name}.${event}.Delegate`,
+						line: i,
+						endLine: findJqueryHandlerEnd(document, i),
+						tsJsType: "jqueryEvent",
+						jquerySelector: isId ? "id" : "class",
 						isRegion: false,
 						children: [],
 					});
@@ -475,6 +623,40 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			});
 		};
 
+		// 3b. Enrich TS/JS items with children from the language server symbol tree
+		debugOut.appendLine(
+			`[Outline] tsJsItems after pass 1: ${JSON.stringify(tsJsItems.map((t) => ({ label: t.label, line: t.line, type: t.tsJsType })))}`,
+		);
+		debugOut.appendLine(
+			`[Outline] claimedLines before enrichment: ${JSON.stringify([...claimedLines])}`,
+		);
+		// jQuery events are excluded — they have no meaningful LS children and
+		// enrichment would accidentally claim their own line, hiding them from the output.
+		if (isTsJsFile) {
+			for (const item of tsJsItems) {
+				if (item.tsJsType === "jqueryEvent") {
+					continue;
+				}
+				const matchingSym = symbols.find(
+					(s) => Math.abs(s.range.start.line - item.line) <= 1,
+				);
+				if (matchingSym) {
+					item.endLine = matchingSym.range.end.line;
+					// JS files: only use the LS symbol for endLine — no children,
+					// no claimed lines. Comments are nested separately in step 5.
+					if (!isJsFile) {
+						claimedLines.add(matchingSym.range.start.line);
+						if (matchingSym.children?.length) {
+							item.children.push(
+								...nestContent(matchingSym.children),
+							);
+							item.isRegion = true;
+						}
+					}
+				}
+			}
+		}
+
 		// 4. Pass 2: #region Marker Hierarchy
 		for (let i = 0; i < document.lineCount; i++) {
 			const text = document.lineAt(i).text.trim();
@@ -524,6 +706,15 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				internalPhpFunctions.forEach((f) => claimedLines.add(f.line));
 				region.children.push(...internalPhpFunctions);
 
+				const internalTsJsItems = tsJsItems.filter(
+					(t) =>
+						t.line > region.line &&
+						t.line < i &&
+						!claimedLines.has(t.line),
+				);
+				internalTsJsItems.forEach((t) => claimedLines.add(t.line));
+				region.children.push(...internalTsJsItems);
+
 				const internalComments = allComments.filter(
 					(c) =>
 						c.line > region.line &&
@@ -548,11 +739,39 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 		const standaloneSymbols = symbols.filter(
 			(s) => !claimedLines.has(s.range.start.line),
 		);
+
+		// For JS files: nest unclaimed comments inside their containing function
+		if (isJsFile) {
+			const jsFunctions = tsJsItems.filter(
+				(t) =>
+					(t.tsJsType === "function" ||
+						t.tsJsType === "arrowFunction" ||
+						t.tsJsType === "jqueryEvent") &&
+					!claimedLines.has(t.line),
+			);
+			for (const fn of jsFunctions) {
+				const fnEnd = fn.endLine ?? document.lineCount;
+				const nested = allComments.filter(
+					(c) =>
+						!claimedLines.has(c.line) &&
+						c.line > fn.line &&
+						c.line <= fnEnd,
+				);
+				if (nested.length > 0) {
+					nested.forEach((c) => claimedLines.add(c.line));
+					fn.children.push(...nested);
+					fn.children.sort((a: any, b: any) => a.line - b.line);
+					fn.isRegion = true;
+				}
+			}
+		}
+
 		return [
 			...rootItems,
 			...sqlEntities.filter((e) => !claimedLines.has(e.line)),
 			...phpFunctions.filter((f) => !claimedLines.has(f.line)),
-			...nestContent(standaloneSymbols),
+			...tsJsItems.filter((t) => !claimedLines.has(t.line)),
+			...(isJsFile ? [] : nestContent(standaloneSymbols)),
 			...allComments.filter((c) => !claimedLines.has(c.line)),
 		].sort((a, b) => a.line - b.line);
 	}
@@ -651,10 +870,16 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			function getIcon(item) {
 				if (item.isMarkdownHeading) return '<span class="material-symbols-outlined">title</span>';
 				if (item.isComment) return '<span class="material-symbols-outlined">comment</span>';
-				if (item.isRegion && !item.kind) return '<span class="material-symbols-outlined">folder</span>';
 
 				// Custom PHP types
 				if (item.phpType === 'function') return '<span class="material-symbols-outlined">functions</span>';
+
+				// Custom TS/JS types
+				if (item.tsJsType === 'class') return '<span class="material-symbols-outlined">category</span>';
+				if (item.tsJsType === 'function') return '<span class="material-symbols-outlined">functions</span>';
+				if (item.tsJsType === 'arrowFunction') return '<span class="material-symbols-outlined">arrow_forward</span>';
+				if (item.tsJsType === 'jqueryEvent' && item.jquerySelector === 'id') return '<span class="material-symbols-outlined">tag</span>';
+				if (item.tsJsType === 'jqueryEvent' && item.jquerySelector === 'class') return '<span class="material-symbols-outlined">label</span>';
 
 				// Custom SQL types
 				if (item.sqlType === 'table') return '<span class="material-symbols-outlined">table_chart</span>';
@@ -662,11 +887,17 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				if (item.sqlType === 'function') return '<span class="material-symbols-outlined">functions</span>';
 				if (item.sqlType === 'view') return '<span class="material-symbols-outlined">visibility</span>';
 
+				if (item.isRegion && !item.kind) return '<span class="material-symbols-outlined">folder</span>';
+
 				switch(item.kind) {
-					case 4: return '<span class="material-symbols-outlined">school</span>'; // Class
-					case 5: return '<span class="material-symbols-outlined">settings</span>'; // Method
-					case 11: return '<span class="material-symbols-outlined">folder</span>'; // Module
-					case 12: return '<span class="material-symbols-outlined">diamond</span>'; // Property
+					case 4:  return '<span class="material-symbols-outlined">category</span>';    // Class
+					case 5:  return '<span class="material-symbols-outlined">settings</span>';    // Method
+					case 6:  return '<span class="material-symbols-outlined">tune</span>';        // Property
+					case 8:  return '<span class="material-symbols-outlined">build</span>';       // Constructor
+					case 10: return '<span class="material-symbols-outlined">layers</span>';      // Interface
+					case 11: return '<span class="material-symbols-outlined">functions</span>';   // Function
+					case 12: return '<span class="material-symbols-outlined">data_object</span>'; // Variable
+					case 13: return '<span class="material-symbols-outlined">lock</span>';        // Constant
 					default: return '<span class="material-symbols-outlined">circle</span>';
 				}
 			}
@@ -713,7 +944,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 
 							container.classList.toggle('collapsed');
 							caretEl.classList.toggle('collapsed-caret');
-							return;
 						}
 
 						vscode.postMessage({

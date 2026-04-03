@@ -9,7 +9,7 @@ import {
 	updateMarkdownHeadings,
 } from "./markdownHeadings";
 import { registerBetterOutline } from "./outline";
-import { alignEqualsWithTabs } from "./alignCode";
+import { alignWithTabs } from "./alignCode";
 import { formatSelectedJson } from "./jsonFormatter";
 import {
 	registerMarkdownPreviewProvider,
@@ -59,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
 			// Watch for Indent Rainbow toggle or color changes
 			if (
 				e.affectsConfiguration("theToyBox.indentRainbow") ||
-				e.affectsConfiguration("theToyBox.indentRainbowOpacity")
+				e.affectsConfiguration("theToyBox.indentRainbowOpacity") ||
+				e.affectsConfiguration("theToyBox.indentRainbowColors")
 			) {
 				refreshIndentRainbow(); // Rebuild or Dispose the styles
 				triggerVisualUpdates();
@@ -92,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
-			alignEqualsWithTabs();
+			alignWithTabs();
 		}),
 		vscode.commands.registerCommand("theToyBox.formatJson", () => {
 			formatSelectedJson();

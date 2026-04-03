@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.16",
+	"version": "0.0.17",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -58,7 +58,7 @@
 		"commands": [
 			{
 				"command": "theToyBox.alignEquals",
-				"title": "The Toy Box: Align Equals with Tabs"
+				"title": "The Toy Box: Align with Tabs"
 			},
 			{
 				"command": "betterOutline.collapseAll",
@@ -232,6 +232,15 @@
 						"minimum": 1,
 						"maximum": 100,
 						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
+					},
+					"theToyBox.indentRainbowColors": {
+						"type": "array",
+						"default": [],
+						"description": "Custom color palette for indent rainbow levels (hex strings, e.g. \"#FFB3B3\"). Leave empty to use the built-in pastel palette.",
+						"items": {
+							"type": "string",
+							"pattern": "^#[0-9A-Fa-f]{6}$"
+						}
 					}
 				}
 			},
