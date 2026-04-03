@@ -41,7 +41,11 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 		// Sync selection highlight (debounced lightly)
 		let selectionTimeout: NodeJS.Timeout | undefined;
 
-		this._context.subscriptions.push(
+		// Use a per-view disposable array so listeners are cleaned up if the
+		// webview is torn down and resolveWebviewView is called again.
+		const viewDisposables: vscode.Disposable[] = [];
+
+		viewDisposables.push(
 			vscode.window.onDidChangeTextEditorSelection((e) => {
 				if (!this._view?.visible) {
 					return;
@@ -64,9 +68,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 					});
 				}, 100);
 			}),
-		);
-
-		this._context.subscriptions.push(
 			vscode.window.onDidChangeActiveTextEditor(() =>
 				this.scheduleUpdate(),
 			),
@@ -76,6 +77,10 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				}
 			}),
 		);
+
+		webviewView.onDidDispose(() => {
+			viewDisposables.forEach((d) => d.dispose());
+		});
 
 		this.scheduleUpdate();
 	}
@@ -181,7 +186,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			const headingEnabled = headingConfig.get<boolean>("enabled", true);
 			const headingColors =
 				headingConfig.get<{ [key: string]: string }>("colors") || {};
-			const showBackground = headingConfig.get<boolean>(
+			const headingShowBackground = headingConfig.get<boolean>(
 				"showBackground",
 				true,
 			);
@@ -207,7 +212,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 					headingLevel: level,
 					color: color || null,
 					backgroundColor:
-						color && showBackground ? color + "33" : null,
+						color && headingShowBackground ? color + "33" : null,
 					isBold: level === 1,
 					isRegion: false,
 					children: [],
@@ -312,30 +317,42 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				}
 			}
 
-			// --- Comment Scanning with String-Safe Logic ---
+			// --- Comment Scanning with String-Safe Logic (O(n) flag-based) ---
 			let foundPrefix: string | undefined;
 			let prefixIndex = -1;
 
+			let inSingle = false;
+			let inDouble = false;
+			let hasNonWhitespaceBefore = false;
 			for (let charIdx = 0; charIdx < text.length; charIdx++) {
-				const textBefore = text.substring(0, charIdx);
-				const trimmedBefore = textBefore.trim();
+				const ch = text[charIdx];
 
-				// Toggle-based string scanner fix
-				const isInsideSingle =
-					(textBefore.split("'").length - 1) % 2 !== 0;
-				const isInsideDouble =
-					(textBefore.split('"').length - 1) % 2 !== 0;
-				if (isInsideSingle || isInsideDouble) {
+				// Track closing of open string literals
+				if (inDouble) {
+					if (ch === '"') {
+						inDouble = false;
+					}
+					continue;
+				}
+				if (inSingle) {
+					if (ch === "'") {
+						inSingle = false;
+					}
 					continue;
 				}
 
+				// Outside any string: check for a comment prefix
 				const currentPrefix = commentPrefixes.find((p) =>
 					text.startsWith(p, charIdx),
 				);
 				if (currentPrefix) {
 					// Strict check for SQL ' and # (must start the line)
 					if (currentPrefix === "'" || currentPrefix === "#") {
-						if (trimmedBefore.length > 0) {
+						if (hasNonWhitespaceBefore) {
+							// Rejected as comment; ' can still open a string
+							if (ch === "'") {
+								inSingle = true;
+							}
 							continue;
 						}
 						const after = text.substring(charIdx + 1);
@@ -345,12 +362,28 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 							) &&
 							!after.startsWith(" ")
 						) {
+							// Rejected as comment; ' can still open a string
+							if (ch === "'") {
+								inSingle = true;
+								hasNonWhitespaceBefore = true;
+							}
 							continue;
 						}
 					}
 					prefixIndex = charIdx;
 					foundPrefix = currentPrefix;
 					break;
+				}
+
+				// Track string openings and non-whitespace
+				if (ch === '"') {
+					inDouble = true;
+					hasNonWhitespaceBefore = true;
+				} else if (ch === "'") {
+					inSingle = true;
+					hasNonWhitespaceBefore = true;
+				} else if (ch !== " " && ch !== "\t") {
+					hasNonWhitespaceBefore = true;
 				}
 			}
 

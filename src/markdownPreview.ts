@@ -143,9 +143,9 @@ class CustomMarkdownPreviewProvider {
 			const line = lines[i];
 			const trimmed = line.trim();
 
-			if (trimmed.startsWith("> [!")) {
+			if (trimmed.startsWith("> [!") || trimmed.startsWith(">[!")) {
 				const match = trimmed.match(
-					/> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?/i,
+					/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?/i,
 				);
 				if (match) {
 					alertType = match[1].toLowerCase();
@@ -195,7 +195,7 @@ class CustomMarkdownPreviewProvider {
 			}
 		}
 
-		if (inBlockquote && blockquoteContent) {
+		if (inBlockquote) {
 			result += this.formatAlert(
 				alertType,
 				blockquoteContent.trim(),
@@ -256,7 +256,7 @@ class CustomMarkdownPreviewProvider {
 		markdown = markdown
 			.split("\n\n")
 			.map((para) => {
-				if (!para.match(/^<[h|p|d]/)) {
+				if (!para.match(/^<(?:h[1-6]|p|pre|div)/)) {
 					return `<p>${para}</p>`;
 				}
 				return para;

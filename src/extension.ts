@@ -1,7 +1,7 @@
 ﻿import * as vscode from "vscode";
 import { updateDecorations, initDecorations } from "./decorations";
 import { refreshIndentRainbow, updateIndentRainbow } from "./indentRainbow";
-import { registerAutoTagRenaming } from "./tagRenaming";
+import { registerAutoTagRenaming, refreshTagRenaming } from "./tagRenaming";
 import { registerCleanupCommand, registerSaveListener } from "./cleanup";
 import { refreshComments, updateComments } from "./customComments";
 import {
@@ -15,6 +15,7 @@ import {
 	registerMarkdownPreviewProvider,
 	extendMarkdownItWithAlerts,
 } from "./markdownPreview";
+import { installJetBrainsMonoNerdFont } from "./fontInstaller";
 
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
@@ -76,14 +77,18 @@ export function activate(context: vscode.ExtensionContext) {
 				triggerVisualUpdates();
 			}
 
-			// Watch for Tag Renaming master toggle or language list
+			// Watch for Tag Renaming void elements list
 			if (
-				e.affectsConfiguration("theToyBox.autoRenameMatchingTags") ||
-				e.affectsConfiguration(
-					"theToyBox.autoRenameTag.activationOnLanguage",
-				)
+				e.affectsConfiguration("theToyBox.autoRenameTag.voidElements")
 			) {
-				// No refresh needed for tags, they check config on-the-fly in tagRenaming.ts
+				refreshTagRenaming();
+			}
+
+			// Watch for Markdown Preview enabled toggle — tell the built-in
+			// markdown preview to re-run all markdown-it plugins so the new
+			// enabled/disabled state takes effect immediately.
+			if (e.affectsConfiguration("theToyBox.markdownPreview")) {
+				vscode.commands.executeCommand("markdown.api.reloadPlugins");
 			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
@@ -92,6 +97,12 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand("theToyBox.formatJson", () => {
 			formatSelectedJson();
 		}),
+		vscode.commands.registerCommand(
+			"theToyBox.installJetBrainsMonoNerdFont",
+			() => {
+				installJetBrainsMonoNerdFont();
+			},
+		),
 	);
 
 	let updateTimeout: NodeJS.Timeout | undefined;

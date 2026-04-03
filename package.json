@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -81,6 +81,10 @@
 			{
 				"command": "theToyBox.openMarkdownPreview",
 				"title": "The Toy Box: Open Markdown Preview with Alerts"
+			},
+			{
+				"command": "theToyBox.installJetBrainsMonoNerdFont",
+				"title": "The Toy Box: Install JetBrainsMono Nerd Font"
 			}
 		],
 		"menus": {
@@ -110,16 +114,6 @@
 			]
 		},
 		"configuration": [
-			{
-				"title": "Markdown Preview",
-				"properties": {
-					"theToyBox.markdownPreview.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable or disable the Markdown Preview with Alerts command."
-					}
-				}
-			},
 			{
 				"title": "Cleanup",
 				"properties": {
@@ -155,86 +149,6 @@
 							".yaml",
 							".yml",
 							".json"
-						],
-						"items": {
-							"type": "string"
-						}
-					}
-				}
-			},
-			{
-				"title": "Indent Rainbow",
-				"properties": {
-					"theToyBox.indentRainbow": {
-						"type": "boolean",
-						"default": true,
-						"description": "Display rainbow colors for indentation levels on file load and when editing."
-					},
-					"theToyBox.indentRainbowOpacity": {
-						"type": "number",
-						"default": 10,
-						"minimum": 1,
-						"maximum": 100,
-						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
-					}
-				}
-			},
-			{
-				"title": "Outline",
-				"properties": {
-					"theToyBox.showRegionsInOutline": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable the Better Outline panel to show #region markers and nested symbols."
-					}
-				}
-			},
-			{
-				"title": "Rename Matching Tags",
-				"properties": {
-					"theToyBox.autoRenameMatchingTags": {
-						"type": "boolean",
-						"default": true,
-						"description": "Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
-					},
-					"theToyBox.performance.maxLinesForTagRename": {
-						"type": "number",
-						"default": 5000,
-						"description": "Maximum file length (in lines) for auto-renaming to be active."
-					},
-					"theToyBox.autoRenameTag.activationOnLanguage": {
-						"type": "array",
-						"description": "List of language IDs where auto tag renaming should be active.",
-						"default": [
-							"html",
-							"xml",
-							"php",
-							"javascript",
-							"javascriptreact",
-							"typescriptreact"
-						],
-						"items": {
-							"type": "string"
-						}
-					},
-					"theToyBox.autoRenameTag.voidElements": {
-						"type": "array",
-						"description": "List of tags that are self-closing and should not be renamed.",
-						"default": [
-							"area",
-							"base",
-							"br",
-							"col",
-							"embed",
-							"hr",
-							"img",
-							"input",
-							"link",
-							"meta",
-							"param",
-							"source",
-							"track",
-							"wbr"
 						],
 						"items": {
 							"type": "string"
@@ -305,6 +219,23 @@
 				}
 			},
 			{
+				"title": "Indent Rainbow",
+				"properties": {
+					"theToyBox.indentRainbow": {
+						"type": "boolean",
+						"default": true,
+						"description": "Display rainbow colors for indentation levels on file load and when editing."
+					},
+					"theToyBox.indentRainbowOpacity": {
+						"type": "number",
+						"default": 10,
+						"minimum": 1,
+						"maximum": 100,
+						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
+					}
+				}
+			},
+			{
 				"title": "Markdown Headings",
 				"properties": {
 					"theToyBox.markdownHeadings.enabled": {
@@ -333,6 +264,79 @@
 							"h6": "#FF9A3C"
 						},
 						"description": "Map each heading level (h1–h6) to a hex color."
+					}
+				}
+			},
+			{
+				"title": "Markdown Preview",
+				"properties": {
+					"theToyBox.markdownPreview.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Markdown Preview with Alerts command."
+					}
+				}
+			},
+			{
+				"title": "Outline",
+				"properties": {
+					"theToyBox.showRegionsInOutline": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Better Outline panel to show #region markers and nested symbols."
+					}
+				}
+			},
+			{
+				"title": "Rename Matching Tags",
+				"properties": {
+					"theToyBox.autoRenameMatchingTags": {
+						"type": "boolean",
+						"default": true,
+						"description": "Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
+					},
+					"theToyBox.performance.maxLinesForTagRename": {
+						"type": "number",
+						"default": 5000,
+						"description": "Maximum file length (in lines) for auto-renaming to be active."
+					},
+					"theToyBox.autoRenameTag.activationOnLanguage": {
+						"type": "array",
+						"description": "List of language IDs where auto tag renaming should be active.",
+						"default": [
+							"html",
+							"xml",
+							"php",
+							"javascript",
+							"javascriptreact",
+							"typescriptreact"
+						],
+						"items": {
+							"type": "string"
+						}
+					},
+					"theToyBox.autoRenameTag.voidElements": {
+						"type": "array",
+						"description": "List of tags that are self-closing and should not be renamed.",
+						"default": [
+							"area",
+							"base",
+							"br",
+							"col",
+							"embed",
+							"hr",
+							"img",
+							"input",
+							"link",
+							"meta",
+							"param",
+							"source",
+							"track",
+							"wbr"
+						],
+						"items": {
+							"type": "string"
+						}
 					}
 				}
 			}
