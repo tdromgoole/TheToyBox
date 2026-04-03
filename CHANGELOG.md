@@ -2,6 +2,20 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.16]
+
+- **New Feature**: **Install JetBrainsMono Nerd Font** — new command **"The Toy Box: Install JetBrainsMono Nerd Font"** downloads the latest release from the official Nerd Fonts GitHub repository, installs fonts to the per-user fonts folder (no admin rights required), and optionally updates `editor.fontFamily`, `editor.fontLigatures`, and `terminal.integrated.fontFamily` with your confirmation. Works on Windows, macOS, and Linux.
+- **Bug Fix**: **Auto Rename Tag — `maxLinesForTagRename` setting now enforced** — the performance guard was declared in `package.json` but never read at runtime, so large files were always processed. The setting is now checked before each rename pass.
+- **Bug Fix**: **Auto Rename Tag — void elements `Set` no longer rebuilt on every keystroke** — `voidElements` was reconstructed from config inside the hot rename handler. It is now cached at activation and rebuilt only when the `theToyBox.autoRenameTag.voidElements` setting changes.
+- **Bug Fix**: **Better Outline — panel toggle no longer leaks event listeners** — `onDidChangeActiveTextEditor`, `onDidChangeTextDocument`, and selection listeners created in `resolveWebviewView` were accumulated each time the panel was closed and reopened. Each view instance now tracks its own disposables and cleans them up via `onDidDispose`.
+- **Bug Fix**: **Better Outline — `showBackground` variable shadowing fixed** — the `showBackground` variable declared in the outer decorator scope was shadowed by a re-declaration inside the markdown heading block, causing heading background settings to be ignored.
+- **Bug Fix**: **Markdown Preview — inline-content regex corrected** — the tag-matching regex `/^<[h|p|d]/` was a character class that incorrectly matched `|` and `d` instead of heading/paragraph/div tags. Corrected to `/^<(?:h[1-6]|p|pre|div)/`.
+- **Bug Fix**: **Markdown Preview — `>[!NOTE]` without a space now recognized** — the alert parser required a space after `>` (e.g. `> [!NOTE]`). Both formats (`> [!NOTE]` and `>[!NOTE]`) are now accepted.
+- **Bug Fix**: **Markdown Preview — end-of-file alert with no body no longer silently dropped** — an alert block at the very end of a file with no body lines was discarded. The flush now runs unconditionally when an alert is open.
+- **Bug Fix**: **Markdown Preview — `theToyBox.markdownPreview.enabled` setting now applies immediately** — changing the setting previously required a window reload. The config change watcher now calls `markdown.api.reloadPlugins` so the built-in preview updates in real time.
+- **Enhancement**: **Custom Comments — file extension detection hardened** — switched from a fragile `.split(".").pop()` pattern to `path.extname()`, which correctly handles dotfiles and multi-segment filenames.
+- **Enhancement**: **Custom Comments & Better Outline — O(n²) quote scanner replaced** — the SQL/PHP string-boundary scanner used repeated `substring` splits. Both modules now use an O(n) single-pass flag approach (`inSingle`/`inDouble` booleans) for consistent performance on long lines.
+
 ## [0.0.15]
 
 - **Bug Fix**: **TypeScript timeout types resolved** — added `"types": ["node"]` to `tsconfig.json` so that `@types/node` is properly referenced, resolving `Cannot find namespace 'NodeJS'` and `Cannot find name 'setTimeout'` compile errors in the Better Outline provider.

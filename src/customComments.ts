@@ -1,4 +1,5 @@
 ﻿import * as vscode from "vscode";
+import * as path from "path";
 
 // Store decoration types globally within the module
 let decorationTypes: { [key: string]: vscode.TextEditorDecorationType } = {};
@@ -56,10 +57,8 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 	const excludedFileTypes = config.get<string[]>("excludedFileTypes", [
 		".md",
 	]);
-	const fileExtension = editor.document.fileName.includes(".")
-		? "." + editor.document.fileName.split(".").pop()!.toLowerCase()
-		: "";
-	if (excludedFileTypes.map((e) => e.toLowerCase()).includes(fileExtension)) {
+	const fileExtension = path.extname(editor.document.fileName).toLowerCase();
+	if (excludedFileTypes.some((e) => e.toLowerCase() === fileExtension)) {
 		// Clear any existing decorations for this editor and bail out
 		Object.values(decorationTypes).forEach((d) =>
 			editor.setDecorations(d, []),
@@ -102,16 +101,27 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 		let foundPrefix: string | undefined;
 		let prefixIndex = -1;
 
-		// String-aware comment scanning
+		// String-aware comment scanning (O(n) flag-based)
+		let inSingle = false;
+		let inDouble = false;
 		for (let charIdx = 0; charIdx < text.length; charIdx++) {
-			const textBefore = text.substring(0, charIdx);
-			const isInsideSingle = (textBefore.split("'").length - 1) % 2 !== 0;
-			const isInsideDouble = (textBefore.split('"').length - 1) % 2 !== 0;
+			const ch = text[charIdx];
 
-			if (isInsideSingle || isInsideDouble) {
+			// Track closing of open string literals
+			if (inDouble) {
+				if (ch === '"') {
+					inDouble = false;
+				}
+				continue;
+			}
+			if (inSingle) {
+				if (ch === "'") {
+					inSingle = false;
+				}
 				continue;
 			}
 
+			// Outside any string: check for a comment prefix first
 			const currentPrefix = commentPrefixes.find((p) =>
 				text.startsWith(p, charIdx),
 			);
@@ -119,6 +129,13 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 				prefixIndex = charIdx;
 				foundPrefix = currentPrefix;
 				break;
+			}
+
+			// Track opening of string literals
+			if (ch === '"') {
+				inDouble = true;
+			} else if (ch === "'") {
+				inSingle = true;
 			}
 		}
 
