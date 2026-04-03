@@ -84,3 +84,37 @@
 .markdown-alert.caution .alert-title {
 	color: #f85149;
 }
+
+/* Task list checkboxes */
+ul:has(> li.task-item) {
+	padding-left: 0;
+	list-style: none;
+}
+
+li.task-item {
+	list-style: none;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.task-box {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	min-width: 14px;
+	border: 1.5px solid #8b949e;
+	border-radius: 3px;
+	background-color: transparent;
+	font-size: 11px;
+	line-height: 1;
+	color: transparent;
+}
+
+.task-box.task-checked {
+	background-color: #1f6feb;
+	border-color: #1f6feb;
+	color: #ffffff;
+}

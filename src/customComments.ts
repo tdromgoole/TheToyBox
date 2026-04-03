@@ -109,12 +109,20 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 
 			// Track closing of open string literals
 			if (inDouble) {
+				if (ch === "\\") {
+					charIdx++;
+					continue;
+				}
 				if (ch === '"') {
 					inDouble = false;
 				}
 				continue;
 			}
 			if (inSingle) {
+				if (ch === "\\") {
+					charIdx++;
+					continue;
+				}
 				if (ch === "'") {
 					inSingle = false;
 				}

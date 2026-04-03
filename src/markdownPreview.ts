@@ -72,6 +72,58 @@ export function extendMarkdownItWithAlerts(md: any): any {
 		}
 	});
 
+	// Replace [ ] and [x] at the start of list item text with styled checkbox spans
+	md.core.ruler.push("task_list", (state: any) => {
+		const tokens = state.tokens;
+		for (let i = 0; i < tokens.length; i++) {
+			if (tokens[i].type !== "inline") {
+				continue;
+			}
+
+			const children: any[] = tokens[i].children;
+			if (!children || children.length === 0) {
+				continue;
+			}
+
+			// The first child is the text node with the raw content
+			const firstChild = children[0];
+			if (!firstChild || firstChild.type !== "text") {
+				continue;
+			}
+
+			const text: string = firstChild.content;
+			const checkedMatch = text.match(/^\[x\]\s*/i);
+			const uncheckedMatch = text.match(/^\[ \]\s*/);
+
+			let boxHtml: string;
+			let rest: string;
+
+			if (checkedMatch) {
+				boxHtml =
+					'<span class="task-box task-checked">&#x2713;</span> ';
+				rest = text.slice(checkedMatch[0].length);
+			} else if (uncheckedMatch) {
+				boxHtml = '<span class="task-box"></span> ';
+				rest = text.slice(uncheckedMatch[0].length);
+			} else {
+				continue;
+			}
+
+			// Mutate the first child text node
+			firstChild.content = rest;
+
+			// Prepend the checkbox span as an html_inline token
+			const box = new state.Token("html_inline", "", 0);
+			box.content = boxHtml;
+			children.unshift(box);
+
+			// If inside a list item, add task-item class for CSS
+			if (i >= 2 && tokens[i - 2]?.type === "list_item_open") {
+				tokens[i - 2].attrSet("class", "task-item");
+			}
+		}
+	});
+
 	return md;
 }
 
@@ -79,6 +131,7 @@ export function registerMarkdownPreviewProvider(
 	context: vscode.ExtensionContext,
 ) {
 	const provider = new CustomMarkdownPreviewProvider(context);
+	let currentPanel: vscode.WebviewPanel | undefined;
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
@@ -94,6 +147,17 @@ export function registerMarkdownPreviewProvider(
 					return;
 				}
 
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					return;
+				}
+
+				if (currentPanel) {
+					currentPanel.reveal(vscode.ViewColumn.Beside);
+					provider.updatePreview(currentPanel, editor.document);
+					return;
+				}
+
 				const panel = vscode.window.createWebviewPanel(
 					"markdownPreview",
 					"Markdown Preview",
@@ -103,13 +167,52 @@ export function registerMarkdownPreviewProvider(
 						localResourceRoots: [context.extensionUri],
 					},
 				);
-
-				const editor = vscode.window.activeTextEditor;
-				if (!editor) {
-					return;
-				}
+				currentPanel = panel;
 
 				provider.updatePreview(panel, editor.document);
+
+				let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+				const changeSubscription =
+					vscode.workspace.onDidChangeTextDocument((e) => {
+						if (
+							currentPanel &&
+							e.document ===
+								vscode.window.activeTextEditor?.document
+						) {
+							if (debounceTimer) {
+								clearTimeout(debounceTimer);
+							}
+							debounceTimer = setTimeout(() => {
+								if (currentPanel) {
+									provider.updatePreview(
+										currentPanel,
+										e.document,
+									);
+								}
+							}, 300);
+						}
+					});
+
+				const editorChangeSubscription =
+					vscode.window.onDidChangeActiveTextEditor((e) => {
+						if (
+							e &&
+							e.document.languageId === "markdown" &&
+							currentPanel
+						) {
+							provider.updatePreview(currentPanel, e.document);
+						}
+					});
+
+				panel.onDidDispose(() => {
+					currentPanel = undefined;
+					if (debounceTimer) {
+						clearTimeout(debounceTimer);
+					}
+					changeSubscription.dispose();
+					editorChangeSubscription.dispose();
+				});
 			},
 		),
 	);
@@ -232,38 +335,172 @@ class CustomMarkdownPreviewProvider {
 	}
 
 	private basicMarkdownToHtml(markdown: string): string {
-		// Headers
-		markdown = markdown.replace(/^### (.*?)$/gm, "<h3>$1</h3>");
-		markdown = markdown.replace(/^## (.*?)$/gm, "<h2>$1</h2>");
-		markdown = markdown.replace(/^# (.*?)$/gm, "<h1>$1</h1>");
+		// Protect fenced code blocks from further processing
+		const codeBlocks: string[] = [];
+		markdown = markdown.replace(/```[\s\S]*?```/g, (match) => {
+			codeBlocks.push(match);
+			return `%%CODEBLOCK_${codeBlocks.length - 1}%%`;
+		});
 
-		// Code blocks
+		// Protect inline code
+		const inlineCodes: string[] = [];
+		markdown = markdown.replace(/`([^`]+)`/g, (_match, code) => {
+			inlineCodes.push(code);
+			return `%%INLINECODE_${inlineCodes.length - 1}%%`;
+		});
+
+		// Horizontal rules
+		markdown = markdown.replace(/^(?:-{3,}|\*{3,}|_{3,})\s*$/gm, "<hr>");
+
+		// Headers h1–h6
+		markdown = markdown.replace(/^###### (.*)$/gm, "<h6>$1</h6>");
+		markdown = markdown.replace(/^##### (.*)$/gm, "<h5>$1</h5>");
+		markdown = markdown.replace(/^#### (.*)$/gm, "<h4>$1</h4>");
+		markdown = markdown.replace(/^### (.*)$/gm, "<h3>$1</h3>");
+		markdown = markdown.replace(/^## (.*)$/gm, "<h2>$1</h2>");
+		markdown = markdown.replace(/^# (.*)$/gm, "<h1>$1</h1>");
+
+		// Tables
 		markdown = markdown.replace(
-			/```([^`]*?)```/gs,
-			"<pre><code>$1</code></pre>",
+			/^(\|.+\|)\n^(\|[-| :]+\|)\n((?:^\|.+\|\n?)+)/gm,
+			(_match, header, _sep, body) => {
+				const headers = header
+					.replace(/^\|/, "")
+					.replace(/\|$/, "")
+					.split("|")
+					.map((h: string) => `<th>${h.trim()}</th>`)
+					.join("");
+				const rows = body
+					.trim()
+					.split("\n")
+					.map((row: string) => {
+						const cells = row
+							.replace(/^\|/, "")
+							.replace(/\|$/, "")
+							.split("|")
+							.map((c: string) => `<td>${c.trim()}</td>`)
+							.join("");
+						return `<tr>${cells}</tr>`;
+					})
+					.join("");
+				return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+			},
 		);
 
-		// Inline code
-		markdown = markdown.replace(/`([^`]+)`/g, "<code>$1</code>");
+		// Task lists (must come before unordered lists); dash prefix is optional
+		markdown = markdown.replace(
+			/^([ \t]*)(?:- )?\[x\] (.*)$/gim,
+			(_m, _indent, text) => {
+				return `<li class="task-item"><span class="task-box task-checked">&#x2713;</span> ${text}</li>`;
+			},
+		);
+		markdown = markdown.replace(
+			/^([ \t]*)(?:- )?\[ \] (.*)$/gm,
+			(_m, _indent, text) => {
+				return `<li class="task-item"><span class="task-box"></span> ${text}</li>`;
+			},
+		);
+		// Close blank lines between consecutive task items so they group into one <ul>
+		markdown = markdown.replace(
+			/(<\/li>)\n\n(<li class="task-item">)/g,
+			"$1\n$2",
+		);
+		// Wrap contiguous task list items in a <ul>
+		markdown = markdown.replace(
+			/((?:^<li class="task-item">.*\n?)+)/gm,
+			(block) => {
+				return `<ul class="task-list">${block.trimEnd()}</ul>`;
+			},
+		);
+		// Unordered lists
+		markdown = this._buildList(markdown, false);
 
-		// Bold
+		// Ordered lists
+		markdown = this._buildList(markdown, true);
+
+		// Images (must come before links)
+		markdown = markdown.replace(
+			/!\[([^\]]*)\]\(([^)]+)\)/g,
+			'<img src="$2" alt="$1">',
+		);
+
+		// Links
+		markdown = markdown.replace(
+			/\[([^\]]+)\]\(([^)]+)\)/g,
+			'<a href="$2">$1</a>',
+		);
+
+		// Bold and italic
+		markdown = markdown.replace(
+			/\*\*\*([^*]+)\*\*\*/g,
+			"<strong><em>$1</em></strong>",
+		);
 		markdown = markdown.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-
-		// Italic
 		markdown = markdown.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+		markdown = markdown.replace(/~~([^~]+)~~/g, "<del>$1</del>");
 
-		// Line breaks and paragraphs
+		// Restore inline code
+		markdown = markdown.replace(/%%INLINECODE_(\d+)%%/g, (_m, i) => {
+			return `<code>${inlineCodes[Number(i)]}</code>`;
+		});
+
+		// Restore fenced code blocks
+		markdown = markdown.replace(/%%CODEBLOCK_(\d+)%%/g, (_m, i) => {
+			const raw = codeBlocks[Number(i)];
+			const inner = raw.replace(/^```[^\n]*\n?/, "").replace(/```$/, "");
+			return `<pre><code>${inner}</code></pre>`;
+		});
+
+		// Paragraphs — wrap blocks not already wrapped in an HTML block tag
 		markdown = markdown
-			.split("\n\n")
+			.split(/\n{2,}/)
 			.map((para) => {
-				if (!para.match(/^<(?:h[1-6]|p|pre|div)/)) {
-					return `<p>${para}</p>`;
+				para = para.trim();
+				if (!para) {
+					return "";
 				}
-				return para;
+				if (
+					para.match(
+						/^<(?:h[1-6]|p|pre|div|ul|ol|li|table|thead|tbody|tr|th|td|hr|img|blockquote)/i,
+					)
+				) {
+					return para;
+				}
+				return `<p>${para.replace(/\n/g, " ")}</p>`;
 			})
+			.filter(Boolean)
 			.join("\n");
 
 		return markdown;
+	}
+
+	private _buildList(markdown: string, ordered: boolean): string {
+		const itemRe = ordered
+			? /^([ \t]*)\d+\. (.*)$/gm
+			: /^([ \t]*)[-*+] (.*)$/gm;
+		const tag = ordered ? "ol" : "ul";
+
+		// Find contiguous blocks of list items and wrap them
+		return markdown.replace(
+			ordered
+				? /((?:^[ \t]*\d+\. .*\n?)+)/gm
+				: /((?:^[ \t]*[-*+] (?!\[[ x]\]).*\n?)+)/gm,
+			(block) => {
+				const items = block
+					.trimEnd()
+					.split("\n")
+					.filter(Boolean)
+					.map((line) =>
+						line.replace(
+							itemRe,
+							(_m: string, _indent: string, text: string) =>
+								`<li>${text}</li>`,
+						),
+					)
+					.join("");
+				return `<${tag}>${items}</${tag}>`;
+			},
+		);
 	}
 
 	private getWebviewContent(html: string, fontUri: string): string {
@@ -272,7 +509,7 @@ class CustomMarkdownPreviewProvider {
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri}; script-src 'unsafe-inline';">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri};">
 				<title>Markdown Preview</title>
 				<style>
 					@font-face {
@@ -298,9 +535,12 @@ class CustomMarkdownPreviewProvider {
 						font-weight: 600;
 					}
 
-					h1 { font-size: 32px; }
-					h2 { font-size: 24px; }
-					h3 { font-size: 20px; }
+h1 { font-size: 32px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+				h2 { font-size: 24px; border-bottom: 1px solid #30363d; padding-bottom: 6px; }
+				h3 { font-size: 20px; }
+				h4 { font-size: 16px; }
+				h5 { font-size: 14px; }
+				h6 { font-size: 13px; color: #8b949e; }
 
 					p {
 						margin: 0 0 16px 0;
@@ -430,6 +670,94 @@ class CustomMarkdownPreviewProvider {
 
 					em {
 						color: #c9d1d9;
+					}
+
+					del {
+						color: #8b949e;
+					}
+
+					a {
+						color: #58a6ff;
+						text-decoration: none;
+					}
+
+					a:hover {
+						text-decoration: underline;
+					}
+
+					img {
+						max-width: 100%;
+						border-radius: 6px;
+					}
+
+					hr {
+						border: none;
+						border-top: 1px solid #30363d;
+						margin: 24px 0;
+					}
+
+					ul, ol {
+						padding-left: 2em;
+						margin: 0 0 16px 0;
+					}
+
+					li {
+						margin: 4px 0;
+					}
+
+					ul.task-list {
+						padding-left: 0;
+						list-style: none;
+					}
+
+					li.task-item {
+						list-style: none;
+						display: flex;
+						align-items: baseline;
+						gap: 8px;
+					}
+
+					.task-box {
+						display: inline-flex;
+						align-items: center;
+						justify-content: center;
+						width: 14px;
+						height: 14px;
+						min-width: 14px;
+						border: 1.5px solid #8b949e;
+						border-radius: 3px;
+						background-color: transparent;
+						font-size: 11px;
+						line-height: 1;
+						color: transparent;
+					}
+
+					.task-box.task-checked {
+						background-color: #1f6feb;
+						border-color: #1f6feb;
+						color: #ffffff;
+					}
+
+					table {
+						border-collapse: collapse;
+						width: 100%;
+						margin: 0 0 16px 0;
+					}
+
+					th, td {
+						border: 1px solid #30363d;
+						padding: 8px 12px;
+						text-align: left;
+					}
+
+					th {
+						background-color: #161b22;
+						font-weight: 600;
+						color: #c9d1d9;
+					}
+
+					tr:nth-child(even) td {
+						background-color: rgba(110, 118, 129, 0.1);
 					}
 				</style>
 			</head>

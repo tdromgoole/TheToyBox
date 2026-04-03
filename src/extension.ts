@@ -9,13 +9,14 @@ import {
 	updateMarkdownHeadings,
 } from "./markdownHeadings";
 import { registerBetterOutline } from "./outline";
-import { alignEqualsWithTabs } from "./alignCode";
+import { alignWithTabs } from "./alignCode";
 import { formatSelectedJson } from "./jsonFormatter";
 import {
 	registerMarkdownPreviewProvider,
 	extendMarkdownItWithAlerts,
 } from "./markdownPreview";
 import { installJetBrainsMonoNerdFont } from "./fontInstaller";
+import { registerWordFrequency } from "./wordFrequency";
 
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
@@ -33,6 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	registerBetterOutline(context);
 	registerMarkdownPreviewProvider(context);
+	registerWordFrequency(context);
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
@@ -59,7 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
 			// Watch for Indent Rainbow toggle or color changes
 			if (
 				e.affectsConfiguration("theToyBox.indentRainbow") ||
-				e.affectsConfiguration("theToyBox.indentRainbowOpacity")
+				e.affectsConfiguration("theToyBox.indentRainbowOpacity") ||
+				e.affectsConfiguration("theToyBox.indentRainbowColors")
 			) {
 				refreshIndentRainbow(); // Rebuild or Dispose the styles
 				triggerVisualUpdates();
@@ -90,9 +93,13 @@ export function activate(context: vscode.ExtensionContext) {
 			if (e.affectsConfiguration("theToyBox.markdownPreview")) {
 				vscode.commands.executeCommand("markdown.api.reloadPlugins");
 			}
+
+			if (e.affectsConfiguration("theToyBox.wordFrequency")) {
+				vscode.commands.executeCommand("wordFrequency.refresh");
+			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
-			alignEqualsWithTabs();
+			alignWithTabs();
 		}),
 		vscode.commands.registerCommand("theToyBox.formatJson", () => {
 			formatSelectedJson();

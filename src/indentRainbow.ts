@@ -19,12 +19,14 @@ let indentDecorations: vscode.TextEditorDecorationType[] = [];
 let activeColors: string[] = [...defaultRainbowColors];
 
 /**
-	* Destroys old decorations and creates new ones if enabled.
-*/
+ * Destroys old decorations and creates new ones if enabled.
+ */
 export function refreshIndentRainbow() {
 	const config = vscode.workspace.getConfiguration("theToyBox");
 	const isEnabled = config.get<boolean>("indentRainbow", true);
-	activeColors = [...defaultRainbowColors];
+	const userColors = config.get<string[]>("indentRainbowColors", []);
+	activeColors =
+		userColors.length > 0 ? userColors : [...defaultRainbowColors];
 
 	// Always clear existing decorations first
 	if (indentDecorations.length > 0) {
@@ -34,25 +36,25 @@ export function refreshIndentRainbow() {
 
 	// Only recreate if the setting is ON
 	if (isEnabled) {
-	const opacityPercent = config.get<number>("indentRainbowOpacity", 10);
-	const opacityHex = Math.round(
-		(Math.min(100, Math.max(1, opacityPercent)) / 100) * 255,
-	)
-		.toString(16)
-		.padStart(2, "0")
-		.toUpperCase();
+		const opacityPercent = config.get<number>("indentRainbowOpacity", 10);
+		const opacityHex = Math.round(
+			(Math.min(100, Math.max(1, opacityPercent)) / 100) * 255,
+		)
+			.toString(16)
+			.padStart(2, "0")
+			.toUpperCase();
 		indentDecorations = activeColors.map((color) =>
 			vscode.window.createTextEditorDecorationType({
-			backgroundColor: color + opacityHex,
-			border: "none",
+				backgroundColor: color + opacityHex,
+				border: "none",
 			}),
 		);
 	}
 }
 
 /**
-	* Updates the actual ranges in the editor.
-*/
+ * Updates the actual ranges in the editor.
+ */
 export function updateIndentRainbow(editor?: vscode.TextEditor) {
 	const activeEditor = editor || vscode.window.activeTextEditor;
 
@@ -70,23 +72,42 @@ export function updateIndentRainbow(editor?: vscode.TextEditor) {
 		() => [],
 	);
 
+	const tabSize = (activeEditor.options.tabSize as number) || 4;
+
 	for (let i = 0; i < activeEditor.document.lineCount; i++) {
 		const line = activeEditor.document.lineAt(i);
-		if (line.isEmptyOrWhitespace) {continue;}
+		if (line.isEmptyOrWhitespace) {
+			continue;
+		}
 
-		const leadingMatch = line.text.match(/^[	]+/);
-		if (!leadingMatch) {continue;}
+		const tabMatch = line.text.match(/^\t+/);
+		if (tabMatch) {
+			// Tab-based indentation: one color per tab character
+			const tabCount = tabMatch[0].length;
+			for (let j = 0; j < tabCount; j++) {
+				const colorLevel = j % activeColors.length;
+				indentRanges[colorLevel].push(new vscode.Range(i, j, i, j + 1));
+			}
+			continue;
+		}
 
-		const tabCount = leadingMatch[0].length;
-		for (let j = 0; j < tabCount; j++) {
-			const colorLevel = j % activeColors.length;
-			const indentRange = new vscode.Range(i, j, i, j + 1);
-			indentRanges[colorLevel].push(indentRange);
+		const spaceMatch = line.text.match(/^ +/);
+		if (spaceMatch) {
+			// Space-based indentation: one color per tabSize-width group
+			const spaceCount = spaceMatch[0].length;
+			const levels = Math.floor(spaceCount / tabSize);
+			for (let j = 0; j < levels; j++) {
+				const colorLevel = j % activeColors.length;
+				const startCol = j * tabSize;
+				indentRanges[colorLevel].push(
+					new vscode.Range(i, startCol, i, startCol + tabSize),
+				);
+			}
 		}
 	}
 
 	// Apply decorations
 	indentDecorations.forEach((decoration, i) => {
-	activeEditor.setDecorations(decoration, indentRanges[i]);
+		activeEditor.setDecorations(decoration, indentRanges[i]);
 	});
 }
