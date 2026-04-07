@@ -39,14 +39,17 @@ let decorations: Record<string, vscode.TextEditorDecorationType> = {};
 const PROFILES: LanguageProfile[] = [
 	{
 		extensions: [".kdl"],
+		settingKey: "kdl",
 		tokenize: tokenizeKdl,
 	},
 	{
 		extensions: [".asp"],
+		settingKey: "asp",
 		tokenize: tokenizeAsp,
 	},
 	{
 		extensions: [".vbhtml"],
+		settingKey: "razorVb",
 		tokenize: tokenizeRazorVb,
 	},
 ];
@@ -60,14 +63,6 @@ const PROFILES: LanguageProfile[] = [
 export function refreshSyntaxHighlighting() {
 	Object.values(decorations).forEach((d) => d.dispose());
 	decorations = {};
-
-	const config = vscode.workspace.getConfiguration(
-		"theToyBox.syntaxHighlighting",
-	);
-	const isEnabled = config.get<boolean>("enabled", true);
-	if (!isEnabled) {
-		return;
-	}
 
 	for (const [type, style] of Object.entries(TOKEN_STYLES)) {
 		decorations[type] = vscode.window.createTextEditorDecorationType(style);
@@ -95,10 +90,15 @@ export function updateSyntaxHighlighting(
 		"theToyBox.syntaxHighlighting",
 	);
 
-	const aspEnabled = config.get<boolean>("asp", true);
-	const profile = PROFILES.find(
-		(p) => p.extensions.includes(ext) && !(ext === ".asp" && !aspEnabled),
-	);
+	const profile = PROFILES.find((p) => {
+		if (!p.extensions.includes(ext)) {
+			return false;
+		}
+		if (p.settingKey && !config.get<boolean>(p.settingKey, true)) {
+			return false;
+		}
+		return true;
+	});
 
 	if (!profile) {
 		// Unsupported file type — clear any lingering decorations on this editor
