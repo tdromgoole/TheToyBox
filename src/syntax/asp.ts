@@ -2,7 +2,7 @@ import { TokenMatch } from "./types";
 
 // ASP Classic (VBScript) tokenizer
 // Handles both pure ASP files and the server-side portions of HTML+ASP.
-// Token types emitted: comment, string, number, boolean, keyword, htmlTag, htmlAttribute, htmlString
+// Token types emitted: comment, string, number, keyword, htmlTag, htmlAttribute, htmlString
 
 const VBS_KEYWORDS = new Set([
 	"and",

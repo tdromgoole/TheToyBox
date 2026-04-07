@@ -2,8 +2,8 @@ import { TokenMatch } from "./types";
 
 // Razor VB (.vbhtml) tokenizer
 // Handles HTML with embedded VB via @-transitions and @Code...End Code blocks.
-// Token types emitted: comment, string, number, keyword, htmlTag, htmlAttribute,
-//                      htmlString, razorDelimiter, razorBlock
+// Token types emitted: comment, string, number, keyword, vbType, htmlTag, htmlAttribute,
+//                      htmlString, razorDelimiter, razorDirective
 
 // Built-in VB.NET types — shown in teal in Visual Studio (distinct from blue keywords)
 const VB_TYPES = new Set([

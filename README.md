@@ -11,7 +11,7 @@ Built for developers who care about **clean structure**, **performance**, and **
 
 ---
 
-# 🚀 Why The Toy Box?
+# Why The Toy Box?
 
 Most productivity extensions solve one small problem. **The Toy Box solves the structural workflow problem.**
 
@@ -23,9 +23,9 @@ Most productivity extensions solve one small problem. **The Toy Box solves the s
 
 ---
 
-# ✨ Core Features
+# Core Features
 
-## 🧭 Better Outline Panel (Advanced Structural View)
+## Better Outline Panel (Advanced Structural View)
 
 A dedicated sidebar that provides a deep, hierarchical view of your code with specialized language support and Material Symbols icons.
 
@@ -46,7 +46,7 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 
 ---
 
-## �️ Decoration-Based Syntax Highlighting
+## Decoration-Based Syntax Highlighting
 
 Applies VS Code Dark+-style token colors to file types that lack a dedicated grammar extension.
 
@@ -58,7 +58,7 @@ Applies VS Code Dark+-style token colors to file types that lack a dedicated gra
 
 ---
 
-## �📊 Word Frequency Panel
+## Word Frequency Panel
 
 A sidebar panel that tallies every unique word and token in the active file and displays them ranked by frequency.
 
@@ -72,7 +72,7 @@ A sidebar panel that tallies every unique word and token in the active file and 
 
 ---
 
-## 🎨 Custom Comment Highlighting
+## Custom Comment Highlighting
 
 Categorize important notes visually in both the editor and the outline with color-coded comment markers.
 
@@ -87,7 +87,7 @@ Categorize important notes visually in both the editor and the outline with colo
 
 ---
 
-## 🌈 Indent Rainbow
+## Indent Rainbow
 
 Adds a subtle pastel background highlight to each indentation level so nesting depth is instantly visible at a glance.
 
@@ -101,7 +101,7 @@ Adds a subtle pastel background highlight to each indentation level so nesting d
 
 ---
 
-## 📋 GitHub-Style Markdown Alerts
+## GitHub-Style Markdown Alerts
 
 The built-in VS Code Markdown preview now renders GitHub-style alert callouts with color-coded styling and icons.
 
@@ -119,7 +119,7 @@ The built-in VS Code Markdown preview now renders GitHub-style alert callouts wi
 
 ---
 
-## 📦 JSON Formatter
+## JSON Formatter
 
 Instantly turn messy, single-line JSON strings into perfectly indented, readable code.
 
@@ -131,7 +131,7 @@ Instantly turn messy, single-line JSON strings into perfectly indented, readable
 
 ---
 
-## 📏 Smart Code Alignment
+## Smart Code Alignment
 
 Align operators across multiple lines perfectly using the least number of tabs possible.
 
@@ -145,7 +145,7 @@ Align operators across multiple lines perfectly using the least number of tabs p
 
 ---
 
-## 🧹 Auto-Cleanup on Save
+## Auto-Cleanup on Save
 
 Keeps files consistently formatted every time you save — no manual effort required.
 
@@ -160,7 +160,7 @@ Keeps files consistently formatted every time you save — no manual effort requ
 
 ---
 
-## 🏷️ Auto Rename Matching Tags
+## Auto Rename Matching Tags
 
 Automatically keeps opening and closing HTML/XML tags in sync as you type.
 
@@ -172,7 +172,7 @@ Automatically keeps opening and closing HTML/XML tags in sync as you type.
 
 ---
 
-## 🔤 Install JetBrainsMono Nerd Font
+## Install JetBrainsMono Nerd Font
 
 Get native operator ligatures (`==` → `⩵`, `!=` → `≠`, `=>` → `⇒`, `->` → `→`, and more) with correct cursor placement — no extension hacks needed.
 
@@ -190,7 +190,7 @@ Run the command **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Comm
 
 ---
 
-# ⚙️ Extension Settings
+# Extension Settings
 
 All settings are unified under the `theToyBox` namespace.
 
@@ -270,13 +270,13 @@ All settings are unified under the `theToyBox` namespace.
 
 ---
 
-# 📌 Release Notes
+# Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ---
 
-# 👤 Author
+# Author
 
 **Thomas Dromgoole**
 
