@@ -2,6 +2,14 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.19]
+
+- **New Feature**: **Decoration-Based Syntax Highlighting** — a new syntax highlighting engine applies VS Code Dark+-style token colors to file types that lack a grammar extension. Three languages are supported in this release:
+    - **KDL Document Language** (`.kdl`) — highlights node names, property keys, type annotations `(u8)`, quoted and raw strings, numbers (decimal, hex, octal, binary, float), booleans/null, and line/block/slashdash comments. Enabled by default; toggled with `theToyBox.syntaxHighlighting.enabled`.
+    - **Classic ASP / VBScript** (`.asp`) — dual-mode tokenizer covering HTML tags, attributes, and strings in the HTML sections, plus VBScript keywords, strings, numbers, and comments inside `<% %>` blocks. Toggle with `theToyBox.syntaxHighlighting.asp`.
+    - **ASP.NET Razor VB** (`.vbhtml`) — three-tier tokenizer with teal built-in types (`Integer`, `String`, `Boolean`, …), blue control-flow keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes. Toggle with `theToyBox.syntaxHighlighting.razorVb`.
+- **Enhancement**: **Better Outline — KDL Support** — opening a `.kdl` file now populates the Better Outline panel with a hierarchical node tree. Each node is labelled as `nodeName key value` using its name and the first argument or property on the line (quotes and `=` are stripped for readability). Nodes that open a `{` children block become collapsible regions; closing `}` lines are consumed transparently.
+
 ## [0.0.18]
 
 - **New Feature**: **CSS / SCSS / Less Outline** — the Better Outline panel now parses CSS, SCSS, and Less files. Detected constructs include element selectors, `.class` selectors, `#id` selectors, custom properties (`--var`), `@media` queries, `@keyframes` blocks, and generic at-rules. Each has a distinct Material Symbols icon. `#region` / `#endregion` comments create collapsible folders in the same way as all other supported languages.

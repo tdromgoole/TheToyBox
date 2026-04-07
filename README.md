@@ -35,6 +35,7 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 - **✔ PHP Function Support**: Detects `public`, `private`, `protected`, `static`, and standalone functions and displays them with a dedicated Function icon.
 - **✔ JavaScript / TypeScript Support**: Detects named functions, arrow functions, and ES6 classes. jQuery `.on()` and `.delegate()` handlers are detected and labelled as `selector.Event` or `selector.Event.Delegate` with class/ID icons. Comments inside functions are nested as collapsible children.
 - **✔ CSS / SCSS / Less Support**: Detects element selectors, `.class` selectors, `#id` selectors, custom properties (`--var`), `@media` queries, `@keyframes` blocks, and generic at-rules — each with a distinct icon.
+- **✔ KDL Document Language Support**: Parses `.kdl` files into a hierarchical node tree. Each node shows its name plus the first argument or property (e.g. `tab name Dashboard`). Nodes with a `{` children block are collapsible regions.
 - **✔ Structural Nesting**: Comments nest under their parent function. Functions with nested comments are collapsible — clicking also jumps to the line.
 - **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL, PHP, JavaScript, CSS, and SCSS.
 - **✔ SQL & PHP region nesting**: Tables, views, procedures, functions, and PHP functions detected inside a `#region` block are correctly nested under it as collapsible children.
@@ -45,7 +46,19 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 
 ---
 
-## 📊 Word Frequency Panel
+## �️ Decoration-Based Syntax Highlighting
+
+Applies VS Code Dark+-style token colors to file types that lack a dedicated grammar extension.
+
+- **✔ KDL Document Language** (`.kdl`): Node names, property keys, type annotations, strings, numbers, booleans/null, and comments — all colored to match the Dark+ theme.
+- **✔ Classic ASP / VBScript** (`.asp`): Dual-mode — HTML tags, attributes, and strings in the HTML sections; VBScript keywords, strings, numbers, and `'` / `REM` comments inside `<% %>` blocks.
+- **✔ ASP.NET Razor VB** (`.vbhtml`): Teal built-in types, blue keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes — matching the Visual Studio Dark theme.
+- **✔ Per-Language Toggle**: Each language can be enabled or disabled independently while the master switch controls all of them.
+- **✔ Enable/Disable**: Toggle everything with `theToyBox.syntaxHighlighting.enabled`.
+
+---
+
+## �📊 Word Frequency Panel
 
 A sidebar panel that tallies every unique word and token in the active file and displays them ranked by frequency.
 
@@ -235,6 +248,14 @@ All settings are unified under the `theToyBox` namespace.
 | `theToyBox.markdownHeadings.showBackground`    |      `true`      | Toggle background color on heading highlights.         |
 | `theToyBox.markdownHeadings.fullLineHighlight` |      `true`      | Highlight the full line or just the heading text.      |
 | `theToyBox.markdownHeadings.colors`            | _(see defaults)_ | Map each heading level (h1–h6) to a hex color.         |
+
+### Syntax Highlighting
+
+| Setting                                | Default | Description                                                            |
+| :------------------------------------- | :-----: | :--------------------------------------------------------------------- |
+| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.   |
+| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files. |
+| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.    |
 
 ### Custom Comments
 
