@@ -17,6 +17,10 @@ import {
 } from "./markdownPreview";
 import { installJetBrainsMonoNerdFont } from "./fontInstaller";
 import { registerWordFrequency } from "./wordFrequency";
+import {
+	refreshSyntaxHighlighting,
+	updateSyntaxHighlighting,
+} from "./syntaxHighlighting";
 
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
@@ -35,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 	registerBetterOutline(context);
 	registerMarkdownPreviewProvider(context);
 	registerWordFrequency(context);
+	refreshSyntaxHighlighting();
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
@@ -52,6 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 			updateIndentRainbow(activeEditor);
 			updateComments(activeEditor);
 			updateMarkdownHeadings(activeEditor);
+			updateSyntaxHighlighting(activeEditor);
 		});
 	};
 
@@ -96,6 +102,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 			if (e.affectsConfiguration("theToyBox.wordFrequency")) {
 				vscode.commands.executeCommand("wordFrequency.refresh");
+			}
+
+			if (e.affectsConfiguration("theToyBox.syntaxHighlighting")) {
+				refreshSyntaxHighlighting();
+				triggerVisualUpdates();
 			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {

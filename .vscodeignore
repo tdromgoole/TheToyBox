@@ -3,10 +3,13 @@
 out/**
 node_modules/**
 src/**
+images/**
+!images/icon.png
 .gitignore
 .yarnrc
 webpack.config.js
 vsc-extension-quickstart.md
+theToyBox.code-workspace
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
