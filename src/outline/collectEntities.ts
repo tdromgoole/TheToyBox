@@ -47,15 +47,35 @@ export function collectEntities(
 	const labels = config.get<{ [key: string]: string }>("labels") || {};
 	const showBackground = config.get<boolean>("showBackground", true);
 	const triggerChars = Object.keys(commentColors);
-	const commentPrefixes = ["//", "--", "#", "%", "'"];
+
+	const lang = document.languageId.toLowerCase();
+	const isSqlFile = ["sql", "postgresql", "mssql", "postgres"].includes(lang);
+
+	// Mirror the per-language prefix filtering from customComments.ts so that
+	// outline comment detection stays consistent with the highlighter.
+	let commentPrefixes = ["//", "--", "#", "%", "'"];
+	const excludeSingleQuote = [
+		"php",
+		"javascript",
+		"typescript",
+		"sql",
+		"mssql",
+		"postgres",
+		"mysql",
+	];
+	if (excludeSingleQuote.some((l) => lang.includes(l))) {
+		commentPrefixes = commentPrefixes.filter((p) => p !== "'");
+	}
+	const excludeHash = ["javascript", "typescript", "html", "xml", "css"];
+	if (excludeHash.some((l) => lang.includes(l))) {
+		commentPrefixes = commentPrefixes.filter((p) => p !== "#");
+	}
+	commentPrefixes.sort((a, b) => b.length - a.length);
 
 	const allComments: any[] = [];
 	const sqlEntities: any[] = [];
 	const phpFunctions: any[] = [];
 	const tsJsItems: any[] = [];
-
-	const lang = document.languageId.toLowerCase();
-	const isSqlFile = ["sql", "postgresql", "mssql", "postgres"].includes(lang);
 	const isPhpFile = lang === "php";
 	const isTsJsFile = [
 		"javascript",
