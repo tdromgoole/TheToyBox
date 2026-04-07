@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.21]
+
+- **Bug Fix**: **Syntax Highlighting — `enabled` setting now correctly disables highlighting** — `theToyBox.syntaxHighlighting.enabled` was documented and present in the settings UI since v0.0.19 but never consulted at runtime. `refreshSyntaxHighlighting()` always recreated all decoration types regardless of the setting value, so toggling it off had no effect. The function now reads the `enabled` flag first and leaves the internal `decorations` map empty when the toggle is off, making `updateSyntaxHighlighting()` a no-op — consistent with how every other toggleable feature in the extension behaves.
+
 ## [0.0.19]
 
 - **New Feature**: **Decoration-Based Syntax Highlighting** — a new syntax highlighting engine applies VS Code Dark+-style token colors to file types that lack a grammar extension. Three languages are supported in this release:

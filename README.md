@@ -254,6 +254,7 @@ All settings are unified under the `theToyBox` namespace.
 | Setting                                | Default | Description                                                            |
 | :------------------------------------- | :-----: | :--------------------------------------------------------------------- |
 | `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.   |
+| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.  |
 | `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files. |
 | `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.    |
 

@@ -59,10 +59,19 @@ const PROFILES: LanguageProfile[] = [
 /**
  * Destroys existing decoration types and recreates them if the feature is
  * enabled. Call this when the extension activates or the setting changes.
+ * When disabled, {@link decorations} stays empty so {@link updateSyntaxHighlighting}
+ * becomes a no-op.
  */
 export function refreshSyntaxHighlighting() {
 	Object.values(decorations).forEach((d) => d.dispose());
 	decorations = {};
+
+	const config = vscode.workspace.getConfiguration(
+		"theToyBox.syntaxHighlighting",
+	);
+	if (!config.get<boolean>("enabled", true)) {
+		return;
+	}
 
 	for (const [type, style] of Object.entries(TOKEN_STYLES)) {
 		decorations[type] = vscode.window.createTextEditorDecorationType(style);
