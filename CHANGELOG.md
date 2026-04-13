@@ -2,6 +2,12 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.22]
+
+- **New Feature**: **T-SQL Highlighting in PHP Strings** — T-SQL keywords (`DECLARE`, `SELECT`, `GO`, `BEGIN`/`END`, …), data types (`VARCHAR`, `INT`, `DATETIME`, …), built-in functions (`GETDATE`, `ISNULL`, `COUNT`, …), and `@variables` are now highlighted inside PHP double-quoted strings. Toggle with `theToyBox.syntaxHighlighting.phpSql`.
+- **New Feature**: **T-SQL Highlighting in JavaScript / TypeScript Strings** — the same T-SQL token colors apply inside JS/TS double-quoted strings, single-quoted strings, and template literals (`` ` ``), including `${…}` interpolation awareness. Toggle with `theToyBox.syntaxHighlighting.jsSql`.
+- **Refactor**: **Shared SQL Scanner** — keyword sets and the core SQL token scanner are extracted into `sqlScanner.ts` and shared by both tokenizers. Adding a new SQL keyword or function only requires a single edit.
+
 ## [0.0.21]
 
 - **Bug Fix**: **Syntax Highlighting — `enabled` setting now correctly disables highlighting** — `theToyBox.syntaxHighlighting.enabled` was documented and present in the settings UI since v0.0.19 but never consulted at runtime. `refreshSyntaxHighlighting()` always recreated all decoration types regardless of the setting value, so toggling it off had no effect. The function now reads the `enabled` flag first and leaves the internal `decorations` map empty when the toggle is off, making `updateSyntaxHighlighting()` a no-op — consistent with how every other toggleable feature in the extension behaves.

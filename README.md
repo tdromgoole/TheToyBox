@@ -48,8 +48,12 @@ A dedicated sidebar that provides a deep, hierarchical view of your code with sp
 
 ## Decoration-Based Syntax Highlighting
 
-Applies VS Code Dark+-style token colors to file types that lack a dedicated grammar extension.
+Applies VS Code Dark+-style token colors to file types that lack a dedicated grammar extension — and injects T-SQL highlighting directly into string literals in PHP, JavaScript, and TypeScript.
 
+![SQL in Strings](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/sqlInStrings.png)
+
+- **✔ PHP — SQL in Strings** (`.php`): T-SQL keywords (`DECLARE`, `SELECT`, `GO`, `BEGIN`/`END`, …), data types (`VARCHAR`, `INT`, `DATETIME2`, …), built-in functions (`GETDATE`, `ISNULL`, `COUNT`, …), `@variables`, `@@system_vars`, and `--` / `/* */` comments are highlighted inside PHP double-quoted strings. PHP `$variable` interpolation is recognized and skipped so it never conflicts. Toggle with `theToyBox.syntaxHighlighting.phpSql`.
+- **✔ JS / TS — SQL in Strings** (`.js`, `.ts`, `.jsx`, `.tsx`, `.mjs`, `.cjs`): The same T-SQL token colors apply inside double-quoted strings, single-quoted strings, and template literals. Template `${…}` interpolations are skipped cleanly. Toggle with `theToyBox.syntaxHighlighting.jsSql`.
 - **✔ KDL Document Language** (`.kdl`): Node names, property keys, type annotations, strings, numbers, booleans/null, and comments — all colored to match the Dark+ theme.
 - **✔ Classic ASP / VBScript** (`.asp`): Dual-mode — HTML tags, attributes, and strings in the HTML sections; VBScript keywords, strings, numbers, and `'` / `REM` comments inside `<% %>` blocks.
 - **✔ ASP.NET Razor VB** (`.vbhtml`): Teal built-in types, blue keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes — matching the Visual Studio Dark theme.
@@ -253,10 +257,12 @@ All settings are unified under the `theToyBox` namespace.
 
 | Setting                                | Default | Description                                                            |
 | :------------------------------------- | :-----: | :--------------------------------------------------------------------- |
-| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.   |
-| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.  |
-| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files. |
-| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.    |
+| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.                     |
+| `theToyBox.syntaxHighlighting.phpSql`  | `true`  | Enable/Disable T-SQL highlighting inside PHP double-quoted strings.                      |
+| `theToyBox.syntaxHighlighting.jsSql`   | `true`  | Enable/Disable T-SQL highlighting inside JS/TS strings and template literals.            |
+| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.                   |
+| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files.                  |
+| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.                     |
 
 ### Custom Comments
 
