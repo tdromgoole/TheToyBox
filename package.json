@@ -429,6 +429,16 @@
 						"type": "boolean",
 						"default": true,
 						"description": "Enable decoration-based syntax highlighting for ASP.NET Razor VB (.vbhtml) files."
+					},
+					"theToyBox.syntaxHighlighting.phpSql": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable T-SQL syntax highlighting inside PHP double-quoted strings."
+					},
+					"theToyBox.syntaxHighlighting.jsSql": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable T-SQL syntax highlighting inside JavaScript/TypeScript strings and template literals."
 					}
 				}
 			},

@@ -4,6 +4,8 @@ import { LanguageProfile } from "./syntax/types";
 import { tokenizeKdl } from "./syntax/kdl";
 import { tokenizeAsp } from "./syntax/asp";
 import { tokenizeRazorVb } from "./syntax/razorVb";
+import { tokenizePhpSql } from "./syntax/phpSql";
+import { tokenizeJsSql } from "./syntax/jsSql";
 
 // ─── Token style palette ─────────────────────────────────────────────────────
 // KDL tokens use VS Code Dark+ colours.
@@ -28,6 +30,11 @@ const TOKEN_STYLES: Record<string, vscode.DecorationRenderOptions> = {
 	// ── Razor-specific ──
 	razorDelimiter: { color: "#DCDCAA", fontWeight: "bold" }, // @ / @Code / End Code
 	razorDirective: { color: "#CE9178", fontStyle: "italic" }, // @model, @using, @layout etc.
+	// ── PHP SQL-specific ──
+	sqlKeyword: { color: "#569CD6" }, // VS keyword blue
+	sqlType: { color: "#4EC9B0" }, // VS teal for types
+	sqlFunction: { color: "#DCDCAA" }, // VS gold for functions
+	sqlVariable: { color: "#9CDCFE" }, // VS light blue for variables
 };
 
 // ─── Decoration type instances (rebuilt whenever the setting changes) ──────────
@@ -51,6 +58,16 @@ const PROFILES: LanguageProfile[] = [
 		extensions: [".vbhtml"],
 		settingKey: "razorVb",
 		tokenize: tokenizeRazorVb,
+	},
+	{
+		extensions: [".php"],
+		settingKey: "phpSql",
+		tokenize: tokenizePhpSql,
+	},
+	{
+		extensions: [".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"],
+		settingKey: "jsSql",
+		tokenize: tokenizeJsSql,
 	},
 ];
 
