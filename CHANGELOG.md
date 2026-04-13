@@ -11,13 +11,14 @@ All notable changes to the "theToyBox" extension will be documented in this file
 ## [0.0.21]
 
 - **Bug Fix**: **Syntax Highlighting — `enabled` setting now correctly disables highlighting** — `theToyBox.syntaxHighlighting.enabled` was documented and present in the settings UI since v0.0.19 but never consulted at runtime. `refreshSyntaxHighlighting()` always recreated all decoration types regardless of the setting value, so toggling it off had no effect. The function now reads the `enabled` flag first and leaves the internal `decorations` map empty when the toggle is off, making `updateSyntaxHighlighting()` a no-op — consistent with how every other toggleable feature in the extension behaves.
+- **Bug Fix**: **Better Outline — comment scanner now applies per-language prefix filtering** — the single-pass entity collector used a fixed set of comment prefixes (`//`, `--`, `#`, `%`, `'`) for every language, diverging from the filtering already applied by the custom comment highlighter. This caused false-positive outline comment items (e.g., JS shebang lines `#!/usr/bin/env node` being treated as comments, or SQL-style `'` openers in languages where `'` is a string delimiter). The collector now applies the same rules as `customComments.ts`: `'` is excluded for PHP, JavaScript, TypeScript, and SQL variants; `#` is excluded for JavaScript, TypeScript, HTML, XML, and CSS. Prefixes are also sorted longest-first to prevent shorter prefixes shadowing longer ones.
 
 ## [0.0.19]
 
 - **New Feature**: **Decoration-Based Syntax Highlighting** — a new syntax highlighting engine applies VS Code Dark+-style token colors to file types that lack a grammar extension. Three languages are supported in this release:
-    - **KDL Document Language** (`.kdl`) — highlights node names, property keys, type annotations `(u8)`, quoted and raw strings, numbers (decimal, hex, octal, binary, float), booleans/null, and line/block/slashdash comments. Enabled by default; toggled with `theToyBox.syntaxHighlighting.enabled`.
-    - **Classic ASP / VBScript** (`.asp`) — dual-mode tokenizer covering HTML tags, attributes, and strings in the HTML sections, plus VBScript keywords, strings, numbers, and comments inside `<% %>` blocks. Toggle with `theToyBox.syntaxHighlighting.asp`.
-    - **ASP.NET Razor VB** (`.vbhtml`) — three-tier tokenizer with teal built-in types (`Integer`, `String`, `Boolean`, …), blue control-flow keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes. Toggle with `theToyBox.syntaxHighlighting.razorVb`.
+	- **KDL Document Language** (`.kdl`) — highlights node names, property keys, type annotations `(u8)`, quoted and raw strings, numbers (decimal, hex, octal, binary, float), booleans/null, and line/block/slashdash comments. Enabled by default; toggled with `theToyBox.syntaxHighlighting.enabled`.
+	- **Classic ASP / VBScript** (`.asp`) — dual-mode tokenizer covering HTML tags, attributes, and strings in the HTML sections, plus VBScript keywords, strings, numbers, and comments inside `<% %>` blocks. Toggle with `theToyBox.syntaxHighlighting.asp`.
+	- **ASP.NET Razor VB** (`.vbhtml`) — three-tier tokenizer with teal built-in types (`Integer`, `String`, `Boolean`, …), blue control-flow keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes. Toggle with `theToyBox.syntaxHighlighting.razorVb`.
 - **Enhancement**: **Better Outline — KDL Support** — opening a `.kdl` file now populates the Better Outline panel with a hierarchical node tree. Each node is labelled as `nodeName key value` using its name and the first argument or property on the line (quotes and `=` are stripped for readability). Nodes that open a `{` children block become collapsible regions; closing `}` lines are consumed transparently.
 
 ## [0.0.18]
@@ -35,11 +36,11 @@ All notable changes to the "theToyBox" extension will be documented in this file
 - **New Feature**: **Configurable Indent Rainbow Colors** — added `theToyBox.indentRainbowColors` setting. Provide a custom `string[]` of hex colors (e.g. `["#FF6B6B", "#FFD93D"]`) to replace the built-in pastel palette. Leave empty to keep the default colors. Changes apply in real time.
 - **New Feature**: **Multi-Operator Code Alignment** — the "Align with Tabs" command now supports five operators: `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`. The operator is **auto-detected** from the selection (more specific operators take priority, e.g. `=>` before `=`), so no picker appears for unambiguous selections. A QuickPick fallback is shown only when no operator is found.
 - **New Feature**: **JavaScript / TypeScript Outline Specialization** — the Better Outline panel now detects JS/TS-specific constructs:
-    - Named `function` declarations
-    - Arrow function expressions (`const foo = () =>`)
-    - ES6 `class` declarations (TypeScript/TSX only)
-    - jQuery `.on()` event handlers — displayed as `selector.Event` with a class or ID icon
-    - jQuery `.delegate()` event handlers — displayed as `selector.Event.Delegate`
+	- Named `function` declarations
+	- Arrow function expressions (`const foo = () =>`)
+	- ES6 `class` declarations (TypeScript/TSX only)
+	- jQuery `.on()` event handlers — displayed as `selector.Event` with a class or ID icon
+	- jQuery `.delegate()` event handlers — displayed as `selector.Event.Delegate`
 - **New Feature**: **JavaScript Outline — Comments Nested Inside Functions** — custom comments found within a function or jQuery handler body are now displayed as indented children of that function in the outline panel. The function item becomes collapsible.
 - **Enhancement**: **Better Outline — Clicking Any Item Navigates to Its Line** — collapsible items (functions, regions, etc.) now both toggle their children AND jump to the line in the editor on click. Previously, clicking a collapsible item only toggled expand/collapse.
 - **Enhancement**: **Better Outline — JS Files Show Only Functions, jQuery Handlers, and Comments** — language server symbols (variables, imports, etc.) are suppressed in `.js`/`.jsx` files to reduce noise. TypeScript files retain full language server output.
