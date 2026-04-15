@@ -2,6 +2,13 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.23]
+
+- **New Feature**: **nginx Syntax Highlighting** — Decoration-based syntax highlighting for nginx configuration (`.conf`) files. Tokens: `keyword` (directives, blue), `nginxBlock` (block names before `{`, teal bold), `nginxVariable` (`$variables`, light blue), `comment`, `string`, and `number` (with optional `k`/`m`/`g` suffixes). Toggle with `theToyBox.syntaxHighlighting.nginx`.
+- **New Feature**: **nginx Hover Documentation** — Hovering over any nginx directive shows its syntax, default value, and a short description. Hovering over a `$variable` shows what it contains. Covers ~100 directives and ~80 built-in variables. Respects both the master `enabled` setting and the per-language `nginx` toggle.
+- **New Feature**: **Classic ASP / VBScript Hover Documentation** — Hovering over a VBScript keyword shows its syntax and a usage example (~60 keywords covered). Hovering over one of the six built-in ASP objects (`Response`, `Request`, `Server`, `Session`, `Application`, `Err`) lists all key methods and properties. Respects both the master `enabled` setting and the `asp` toggle.
+- **Bug Fix**: **Extension Startup Activation** — Added `onStartupFinished` to `activationEvents` so that syntax highlighting and hover documentation activate correctly when a `.conf` or other non-language-mapped file is already open at VS Code launch. A 500 ms startup pass now iterates all visible editors to apply decorations immediately.
+
 ## [0.0.22]
 
 - **New Feature**: **T-SQL Highlighting in PHP Strings** — T-SQL keywords (`DECLARE`, `SELECT`, `GO`, `BEGIN`/`END`, …), data types (`VARCHAR`, `INT`, `DATETIME`, …), built-in functions (`GETDATE`, `ISNULL`, `COUNT`, …), and `@variables` are now highlighted inside PHP double-quoted strings. Toggle with `theToyBox.syntaxHighlighting.phpSql`.
@@ -16,9 +23,9 @@ All notable changes to the "theToyBox" extension will be documented in this file
 ## [0.0.19]
 
 - **New Feature**: **Decoration-Based Syntax Highlighting** — a new syntax highlighting engine applies VS Code Dark+-style token colors to file types that lack a grammar extension. Three languages are supported in this release:
-	- **KDL Document Language** (`.kdl`) — highlights node names, property keys, type annotations `(u8)`, quoted and raw strings, numbers (decimal, hex, octal, binary, float), booleans/null, and line/block/slashdash comments. Enabled by default; toggled with `theToyBox.syntaxHighlighting.enabled`.
-	- **Classic ASP / VBScript** (`.asp`) — dual-mode tokenizer covering HTML tags, attributes, and strings in the HTML sections, plus VBScript keywords, strings, numbers, and comments inside `<% %>` blocks. Toggle with `theToyBox.syntaxHighlighting.asp`.
-	- **ASP.NET Razor VB** (`.vbhtml`) — three-tier tokenizer with teal built-in types (`Integer`, `String`, `Boolean`, …), blue control-flow keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes. Toggle with `theToyBox.syntaxHighlighting.razorVb`.
+    - **KDL Document Language** (`.kdl`) — highlights node names, property keys, type annotations `(u8)`, quoted and raw strings, numbers (decimal, hex, octal, binary, float), booleans/null, and line/block/slashdash comments. Enabled by default; toggled with `theToyBox.syntaxHighlighting.enabled`.
+    - **Classic ASP / VBScript** (`.asp`) — dual-mode tokenizer covering HTML tags, attributes, and strings in the HTML sections, plus VBScript keywords, strings, numbers, and comments inside `<% %>` blocks. Toggle with `theToyBox.syntaxHighlighting.asp`.
+    - **ASP.NET Razor VB** (`.vbhtml`) — three-tier tokenizer with teal built-in types (`Integer`, `String`, `Boolean`, …), blue control-flow keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes. Toggle with `theToyBox.syntaxHighlighting.razorVb`.
 - **Enhancement**: **Better Outline — KDL Support** — opening a `.kdl` file now populates the Better Outline panel with a hierarchical node tree. Each node is labelled as `nodeName key value` using its name and the first argument or property on the line (quotes and `=` are stripped for readability). Nodes that open a `{` children block become collapsible regions; closing `}` lines are consumed transparently.
 
 ## [0.0.18]
@@ -36,11 +43,11 @@ All notable changes to the "theToyBox" extension will be documented in this file
 - **New Feature**: **Configurable Indent Rainbow Colors** — added `theToyBox.indentRainbowColors` setting. Provide a custom `string[]` of hex colors (e.g. `["#FF6B6B", "#FFD93D"]`) to replace the built-in pastel palette. Leave empty to keep the default colors. Changes apply in real time.
 - **New Feature**: **Multi-Operator Code Alignment** — the "Align with Tabs" command now supports five operators: `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`. The operator is **auto-detected** from the selection (more specific operators take priority, e.g. `=>` before `=`), so no picker appears for unambiguous selections. A QuickPick fallback is shown only when no operator is found.
 - **New Feature**: **JavaScript / TypeScript Outline Specialization** — the Better Outline panel now detects JS/TS-specific constructs:
-	- Named `function` declarations
-	- Arrow function expressions (`const foo = () =>`)
-	- ES6 `class` declarations (TypeScript/TSX only)
-	- jQuery `.on()` event handlers — displayed as `selector.Event` with a class or ID icon
-	- jQuery `.delegate()` event handlers — displayed as `selector.Event.Delegate`
+    - Named `function` declarations
+    - Arrow function expressions (`const foo = () =>`)
+    - ES6 `class` declarations (TypeScript/TSX only)
+    - jQuery `.on()` event handlers — displayed as `selector.Event` with a class or ID icon
+    - jQuery `.delegate()` event handlers — displayed as `selector.Event.Delegate`
 - **New Feature**: **JavaScript Outline — Comments Nested Inside Functions** — custom comments found within a function or jQuery handler body are now displayed as indented children of that function in the outline panel. The function item becomes collapsible.
 - **Enhancement**: **Better Outline — Clicking Any Item Navigates to Its Line** — collapsible items (functions, regions, etc.) now both toggle their children AND jump to the line in the editor on click. Previously, clicking a collapsible item only toggled expand/collapse.
 - **Enhancement**: **Better Outline — JS Files Show Only Functions, jQuery Handlers, and Comments** — language server symbols (variables, imports, etc.) are suppressed in `.js`/`.jsx` files to reduce noise. TypeScript files retain full language server output.

@@ -21,6 +21,8 @@ import {
 	refreshSyntaxHighlighting,
 	updateSyntaxHighlighting,
 } from "./syntaxHighlighting";
+import { registerNginxHoverProvider } from "./syntax/nginxHover";
+import { registerAspHoverProvider } from "./syntax/aspHover";
 
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
@@ -40,6 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
 	registerMarkdownPreviewProvider(context);
 	registerWordFrequency(context);
 	refreshSyntaxHighlighting();
+	registerNginxHoverProvider(context);
+	registerAspHoverProvider(context);
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
@@ -153,6 +157,14 @@ export function activate(context: vscode.ExtensionContext) {
 	// 4. Initial Run for the currently open file
 	if (vscode.window.activeTextEditor) {
 		triggerVisualUpdates(vscode.window.activeTextEditor);
+		// VS Code may not have fully rendered the editor at activation time,
+		// so schedule a second pass after a short delay to ensure decorations
+		// are applied even when the file was already open on launch.
+		setTimeout(() => {
+			for (const editor of vscode.window.visibleTextEditors) {
+				triggerVisualUpdates(editor);
+			}
+		}, 500);
 	} else {
 		const listener = vscode.window.onDidChangeActiveTextEditor((editor) => {
 			if (editor) {
