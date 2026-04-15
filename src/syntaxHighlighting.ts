@@ -6,6 +6,7 @@ import { tokenizeAsp } from "./syntax/asp";
 import { tokenizeRazorVb } from "./syntax/razorVb";
 import { tokenizePhpSql } from "./syntax/phpSql";
 import { tokenizeJsSql } from "./syntax/jsSql";
+import { tokenizeNginx } from "./syntax/nginx";
 
 // ─── Token style palette ─────────────────────────────────────────────────────
 // KDL tokens use VS Code Dark+ colours.
@@ -35,6 +36,9 @@ const TOKEN_STYLES: Record<string, vscode.DecorationRenderOptions> = {
 	sqlType: { color: "#4EC9B0" }, // VS teal for types
 	sqlFunction: { color: "#DCDCAA" }, // VS gold for functions
 	sqlVariable: { color: "#9CDCFE" }, // VS light blue for variables
+	// ── Nginx-specific ──
+	nginxVariable: { color: "#9CDCFE" }, // light blue for $variables
+	nginxBlock: { color: "#4EC9B0", fontWeight: "bold" }, // teal bold for context block names
 };
 
 // ─── Decoration type instances (rebuilt whenever the setting changes) ──────────
@@ -68,6 +72,11 @@ const PROFILES: LanguageProfile[] = [
 		extensions: [".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"],
 		settingKey: "jsSql",
 		tokenize: tokenizeJsSql,
+	},
+	{
+		extensions: [".conf"],
+		settingKey: "nginx",
+		tokenize: tokenizeNginx,
 	},
 ];
 
