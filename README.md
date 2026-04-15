@@ -57,8 +57,22 @@ Applies VS Code Dark+-style token colors to file types that lack a dedicated gra
 - **✔ KDL Document Language** (`.kdl`): Node names, property keys, type annotations, strings, numbers, booleans/null, and comments — all colored to match the Dark+ theme.
 - **✔ Classic ASP / VBScript** (`.asp`): Dual-mode — HTML tags, attributes, and strings in the HTML sections; VBScript keywords, strings, numbers, and `'` / `REM` comments inside `<% %>` blocks.
 - **✔ ASP.NET Razor VB** (`.vbhtml`): Teal built-in types, blue keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes — matching the Visual Studio Dark theme.
+- **✔ nginx Configuration** (`.conf`): Directives (blue), block names before `{` (teal bold), `$variables` (light blue), comments, strings, and numbers with optional `k`/`m`/`g` unit suffixes. Toggle with `theToyBox.syntaxHighlighting.nginx`.
 - **✔ Per-Language Toggle**: Each language can be enabled or disabled independently while the master switch controls all of them.
 - **✔ Enable/Disable**: Toggle everything with `theToyBox.syntaxHighlighting.enabled`.
+
+---
+
+## Hover Documentation
+
+Context-aware hover tooltips that surface inline documentation as you read or write code — no external docs tab needed.
+
+- **✔ nginx Directives**: Hover over any directive (e.g. `server_name`, `proxy_pass`, `gzip`) to see its full syntax, default value, and a short description. Covers ~100 directives.
+- **✔ nginx Built-in Variables**: Hover over any `$variable` (e.g. `$host`, `$request_uri`, `$remote_addr`) to see exactly what it contains. Covers ~80 built-in variables.
+- **✔ Classic ASP / VBScript Keywords**: Hover over a VBScript keyword (`Dim`, `For Each`, `Function`, `On Error Resume Next`, …) to see its syntax and a usage example. Covers ~60 keywords.
+- **✔ Classic ASP Built-in Objects**: Hover over `Response`, `Request`, `Server`, `Session`, `Application`, or `Err` for a full listing of their key methods and properties with descriptions.
+- **✔ Respects All Toggles**: Hover providers honour both the master `theToyBox.syntaxHighlighting.enabled` switch and the per-language toggle.
+- **✔ Low-Latency**: A 400 ms cancellable delay prevents tooltip flicker while navigating — the provider cancels immediately if the cursor moves on.
 
 ---
 
@@ -255,14 +269,15 @@ All settings are unified under the `theToyBox` namespace.
 
 ### Syntax Highlighting
 
-| Setting                                | Default | Description                                                            |
-| :------------------------------------- | :-----: | :--------------------------------------------------------------------- |
-| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.                     |
-| `theToyBox.syntaxHighlighting.phpSql`  | `true`  | Enable/Disable T-SQL highlighting inside PHP double-quoted strings.                      |
-| `theToyBox.syntaxHighlighting.jsSql`   | `true`  | Enable/Disable T-SQL highlighting inside JS/TS strings and template literals.            |
-| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.                   |
-| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files.                  |
-| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.                     |
+| Setting                                | Default | Description                                                                   |
+| :------------------------------------- | :-----: | :---------------------------------------------------------------------------- |
+| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.          |
+| `theToyBox.syntaxHighlighting.phpSql`  | `true`  | Enable/Disable T-SQL highlighting inside PHP double-quoted strings.           |
+| `theToyBox.syntaxHighlighting.jsSql`   | `true`  | Enable/Disable T-SQL highlighting inside JS/TS strings and template literals. |
+| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.         |
+| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files.        |
+| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.           |
+| `theToyBox.syntaxHighlighting.nginx`   | `true`  | Enable/Disable highlighting for nginx configuration (`.conf`) files.          |
 
 ### Custom Comments
 
