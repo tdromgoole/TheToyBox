@@ -208,7 +208,9 @@ export function tokenizeRazorVb(text: string): TokenMatch[] {
 			) {
 				i++;
 			}
-			i += 2; // skip *@
+			if (i < text.length) {
+				i += 2; // skip *@
+			}
 			tokens.push({ type: "comment", start, end: i });
 			continue;
 		}
@@ -417,7 +419,9 @@ export function tokenizeRazorVb(text: string): TokenMatch[] {
 			while (i < text.length && !text.startsWith("-->", i)) {
 				i++;
 			}
-			i += 3;
+			if (i < text.length) {
+				i += 3;
+			}
 			tokens.push({ type: "comment", start, end: i });
 			continue;
 		}
@@ -520,7 +524,7 @@ function tokenizeVbBlock(
 ): number {
 	while (i < text.length) {
 		// Check for end marker
-		if (text.slice(i).toLowerCase().startsWith(endMarker)) {
+		if (text.slice(i, i + endMarker.length).toLowerCase() === endMarker) {
 			return i;
 		}
 		i = tokenizeVbToken(text, i, tokens);

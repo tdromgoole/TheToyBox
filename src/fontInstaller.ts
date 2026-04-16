@@ -150,14 +150,23 @@ async function getLatestNerdFontsVersion(): Promise<string> {
 				{ headers: { "User-Agent": "VSCode-TheToyBox" } },
 				(res) => {
 					let data = "";
-					res.on("data", (chunk) => (data += chunk));
+					const MAX_BODY = 1_000_000;
+					res.on("data", (chunk) => {
+						data += chunk;
+						if (data.length > MAX_BODY) {
+							res.destroy();
+							resolve("v3.3.0");
+						}
+					});
 					res.on("end", () => {
 						try {
 							const json = JSON.parse(data);
-							resolve(
+							const tag =
 								typeof json.tag_name === "string"
 									? json.tag_name
-									: "v3.3.0",
+									: "";
+							resolve(
+								/^v?\d+\.\d+\.\d+/.test(tag) ? tag : "v3.3.0",
 							);
 						} catch {
 							resolve("v3.3.0");
@@ -182,11 +191,9 @@ async function getLatestNerdFontsVersion(): Promise<string> {
 function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (process.platform === "win32") {
-			// Write a PowerShell script to temp so we avoid any quoting issues
-			const scriptPath = path.join(
-				os.tmpdir(),
-				"toybox-extract-fonts.ps1",
-			);
+			// Write a PowerShell script to a random temp file to avoid symlink attacks
+			const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-"));
+			const scriptPath = path.join(tmpDir, "extract-fonts.ps1");
 			const escapedZip = zipPath.replace(/\\/g, "\\\\");
 			const escapedDest = destDir.replace(/\\/g, "\\\\");
 			const fileList = FONT_FILES.map((f) => `'${f}'`).join(",");

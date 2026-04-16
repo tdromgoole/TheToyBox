@@ -74,11 +74,16 @@ export function parseCss(document: vscode.TextDocument): any[] {
 			continue;
 		}
 
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("/*")) {
+			continue;
+		}
+		// Skip block-comment continuation lines (e.g. " * ..." or " */")
+		// but NOT the universal CSS selector (* or *,div or *{).
 		if (
-			!trimmed ||
-			trimmed.startsWith("//") ||
-			trimmed.startsWith("/*") ||
-			trimmed.startsWith("*")
+			trimmed.startsWith("*") &&
+			!trimmed.startsWith("* {") &&
+			!/^\*[\s,{:.>~+[]/.test(trimmed) &&
+			trimmed !== "*"
 		) {
 			continue;
 		}

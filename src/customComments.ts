@@ -104,6 +104,7 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 		// String-aware comment scanning (O(n) flag-based)
 		let inSingle = false;
 		let inDouble = false;
+		let inTemplate = false;
 		for (let charIdx = 0; charIdx < text.length; charIdx++) {
 			const ch = text[charIdx];
 
@@ -128,6 +129,16 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 				}
 				continue;
 			}
+			if (inTemplate) {
+				if (ch === "\\") {
+					charIdx++;
+					continue;
+				}
+				if (ch === "`") {
+					inTemplate = false;
+				}
+				continue;
+			}
 
 			// Outside any string: check for a comment prefix first
 			const currentPrefix = commentPrefixes.find((p) =>
@@ -144,6 +155,8 @@ export function updateComments(editor = vscode.window.activeTextEditor) {
 				inDouble = true;
 			} else if (ch === "'") {
 				inSingle = true;
+			} else if (ch === "`") {
+				inTemplate = true;
 			}
 		}
 

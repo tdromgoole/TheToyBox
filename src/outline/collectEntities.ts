@@ -1,33 +1,9 @@
 import * as vscode from "vscode";
 
-function findJqueryHandlerEnd(
-	document: vscode.TextDocument,
-	startLine: number,
-): number {
-	let depth = 0;
-	let started = false;
-	for (let i = startLine; i < document.lineCount; i++) {
-		const text = document.lineAt(i).text;
-		for (const ch of text) {
-			if (ch === "{") {
-				depth++;
-				started = true;
-			} else if (ch === "}" && started) {
-				depth--;
-				if (depth === 0) {
-					return i;
-				}
-			}
-		}
-	}
-	return document.lineCount - 1;
-}
-
 export interface EntityCollection {
 	allComments: any[];
 	sqlEntities: any[];
 	phpFunctions: any[];
-	tsJsItems: any[];
 }
 
 /**
@@ -75,15 +51,7 @@ export function collectEntities(
 	const allComments: any[] = [];
 	const sqlEntities: any[] = [];
 	const phpFunctions: any[] = [];
-	const tsJsItems: any[] = [];
 	const isPhpFile = lang === "php";
-	const isTsJsFile = [
-		"javascript",
-		"typescript",
-		"javascriptreact",
-		"typescriptreact",
-	].includes(lang);
-	const isJsFile = ["javascript", "javascriptreact"].includes(lang);
 
 	for (let i = 0; i < document.lineCount; i++) {
 		const line = document.lineAt(i);
@@ -102,102 +70,6 @@ export function collectEntities(
 					label: phpFuncMatch[2] + "()",
 					line: i,
 					phpType: "function",
-					isRegion: false,
-					children: [],
-				});
-				continue;
-			}
-		}
-
-		// --- TypeScript / JavaScript Detection ---
-		if (isTsJsFile) {
-			// Classes: TS only — JS outline is limited to functions, jQuery events, and comments
-			if (!isJsFile) {
-				const classMatch = text.match(
-					/^\s*(?:export\s+(?:default\s+)?)?(?:abstract\s+)?class\s+(\w+)/,
-				);
-				if (classMatch) {
-					tsJsItems.push({
-						label: classMatch[1],
-						line: i,
-						tsJsType: "class",
-						isRegion: false,
-						children: [],
-					});
-					continue;
-				}
-			}
-
-			const funcMatch = text.match(
-				/^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/,
-			);
-			if (funcMatch) {
-				tsJsItems.push({
-					label: funcMatch[1] + "()",
-					line: i,
-					tsJsType: "function",
-					isRegion: false,
-					children: [],
-				});
-				continue;
-			}
-
-			const arrowMatch = text.match(
-				/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>/,
-			);
-			if (arrowMatch) {
-				tsJsItems.push({
-					label: arrowMatch[1] + "()",
-					line: i,
-					tsJsType: "arrowFunction",
-					isRegion: false,
-					children: [],
-				});
-				continue;
-			}
-
-			// jQuery .on() — $("#id").on("event", fn) or $(".cls").on("event", fn)
-			const jqOnMatch = text.match(
-				/\$\(["']([.#][\w-]+)["']\)\.on\(["'](\w+)["']\s*,\s*function/,
-			);
-
-			if (jqOnMatch) {
-				const raw = jqOnMatch[1];
-				const isId = raw.startsWith("#");
-				const name = raw.slice(1);
-				const event =
-					jqOnMatch[2].charAt(0).toUpperCase() +
-					jqOnMatch[2].slice(1);
-				tsJsItems.push({
-					label: `${name}.${event}`,
-					line: i,
-					endLine: findJqueryHandlerEnd(document, i),
-					tsJsType: "jqueryEvent",
-					jquerySelector: isId ? "id" : "class",
-					isRegion: false,
-					children: [],
-				});
-				continue;
-			}
-
-			// jQuery .delegate() — $(...).delegate(".cls", "event", fn) or $(...).delegate("#id", "event", fn)
-			const jqDelegateMatch = text.match(
-				/\.delegate\(["']([.#][\w-]+)["']\s*,\s*["'](\w+)["']\s*,\s*function/,
-			);
-
-			if (jqDelegateMatch) {
-				const raw = jqDelegateMatch[1];
-				const isId = raw.startsWith("#");
-				const name = raw.slice(1);
-				const event =
-					jqDelegateMatch[2].charAt(0).toUpperCase() +
-					jqDelegateMatch[2].slice(1);
-				tsJsItems.push({
-					label: `${name}.${event}.Delegate`,
-					line: i,
-					endLine: findJqueryHandlerEnd(document, i),
-					tsJsType: "jqueryEvent",
-					jquerySelector: isId ? "id" : "class",
 					isRegion: false,
 					children: [],
 				});
@@ -264,6 +136,7 @@ export function collectEntities(
 
 		let inSingle = false;
 		let inDouble = false;
+		let inTemplate = false;
 		let hasNonWhitespaceBefore = false;
 		for (let charIdx = 0; charIdx < text.length; charIdx++) {
 			const ch = text[charIdx];
@@ -286,6 +159,16 @@ export function collectEntities(
 				}
 				if (ch === "'") {
 					inSingle = false;
+				}
+				continue;
+			}
+			if (inTemplate) {
+				if (ch === "\\") {
+					charIdx++;
+					continue;
+				}
+				if (ch === "`") {
+					inTemplate = false;
 				}
 				continue;
 			}
@@ -330,6 +213,9 @@ export function collectEntities(
 				hasNonWhitespaceBefore = true;
 			} else if (ch === "'") {
 				inSingle = true;
+				hasNonWhitespaceBefore = true;
+			} else if (ch === "`") {
+				inTemplate = true;
 				hasNonWhitespaceBefore = true;
 			} else if (ch !== " " && ch !== "\t") {
 				hasNonWhitespaceBefore = true;
@@ -396,5 +282,5 @@ export function collectEntities(
 		});
 	}
 
-	return { allComments, sqlEntities, phpFunctions, tsJsItems };
+	return { allComments, sqlEntities, phpFunctions };
 }

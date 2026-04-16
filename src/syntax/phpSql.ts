@@ -54,8 +54,14 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 		if (ch === "'") {
 			i++;
 			while (i < text.length) {
-				if (text[i] === "\\") { i += 2; continue; }
-				if (text[i] === "'") { i++; break; }
+				if (text[i] === "\\" && i + 1 < text.length) {
+					i += 2;
+					continue;
+				}
+				if (text[i] === "'") {
+					i++;
+					break;
+				}
 				i++;
 			}
 			continue;
@@ -63,21 +69,32 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 
 		// ── Skip PHP line comment (//) ───────────────────────────────────────
 		if (ch === "/" && text[i + 1] === "/") {
-			while (i < text.length && text[i] !== "\n") { i++; }
+			while (i < text.length && text[i] !== "\n") {
+				i++;
+			}
 			continue;
 		}
 
 		// ── Skip PHP hash comment (#) ────────────────────────────────────────
 		if (ch === "#") {
-			while (i < text.length && text[i] !== "\n") { i++; }
+			while (i < text.length && text[i] !== "\n") {
+				i++;
+			}
 			continue;
 		}
 
 		// ── Skip PHP block comment (/* */) ───────────────────────────────────
 		if (ch === "/" && text[i + 1] === "*") {
 			i += 2;
-			while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) { i++; }
-			if (i < text.length) { i += 2; }
+			while (
+				i < text.length &&
+				!(text[i] === "*" && text[i + 1] === "/")
+			) {
+				i++;
+			}
+			if (i < text.length) {
+				i += 2;
+			}
 			continue;
 		}
 

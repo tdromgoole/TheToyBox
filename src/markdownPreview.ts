@@ -60,9 +60,14 @@ export function extendMarkdownItWithAlerts(md: any): any {
 			}
 
 			const rendered = md.renderInline(contentParts.join(" "));
+			const safeTitle = displayTitle
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;");
 			const html =
 				`<div class="markdown-alert ${type}">` +
-				`<p class="alert-title"><span class="alert-icon">${info.icon}</span> ${displayTitle}</p>` +
+				`<p class="alert-title"><span class="alert-icon">${info.icon}</span> ${safeTitle}</p>` +
 				`<p>${rendered}</p>` +
 				`</div>\n`;
 
@@ -331,7 +336,12 @@ class CustomMarkdownPreviewProvider {
 
 		const alertInfo = iconData[type] || iconData.note;
 		const displayTitle = customTitle || alertInfo.title;
-		return `<div class="markdown-alert ${type}">\n<p class="alert-title"><span class="alert-icon">${alertInfo.name}</span> ${displayTitle}</p>\n<p>${content}</p>\n</div>`;
+		const safeTitle = displayTitle
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+		return `<div class="markdown-alert ${type}">\n<p class="alert-title"><span class="alert-icon">${alertInfo.name}</span> ${safeTitle}</p>\n<p>${content}</p>\n</div>`;
 	}
 
 	private basicMarkdownToHtml(markdown: string): string {
@@ -441,14 +451,23 @@ class CustomMarkdownPreviewProvider {
 
 		// Restore inline code
 		markdown = markdown.replace(/%%INLINECODE_(\d+)%%/g, (_m, i) => {
-			return `<code>${inlineCodes[Number(i)]}</code>`;
+			const raw = inlineCodes[Number(i)];
+			const escaped = raw
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;");
+			return `<code>${escaped}</code>`;
 		});
 
 		// Restore fenced code blocks
 		markdown = markdown.replace(/%%CODEBLOCK_(\d+)%%/g, (_m, i) => {
 			const raw = codeBlocks[Number(i)];
 			const inner = raw.replace(/^```[^\n]*\n?/, "").replace(/```$/, "");
-			return `<pre><code>${inner}</code></pre>`;
+			const escaped = inner
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;");
+			return `<pre><code>${escaped}</code></pre>`;
 		});
 
 		// Paragraphs — wrap blocks not already wrapped in an HTML block tag
@@ -509,7 +528,7 @@ class CustomMarkdownPreviewProvider {
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri};">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri}; img-src https: data:;">
 				<title>Markdown Preview</title>
 				<style>
 					@font-face {

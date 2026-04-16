@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.23",
+	"version": "0.0.24",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -132,6 +132,32 @@
 				"command": "wordFrequency.refresh",
 				"title": "Refresh",
 				"icon": "$(refresh)"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "theToyBox.alignEquals",
+				"key": "ctrl+shift+alt+a",
+				"mac": "cmd+shift+alt+a",
+				"when": "editorHasSelection"
+			},
+			{
+				"command": "theToyBox.formatJson",
+				"key": "ctrl+shift+alt+j",
+				"mac": "cmd+shift+alt+j",
+				"when": "editorHasSelection"
+			},
+			{
+				"command": "theToyBox.openMarkdownPreview",
+				"key": "ctrl+shift+alt+m",
+				"mac": "cmd+shift+alt+m",
+				"when": "editorLangId == markdown"
+			},
+			{
+				"command": "theToyBox.cleanFile",
+				"key": "ctrl+shift+alt+c",
+				"mac": "cmd+shift+alt+c",
+				"when": "editorTextFocus"
 			}
 		],
 		"menus": {
@@ -373,6 +399,8 @@
 							"html",
 							"xml",
 							"php",
+							"asp",
+							"aspvbhtml",
 							"javascript",
 							"javascriptreact",
 							"typescriptreact"
@@ -453,6 +481,31 @@
 						"type": "boolean",
 						"default": true,
 						"description": "Enable or disable the Word Frequency panel in the sidebar."
+					},
+					"theToyBox.wordFrequency.minLength": {
+						"type": "number",
+						"default": 2,
+						"minimum": 1,
+						"maximum": 50,
+						"description": "Minimum word length to include in the frequency list."
+					},
+					"theToyBox.wordFrequency.caseSensitive": {
+						"type": "boolean",
+						"default": true,
+						"description": "When enabled, 'Word' and 'word' are counted separately. When disabled, tokens are merged case-insensitively."
+					},
+					"theToyBox.wordFrequency.excludeStopWords": {
+						"type": "boolean",
+						"default": false,
+						"description": "Filter out common programming stop words (if, else, return, var, let, const, etc.)."
+					},
+					"theToyBox.wordFrequency.customStopWords": {
+						"type": "array",
+						"default": [],
+						"description": "Additional words to exclude from the frequency list.",
+						"items": {
+							"type": "string"
+						}
 					}
 				}
 			}

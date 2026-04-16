@@ -1,0 +1,84 @@
+{
+	"name": "my-application",
+	"version": "2.1.0",
+	"description": "A sample application for testing",
+	"author": {
+		"name": "Jane Doe",
+		"email": "jane@example.com",
+		"url": "https://example.com"
+	},
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/example/my-app.git"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"watch": "tsc -watch -p tsconfig.json",
+		"test": "jest --coverage",
+		"lint": "eslint src/**/*.ts"
+	},
+	"dependencies": {
+		"express": "^4.18.2",
+		"lodash": "^4.17.21",
+		"axios": "^1.6.0"
+	},
+	"devDependencies": {
+		"typescript": "^5.3.0",
+		"jest": "^29.7.0",
+		"eslint": "^8.50.0"
+	},
+	"database": {
+		"host": "localhost",
+		"port": 5432,
+		"name": "myapp_db",
+		"credentials": {
+			"username": "admin",
+			"password": "change-me",
+			"ssl": true
+		},
+		"pool": {
+			"min": 2,
+			"max": 10,
+			"idleTimeoutMs": 30000
+		}
+	},
+	"features": [
+		{
+			"name": "authentication",
+			"enabled": true,
+			"providers": ["local", "oauth2", "saml"]
+		},
+		{
+			"name": "notifications",
+			"enabled": false,
+			"channels": ["email", "sms"]
+		},
+		{
+			"name": "analytics",
+			"enabled": true,
+			"providers": ["google", "mixpanel"]
+		}
+	],
+	"logging": {
+		"level": "info",
+		"format": "json",
+		"outputs": [
+			{ "type": "console", "colorize": true },
+			{ "type": "file", "path": "/var/log/app.log", "maxSize": "10MB" }
+		]
+	},
+	"ui": {
+		"theme": "dark",
+		"language": "en",
+		"sidebar": {
+			"visible": true,
+			"width": 280,
+			"items": ["dashboard", "settings", "profile", "help"]
+		},
+		"toolbar": {
+			"position": "top",
+			"compact": false
+		}
+	}
+}
