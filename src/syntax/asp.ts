@@ -255,7 +255,9 @@ export function tokenizeAsp(text: string): TokenMatch[] {
 			while (i < text.length && !text.startsWith("-->", i)) {
 				i++;
 			}
-			i += 3; // skip -->
+			if (i < text.length) {
+				i += 3; // skip -->
+			}
 			tokens.push({ type: "comment", start, end: i });
 			continue;
 		}

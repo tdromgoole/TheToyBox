@@ -103,32 +103,179 @@ export class WordFrequencyProvider implements vscode.WebviewViewProvider {
 	private _countTokens(
 		text: string,
 	): Array<{ word: string; count: number; lines: number[] }> {
+		const cfg = vscode.workspace.getConfiguration(
+			"theToyBox.wordFrequency",
+		);
+		const minLength = cfg.get<number>("minLength", 2);
+		const caseSensitive = cfg.get<boolean>("caseSensitive", true);
+		const excludeStopWords = cfg.get<boolean>("excludeStopWords", false);
+		const customStopWords = cfg.get<string[]>("customStopWords", []);
+
+		const stopWords = this._buildStopSet(excludeStopWords, customStopWords);
+
 		const countMap = new Map<string, number>();
 		const linesMap = new Map<string, Set<number>>();
+		// For case-insensitive mode, map canonical (lowercase) key → first-seen form
+		const canonMap = new Map<string, string>();
 		const re = /[a-zA-Z_$][a-zA-Z0-9_$]*/g;
 		const rawLines = text.split("\n");
 		for (let lineIdx = 0; lineIdx < rawLines.length; lineIdx++) {
 			re.lastIndex = 0;
 			let m: RegExpExecArray | null;
 			while ((m = re.exec(rawLines[lineIdx])) !== null) {
-				const word = m[0];
-				if (word.length < 2) {
+				const raw = m[0];
+				if (raw.length < minLength) {
 					continue;
 				}
-				countMap.set(word, (countMap.get(word) ?? 0) + 1);
-				if (!linesMap.has(word)) {
-					linesMap.set(word, new Set());
+				const key = caseSensitive ? raw : raw.toLowerCase();
+				if (stopWords.has(key.toLowerCase())) {
+					continue;
 				}
-				linesMap.get(word)!.add(lineIdx + 1); // 1-based
+				if (!caseSensitive && !canonMap.has(key)) {
+					canonMap.set(key, raw);
+				}
+				countMap.set(key, (countMap.get(key) ?? 0) + 1);
+				if (!linesMap.has(key)) {
+					linesMap.set(key, new Set());
+				}
+				linesMap.get(key)!.add(lineIdx + 1); // 1-based
 			}
 		}
 		return [...countMap.entries()]
-			.map(([word, count]) => ({
-				word,
+			.map(([key, count]) => ({
+				word: caseSensitive ? key : (canonMap.get(key) ?? key),
 				count,
-				lines: [...linesMap.get(word)!],
+				lines: [...linesMap.get(key)!],
 			}))
 			.sort((a, b) => b.count - a.count);
+	}
+
+	private static readonly BUILTIN_STOP_WORDS = new Set([
+		// JS/TS keywords
+		"if",
+		"else",
+		"for",
+		"while",
+		"do",
+		"switch",
+		"case",
+		"break",
+		"continue",
+		"return",
+		"function",
+		"class",
+		"const",
+		"let",
+		"var",
+		"new",
+		"this",
+		"typeof",
+		"instanceof",
+		"void",
+		"delete",
+		"in",
+		"of",
+		"try",
+		"catch",
+		"finally",
+		"throw",
+		"async",
+		"await",
+		"yield",
+		"import",
+		"export",
+		"default",
+		"from",
+		"as",
+		"extends",
+		"implements",
+		"interface",
+		"type",
+		"enum",
+		"namespace",
+		"module",
+		"declare",
+		"public",
+		"private",
+		"protected",
+		"static",
+		"readonly",
+		"abstract",
+		"true",
+		"false",
+		"null",
+		"undefined",
+		// Common short tokens
+		"get",
+		"set",
+		"is",
+		"to",
+		"on",
+		"no",
+		"ok",
+		// PHP
+		"echo",
+		"require",
+		"include",
+		"use",
+		"foreach",
+		"endif",
+		"endfor",
+		"endwhile",
+		"endforeach",
+		// SQL
+		"select",
+		"from",
+		"where",
+		"and",
+		"or",
+		"not",
+		"insert",
+		"update",
+		"into",
+		"values",
+		"set",
+		"create",
+		"alter",
+		"drop",
+		"table",
+		"index",
+		"join",
+		"left",
+		"right",
+		"inner",
+		"outer",
+		"on",
+		"as",
+		"order",
+		"by",
+		"group",
+		"having",
+		"limit",
+		"offset",
+		"begin",
+		"end",
+		"exec",
+		"declare",
+		"nvarchar",
+		"varchar",
+		"int",
+	]);
+
+	private _buildStopSet(
+		excludeBuiltin: boolean,
+		custom: string[],
+	): Set<string> {
+		const result = new Set<string>();
+		if (excludeBuiltin) {
+			for (const w of WordFrequencyProvider.BUILTIN_STOP_WORDS) {
+				result.add(w);
+			}
+		}
+		for (const w of custom) {
+			result.add(w.toLowerCase());
+		}
+		return result;
 	}
 
 	private _emptyHtml(msg: string): string {

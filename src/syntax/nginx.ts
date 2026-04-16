@@ -288,7 +288,7 @@ export function tokenizeNginx(text: string): TokenMatch[] {
 		if (ch === '"') {
 			const start = i++;
 			while (i < text.length && text[i] !== '"') {
-				if (text[i] === "\\") {
+				if (text[i] === "\\" && i + 1 < text.length) {
 					i++;
 				}
 				i++;
@@ -304,7 +304,7 @@ export function tokenizeNginx(text: string): TokenMatch[] {
 		if (ch === "'") {
 			const start = i++;
 			while (i < text.length && text[i] !== "'") {
-				if (text[i] === "\\") {
+				if (text[i] === "\\" && i + 1 < text.length) {
 					i++;
 				}
 				i++;

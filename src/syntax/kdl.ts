@@ -91,7 +91,7 @@ export function tokenizeKdl(text: string): TokenMatch[] {
 			const start = i;
 			i++; // skip opening quote
 			while (i < text.length && text[i] !== '"') {
-				if (text[i] === "\\") {
+				if (text[i] === "\\" && i + 1 < text.length) {
 					i++; // skip escape character
 				}
 				i++;
@@ -127,10 +127,12 @@ export function tokenizeKdl(text: string): TokenMatch[] {
 					}
 					i++;
 				}
+				tokens.push({ type: "string", start, end: i });
+				atLineStart = false;
+				continue;
 			}
-			tokens.push({ type: "string", start, end: i });
-			atLineStart = false;
-			continue;
+			// Not a valid raw string (no opening quote after hashes) — rewind
+			i = start;
 		}
 
 		// ── Type annotation (...) ──

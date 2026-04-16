@@ -22,7 +22,7 @@ function findStructuralPartner(
 ): number | null {
 	let depth = 0;
 	const tagRegex =
-		/<([a-zA-Z0-9_:-]+)(?:\s|>|(?=\/))|<\/([a-zA-Z0-9_:-]+)>/gi;
+		/<([a-zA-Z0-9_:-]+)(?:\s[^>]*\/?>|\/?>)|<\/([a-zA-Z0-9_:-]+)>/gi;
 
 	if (searchBackwards) {
 		const matches: RegExpExecArray[] = [];
@@ -47,6 +47,9 @@ function findStructuralPartner(
 	} else {
 		const firstBracketClose = text.indexOf(">", offset);
 		if (firstBracketClose === -1) return null;
+
+		// Check if the current tag is self-closing
+		if (text[firstBracketClose - 1] === "/") return null;
 
 		tagRegex.lastIndex = firstBracketClose + 1;
 		let m: RegExpExecArray | null;
@@ -86,6 +89,8 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 				"html",
 				"xml",
 				"php",
+				"asp",
+				"aspvbhtml",
 				"javascript",
 				"javascriptreact",
 				"typescriptreact",
@@ -121,28 +126,79 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 			// Blacklist Check
 			if (cachedVoidElements.has(tagName.toLowerCase())) return;
 
+			// Skip empty tag names (e.g. user deleted entire name, producing "<>")
+			if (!tagName) return;
+
 			// Verify cursor is in the tag name
 			const nameEndInLine =
 				lastOpen + (isClosing ? 2 : 1) + tagName.length;
 			if (charPos + change.text.length > nameEndInLine) return;
 
+			// Skip incomplete/new tags that have no closing ">".
+			// When typing a brand-new tag like "<di", there is no matching ">"
+			// yet, so we must not search for a partner to rename.
+			// For multi-line tags (e.g. <div\n  class="x">), we scan ahead.
+			const restOfLine = line.substring(nameEndInLine);
+			if (!/^[^<]*>/.test(restOfLine)) {
+				let isCompleteTag = false;
+				scanAhead: for (
+					let ln = change.range.start.line + 1;
+					ln <
+					Math.min(change.range.start.line + 20, document.lineCount);
+					ln++
+				) {
+					for (const ch of document.lineAt(ln).text) {
+						if (ch === ">") {
+							isCompleteTag = true;
+							break scanAhead;
+						}
+						if (ch === "<") break scanAhead;
+					}
+				}
+				if (!isCompleteTag) return;
+			}
+
 			// 3. DEBOUNCE LOGIC
 			if (renameTimeout) clearTimeout(renameTimeout);
 
 			renameTimeout = setTimeout(async () => {
+				// Re-read the document state to avoid stale closure values
+				const currentLine = document.lineAt(
+					change.range.start.line,
+				).text;
+				const currentTextBefore = currentLine.substring(
+					0,
+					charPos + change.text.length,
+				);
+				const currentLastOpen = currentTextBefore.lastIndexOf("<");
+				if (currentLastOpen === -1) return;
+
+				const currentTagContent =
+					currentLine.substring(currentLastOpen);
+				const currentNameMatch = currentTagContent.match(
+					/^<\/?([a-zA-Z0-9_:-]*)/,
+				);
+				if (!currentNameMatch || !currentNameMatch[1]) return;
+
+				const currentTagName = currentNameMatch[1];
+				const currentIsClosing = currentTagContent.startsWith("</");
+
 				const fullText = document.getText();
 				const offset = document.offsetAt(
-					new vscode.Position(change.range.start.line, lastOpen),
+					new vscode.Position(
+						change.range.start.line,
+						currentLastOpen,
+					),
 				);
 				let partnerRange: vscode.Range | null = null;
 
 				const partnerPos = findStructuralPartner(
 					fullText,
 					offset,
-					isClosing,
+					currentIsClosing,
 				);
 				if (partnerPos !== null) {
-					const partnerNameStart = isClosing
+					const partnerNameStart = currentIsClosing
 						? partnerPos + 1
 						: partnerPos + 2;
 					const partnerText = fullText.substring(partnerNameStart);
@@ -158,7 +214,7 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 					);
 				}
 
-				if (partnerRange && tagName !== undefined) {
+				if (partnerRange && currentTagName !== undefined) {
 					try {
 						isApplyingRename = true;
 						// Re-verify document is still active before applying
@@ -169,7 +225,10 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 						) {
 							await activeEditor.edit(
 								(editBuilder) => {
-									editBuilder.replace(partnerRange!, tagName);
+									editBuilder.replace(
+										partnerRange!,
+										currentTagName,
+									);
 								},
 								{ undoStopBefore: false, undoStopAfter: false },
 							);

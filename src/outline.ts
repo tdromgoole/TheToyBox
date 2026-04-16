@@ -2,13 +2,29 @@
 import { parseMarkdown } from "./outline/parseMarkdown";
 import { parseCss } from "./outline/parseCss";
 import { parseKdl } from "./outline/parseKdl";
+import { parseNginx } from "./outline/parseNginx";
+import { parseJs } from "./outline/parseJs";
+import { parseYaml } from "./outline/parseYaml";
+import { parseIni } from "./outline/parseIni";
+import { parseJson } from "./outline/parseJson";
 import { collectEntities } from "./outline/collectEntities";
+
+function getNonce(): string {
+	const chars =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	let nonce = "";
+	for (let i = 0; i < 32; i++) {
+		nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+	return nonce;
+}
 
 export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = "betterOutlineView";
 
 	private _view?: vscode.WebviewView;
 	private _isFetching = false;
+	private _pendingUpdate = false;
 	private _updateTimeout?: NodeJS.Timeout;
 	private _highlightDecoration?: vscode.TextEditorDecorationType;
 	private _highlightTimeout?: NodeJS.Timeout;
@@ -113,6 +129,12 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			}),
 		);
 
+		webviewView.onDidChangeVisibility(() => {
+			if (webviewView.visible) {
+				this.scheduleUpdate();
+			}
+		});
+
 		webviewView.onDidDispose(() => {
 			viewDisposables.forEach((d) => d.dispose());
 			if (selectionTimeout) {
@@ -164,6 +186,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			return;
 		}
 		if (this._isFetching) {
+			this._pendingUpdate = true;
 			return;
 		}
 
@@ -201,6 +224,10 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			}
 		} finally {
 			this._isFetching = false;
+			if (this._pendingUpdate) {
+				this._pendingUpdate = false;
+				this.scheduleUpdate();
+			}
 		}
 	}
 
@@ -221,8 +248,19 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			"javascriptreact",
 			"typescriptreact",
 		].includes(lang);
-		const isJsFile = ["javascript", "javascriptreact"].includes(lang);
 		const isKdlFile = lang === "kdl";
+		const isNginxFile =
+			lang === "nginx" ||
+			lang === "NGINX" ||
+			document.fileName.endsWith(".conf");
+		const isYamlFile = ["yaml", "yml"].includes(lang);
+		const isIniFile =
+			lang === "ini" ||
+			lang === "properties" ||
+			document.fileName.endsWith(".ini") ||
+			document.fileName.endsWith(".cfg") ||
+			document.fileName.endsWith(".env");
+		const isJsonFile = ["json", "jsonc", "json5", "jsonl"].includes(lang);
 
 		// 2a. Markdown: parse headings into a nested tree
 		if (isMarkdownFile) {
@@ -239,8 +277,33 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			return parseKdl(document);
 		}
 
+		// 2a-nginx. Nginx: parse block directives into a hierarchical tree
+		if (isNginxFile) {
+			return parseNginx(document);
+		}
+
+		// 2a-js. JS/TS/JSX/TSX: parse functions, classes, jQuery events, comments
+		if (isTsJsFile) {
+			return parseJs(document, symbols);
+		}
+
+		// 2a-yaml. YAML: parse keys into a nested tree based on indentation
+		if (isYamlFile) {
+			return parseYaml(document);
+		}
+
+		// 2a-ini. INI/Properties: parse sections and key-value pairs
+		if (isIniFile) {
+			return parseIni(document);
+		}
+
+		// 2a-json. JSON/JSONC: parse keys with adaptive depth for large files
+		if (isJsonFile) {
+			return parseJson(document);
+		}
+
 		// 2. Pass 1: collect all entities and comments in a single pass
-		const { allComments, sqlEntities, phpFunctions, tsJsItems } =
+		const { allComments, sqlEntities, phpFunctions } =
 			collectEntities(document);
 
 		// 3. Helper for Nesting
@@ -270,34 +333,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				return formatted;
 			});
 		};
-
-		// 3b. Enrich TS/JS items with children from the language server symbol tree
-		// jQuery events are excluded — they have no meaningful LS children and
-		// enrichment would accidentally claim their own line, hiding them from the output.
-		if (isTsJsFile) {
-			for (const item of tsJsItems) {
-				if (item.tsJsType === "jqueryEvent") {
-					continue;
-				}
-				const matchingSym = symbols.find(
-					(s) => Math.abs(s.range.start.line - item.line) <= 1,
-				);
-				if (matchingSym) {
-					item.endLine = matchingSym.range.end.line;
-					// JS files: only use the LS symbol for endLine — no children,
-					// no claimed lines. Comments are nested separately in step 5.
-					if (!isJsFile) {
-						claimedLines.add(matchingSym.range.start.line);
-						if (matchingSym.children?.length) {
-							item.children.push(
-								...nestContent(matchingSym.children),
-							);
-							item.isRegion = true;
-						}
-					}
-				}
-			}
-		}
 
 		// 4. Pass 2: #region Marker Hierarchy
 		for (let i = 0; i < document.lineCount; i++) {
@@ -348,15 +383,6 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				internalPhpFunctions.forEach((f) => claimedLines.add(f.line));
 				region.children.push(...internalPhpFunctions);
 
-				const internalTsJsItems = tsJsItems.filter(
-					(t) =>
-						t.line > region.line &&
-						t.line < i &&
-						!claimedLines.has(t.line),
-				);
-				internalTsJsItems.forEach((t) => claimedLines.add(t.line));
-				region.children.push(...internalTsJsItems);
-
 				const internalComments = allComments.filter(
 					(c) =>
 						c.line > region.line &&
@@ -377,52 +403,44 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			}
 		}
 
+		// Flush any unclosed regions
+		while (regionStack.length > 0) {
+			const region = regionStack.pop();
+			if (regionStack.length > 0) {
+				regionStack[regionStack.length - 1].children.push(region);
+			} else {
+				rootItems.push(region);
+			}
+		}
+
 		// 5. Final Assembly
 		const standaloneSymbols = symbols.filter(
 			(s) => !claimedLines.has(s.range.start.line),
 		);
 
-		// For JS files: nest unclaimed comments inside their containing function
-		if (isJsFile) {
-			const jsFunctions = tsJsItems.filter(
-				(t) =>
-					(t.tsJsType === "function" ||
-						t.tsJsType === "arrowFunction" ||
-						t.tsJsType === "jqueryEvent") &&
-					!claimedLines.has(t.line),
-			);
-			for (const fn of jsFunctions) {
-				const fnEnd = fn.endLine ?? document.lineCount;
-				const nested = allComments.filter(
-					(c) =>
-						!claimedLines.has(c.line) &&
-						c.line > fn.line &&
-						c.line <= fnEnd,
-				);
-				if (nested.length > 0) {
-					nested.forEach((c) => claimedLines.add(c.line));
-					fn.children.push(...nested);
-					fn.children.sort((a: any, b: any) => a.line - b.line);
-					fn.isRegion = true;
-				}
-			}
-		}
-
 		return [
 			...rootItems,
 			...sqlEntities.filter((e) => !claimedLines.has(e.line)),
 			...phpFunctions.filter((f) => !claimedLines.has(f.line)),
-			...tsJsItems.filter((t) => !claimedLines.has(t.line)),
-			...(isJsFile ? [] : nestContent(standaloneSymbols)),
+			...nestContent(standaloneSymbols),
 			...allComments.filter((c) => !claimedLines.has(c.line)),
 		].sort((a, b) => a.line - b.line);
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
+		const nonce = getNonce();
+		const fontUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(
+				this._extensionUri,
+				"fonts",
+				"MaterialSymbolsOutlined.woff2",
+			),
+		);
 		return `<!DOCTYPE html>
 			<html>
 			<head>
-			<style>@font-face { font-family: 'Material Symbols Outlined'; font-style: normal; font-weight: 400; src: url('${webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "fonts", "MaterialSymbolsOutlined.woff2"))}') format('woff2'); }</style>
+			<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+			<style>@font-face { font-family: 'Material Symbols Outlined'; font-style: normal; font-weight: 400; src: url('${fontUri}') format('woff2'); }</style>
 			<style>
 			body {
 				font-family: var(--vscode-font-family);
@@ -431,6 +449,19 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				font-size: var(--vscode-font-size);
 				user-select: none;
 			}
+			#search {
+				width: 100%;
+				padding: 4px 8px;
+				margin-bottom: 6px;
+				background: var(--vscode-input-background);
+				color: var(--vscode-input-foreground);
+				border: 1px solid var(--vscode-input-border, transparent);
+				border-radius: 3px;
+				font-size: var(--vscode-font-size);
+				outline: none;
+				box-sizing: border-box;
+			}
+			#search:focus { border-color: var(--vscode-focusBorder); }
 			.empty-state {
 				display: flex;
 				flex-direction: column;
@@ -459,9 +490,13 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				align-items: center;
 				border-radius: 4px;
 				margin: 1px 0;
-				white-space: nowrap;
+				overflow: hidden;
+			}
+			.tree-label {
 				overflow: hidden;
 				text-overflow: ellipsis;
+				white-space: nowrap;
+				min-width: 0;
 			}
 			.tree-item:hover {
 				background: var(--vscode-list-hoverBackground) !important;
@@ -526,8 +561,9 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 			</style>
 			</head>
 			<body>
+			<input id="search" type="text" placeholder="Filter symbols\u2026" autocomplete="off" spellcheck="false" />
 			<div id="container"></div>
-			<script>
+			<script nonce="${nonce}">
 			const vscode = acquireVsCodeApi();
 
 			function getIcon(item) {
@@ -536,6 +572,32 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 
 				// Custom KDL types
 				if (item.kdlType === 'node') return '<span class="material-symbols-outlined">schema</span>';
+
+				// Custom Nginx types
+				if (item.nginxType === 'http') return '<span class="material-symbols-outlined">language</span>';
+				if (item.nginxType === 'server') return '<span class="material-symbols-outlined">dns</span>';
+				if (item.nginxType === 'location') return '<span class="material-symbols-outlined">link</span>';
+				if (item.nginxType === 'upstream') return '<span class="material-symbols-outlined">share</span>';
+				if (item.nginxType === 'events') return '<span class="material-symbols-outlined">bolt</span>';
+				if (item.nginxType === 'stream') return '<span class="material-symbols-outlined">stream</span>';
+				if (item.nginxType === 'map') return '<span class="material-symbols-outlined">swap_horiz</span>';
+				if (item.nginxType === 'if') return '<span class="material-symbols-outlined">help</span>';
+				if (item.nginxType === 'block') return '<span class="material-symbols-outlined">data_object</span>';
+				if (item.nginxType === 'directive') return '<span class="material-symbols-outlined">tune</span>';
+				if (item.nginxType) return '<span class="material-symbols-outlined">settings</span>';
+
+				// Custom YAML types
+				if (item.yamlType === 'mapping') return '<span class="material-symbols-outlined">account_tree</span>';
+				if (item.yamlType === 'scalar') return '<span class="material-symbols-outlined">data_object</span>';
+
+				// Custom INI types
+				if (item.iniType === 'section') return '<span class="material-symbols-outlined">folder</span>';
+				if (item.iniType === 'key') return '<span class="material-symbols-outlined">tune</span>';
+
+				// Custom JSON types
+				if (item.jsonType === 'object') return '<span class="material-symbols-outlined">data_object</span>';
+				if (item.jsonType === 'array') return '<span class="material-symbols-outlined">data_array</span>';
+				if (item.jsonType === 'value') return '<span class="material-symbols-outlined">tag</span>';
 
 				// Custom PHP types
 				if (item.phpType === 'function') return '<span class="material-symbols-outlined">functions</span>';
@@ -578,6 +640,10 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 				}
 			}
 
+			function escapeHtml(str) {
+				return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+			}
+
 			function render(items, parentElement) {
 				items.forEach(item => {
 					const wrapper = document.createElement('div');
@@ -609,7 +675,7 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						'<span class="icon">' +
 						getIcon(item) +
 						'</span>' +
-						item.label;
+						'<span class="tree-label">' + escapeHtml(item.label) + '</span>';
 
 					row.onclick = () => {
 						if (collapsible) {
@@ -657,6 +723,11 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						return;
 					}
 					render(msg.data, container);
+					// Re-apply active search filter after re-render
+					const sq = document.getElementById('search');
+					if (sq && sq.value) {
+						sq.dispatchEvent(new Event('input'));
+					}
 				} else if (msg.command === 'collapseAll') {
 					document.querySelectorAll('.children-container')
 						.forEach(c => c.classList.add('collapsed'));
@@ -704,6 +775,54 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 						}
 					}
 				}
+			});
+
+			// ── Search / filter ──
+			const searchInput = document.getElementById('search');
+			searchInput.addEventListener('input', function() {
+				const q = this.value.toLowerCase();
+				const container = document.getElementById('container');
+				if (!q) {
+					// Show everything
+					container.querySelectorAll('[data-line]').forEach(el => {
+						el.style.display = '';
+					});
+					container.querySelectorAll('.children-container').forEach(el => {
+						el.style.display = '';
+					});
+					return;
+				}
+				// First hide everything
+				container.querySelectorAll('.tree-item').forEach(el => {
+					el.style.display = 'none';
+				});
+				container.querySelectorAll('.children-container').forEach(el => {
+					el.style.display = 'none';
+				});
+				// Show items matching the query + their ancestors
+				container.querySelectorAll('.tree-item').forEach(el => {
+					const labelEl = el.querySelector('.tree-label');
+					const label = (labelEl ? labelEl.textContent : el.textContent || '').toLowerCase();
+					if (label.includes(q)) {
+						el.style.display = '';
+						// Show all ancestor containers
+						let parent = el.parentElement;
+						while (parent && parent !== container) {
+							if (parent.classList.contains('children-container')) {
+								parent.style.display = '';
+								parent.classList.remove('collapsed');
+								const caret = parent.previousElementSibling
+									? parent.previousElementSibling.querySelector('.caret')
+									: null;
+								if (caret) caret.classList.remove('collapsed-caret');
+							}
+							if (parent.classList.contains('tree-item')) {
+								parent.style.display = '';
+							}
+							parent = parent.parentElement;
+						}
+					}
+				});
 			});
 			</script>
 			</body>

@@ -2,6 +2,15 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.24]
+
+- **New Feature**: **Better Outline — nginx Support** — Opening an nginx configuration file (`.conf` or language ID `nginx`) now populates the Better Outline panel with a hierarchical tree of block directives (`http`, `server`, `location`, `upstream`, `events`, `stream`, `map`, `if`, etc.) and notable leaf directives (`listen`, `server_name`, `proxy_pass`, `root`, `rewrite`, `return`, `include`, `ssl_certificate`, `try_files`, etc.). Each block type has a distinct icon. `#region` / `#endregion` markers are supported.
+- **New Feature**: **Better Outline — JavaScript / TypeScript Dedicated Parser** — JS/TS/JSX/TSX outline support has been extracted into a self-contained `parseJs` module. All existing functionality is preserved: named functions, arrow functions, classes (TS only), jQuery `.on()` and `.delegate()` handlers, custom comment nesting, `#region` markers, and language server symbol enrichment.
+- **New Feature**: **Better Outline — YAML Support** — Opening a YAML file produces a nested outline tree based on indentation. Mapping keys that have child content are shown as collapsible regions; scalar key-value pairs display their value inline (e.g. `name: my-app`). Handles quoted keys, merge keys (`<<`), block scalars (`|`, `>`), comments, and document separators.
+- **New Feature**: **Better Outline — INI / Properties Support** — Opening an INI, `.cfg`, `.env`, or properties file shows `[section]` headers as collapsible parent nodes with `key = value` pairs nested as children. Comments (`;` and `#`) are skipped.
+- **New Feature**: **Better Outline — JSON / JSONC Support with Adaptive Depth** — Opening a JSON or JSONC file produces a full structural outline. Objects are collapsible, arrays show indexed children (with a smart label when elements contain a `name`, `id`, `title`, `key`, `label`, or `type` field), and scalar values display inline previews. For large files the parser automatically reduces depth to keep the panel responsive: full detail for files ≤ 1,000 lines, depth 4 for files ≤ 10,000 lines, and depth 2 for larger files. JSONC `//` and `/* */` comments are handled.
+- **Refactor**: **collectEntities Cleanup** — The `findJqueryHandlerEnd` helper, all TS/JS detection code, and the `tsJsItems` field have been removed from `collectEntities.ts` now that JS/TS has its own dedicated parser. The shared scanner now only handles PHP functions, SQL entities, and comments.
+
 ## [0.0.23]
 
 - **New Feature**: **nginx Syntax Highlighting** — Decoration-based syntax highlighting for nginx configuration (`.conf`) files. Tokens: `keyword` (directives, blue), `nginxBlock` (block names before `{`, teal bold), `nginxVariable` (`$variables`, light blue), `comment`, `string`, and `number` (with optional `k`/`m`/`g` suffixes). Toggle with `theToyBox.syntaxHighlighting.nginx`.

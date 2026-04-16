@@ -24,6 +24,8 @@ import {
 import { registerNginxHoverProvider } from "./syntax/nginxHover";
 import { registerAspHoverProvider } from "./syntax/aspHover";
 
+let startupTimeout: NodeJS.Timeout | undefined;
+
 export function activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
 	initDecorations(context);
@@ -160,7 +162,8 @@ export function activate(context: vscode.ExtensionContext) {
 		// VS Code may not have fully rendered the editor at activation time,
 		// so schedule a second pass after a short delay to ensure decorations
 		// are applied even when the file was already open on launch.
-		setTimeout(() => {
+		startupTimeout = setTimeout(() => {
+			startupTimeout = undefined;
 			for (const editor of vscode.window.visibleTextEditors) {
 				triggerVisualUpdates(editor);
 			}
@@ -172,6 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
 				listener.dispose(); // Only run once for the initial load
 			}
 		});
+		context.subscriptions.push(listener);
 	}
 
 	// Return the markdown-it extension hook so the built-in preview picks up alert styling
@@ -183,6 +187,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	// VS Code handles disposal of decoration types if we pushed them to context.subscriptions,
-	// but manual cleanup can go here if needed.
+	if (startupTimeout) {
+		clearTimeout(startupTimeout);
+		startupTimeout = undefined;
+	}
 }
