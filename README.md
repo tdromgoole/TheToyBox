@@ -1,13 +1,12 @@
 ﻿# The Toy Box
 
-![Version](https://img.shields.io/visual-studio-marketplace/v/ThomasDromgoole.theToyBox)
-![Downloads](https://img.shields.io/visual-studio-marketplace/d/ThomasDromgoole.theToyBox)
-![Installs](https://img.shields.io/visual-studio-marketplace/i/ThomasDromgoole.theToyBox)
+![Version](https://badgen.net/vs-marketplace/v/ThomasDromgoole.theToyBox)
+![Installs](https://badgen.net/vs-marketplace/i/ThomasDromgoole.theToyBox)
+![Downloads](https://badgen.net/vs-marketplace/d/ThomasDromgoole.theToyBox)
+![Rating](https://badgen.net/vs-marketplace/rating/ThomasDromgoole.theToyBox)
 ![License](https://img.shields.io/github/license/tdromgoole/TheToyBox)
 
-> A high-performance VS Code extension for structural organization, whitespace cleanup, visual clarity, and synchronized HTML/XML tag renaming.
-
-Built for developers who care about **clean structure**, **performance**, and **editor precision**.
+> A VS Code extension that bundles a collection of everyday developer tools — cleaner files, smarter navigation, better visuals, and safer Git workflows.
 
 ---
 
@@ -25,117 +24,95 @@ Most productivity extensions solve one small problem. **The Toy Box solves the s
 
 # Core Features
 
-## Better Outline Panel (Advanced Structural View)
+## Better Outline Panel
 
-A dedicated sidebar that provides a deep, hierarchical view of your code with specialized language support and Material Symbols icons.
+A dedicated sidebar that gives you a clear, hierarchical view of your code — think of it as a smarter, more detailed version of VS Code's built-in outline.
 
 ![Better Outline Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/betterOutline.png)
 
-- **✔ SQL & PostgreSQL Entity Support**: Automatically identifies and displays **Tables**, **Stored Procedures**, **Functions**, and **Views** with unique icons.
-- **✔ PHP Function Support**: Detects `public`, `private`, `protected`, `static`, and standalone functions and displays them with a dedicated Function icon.
-- **✔ JavaScript / TypeScript Support**: Detects named functions, arrow functions, and ES6 classes. jQuery `.on()` and `.delegate()` handlers are detected and labelled as `selector.Event` or `selector.Event.Delegate` with class/ID icons. Comments inside functions are nested as collapsible children.
-- **✔ CSS / SCSS / Less Support**: Detects element selectors, `.class` selectors, `#id` selectors, custom properties (`--var`), `@media` queries, `@keyframes` blocks, and generic at-rules — each with a distinct icon.
-- **✔ KDL Document Language Support**: Parses `.kdl` files into a hierarchical node tree. Each node shows its name plus the first argument or property (e.g. `tab name Dashboard`). Nodes with a `{` children block are collapsible regions.
-- **✔ nginx Configuration Support**: Parses `.conf` files into a hierarchical tree of block directives (`http`, `server`, `location`, `upstream`, `events`, etc.) with notable leaf directives (`listen`, `server_name`, `proxy_pass`, `root`, etc.) as children. Each block type has a distinct icon.
-- **✔ YAML Support**: Parses YAML files into a nested tree based on indentation. Mapping keys with children are collapsible; scalar key-value pairs display inline values. Handles quoted keys, merge keys, block scalars, and document separators.
-- **✔ INI / Properties Support**: Parses `.ini`, `.cfg`, `.env`, and properties files. `[section]` headers appear as collapsible parents with `key = value` pairs nested inside.
-- **✔ JSON / JSONC Support**: Full structural outline for JSON and JSONC files — objects are collapsible, arrays show indexed children with smart labels, scalars display inline previews. Adaptive depth limiting keeps large files responsive (full detail ≤ 1K lines, reduced at 10K, minimal above).
-- **✔ Structural Nesting**: Comments nest under their parent function. Functions with nested comments are collapsible — clicking also jumps to the line.
-- **✔ #region Support**: Full support for collapsible `#region` folders — works across all supported languages including SQL, PHP, JavaScript, CSS, and SCSS.
-- **✔ SQL & PHP region nesting**: Tables, views, procedures, functions, and PHP functions detected inside a `#region` block are correctly nested under it as collapsible children.
-- **✔ Smart Comment Integration**: Displays comments directly in the outline. Standard comments are cleaned of code prefixes (e.g., `//` is removed) for a professional look.
-- **✔ Highlight on Click**: Briefly flashes the target line using the theme's find-match highlight color when you click an outline item — making it easy to spot where the cursor landed. Toggle with `theToyBox.outline.highlightOnClick`.
-- **✔ Empty State Guidance**: When a file type is unsupported or no language extension is installed, the panel shows a clear "No symbols found" message with a hint rather than a blank panel.
-- **✔ Material Symbols Icons**: All outline icons use Google's Material Symbols font, bundled locally — no internet connection required.
+- **✔ Broad Language Support**: Works with SQL, PHP, JavaScript, TypeScript, CSS/SCSS/Less, JSON, YAML, INI, nginx config, KDL, and more — each with tailored structure detection.
+- **✔ Meaningful Structure**: Sees the things that matter for each language — database tables, stored procedures, and views in SQL; functions and classes in PHP and JS; sections and keys in config files.
+- **✔ Collapsible Regions**: `#region` / `#endregion` markers create collapsible folders in the outline, nesting any code symbols found inside them.
+- **✔ Comment Integration**: Important comments appear directly in the outline alongside your code symbols, keeping context visible without opening the file.
+- **✔ Highlight on Click**: Clicking any outline item jumps to that line and briefly flashes it in the editor so you always know where you landed.
+- **✔ Helpful Empty State**: When a file type isn't supported, the panel shows a friendly message rather than a blank panel.
+- **✔ Works Offline**: All icons are bundled locally — no internet connection needed.
 
 ---
 
-## Decoration-Based Syntax Highlighting
+## Syntax Highlighting
 
-Applies VS Code Dark+-style token colors to file types that lack a dedicated grammar extension — and injects T-SQL highlighting directly into string literals in PHP, JavaScript, and TypeScript.
+Brings proper color coding to file types that VS Code doesn't highlight by default, and adds SQL coloring inside string literals in your backend code.
 
 ![SQL in Strings](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/sqlInStrings.png)
 
-- **✔ PHP — SQL in Strings** (`.php`): T-SQL keywords (`DECLARE`, `SELECT`, `GO`, `BEGIN`/`END`, …), data types (`VARCHAR`, `INT`, `DATETIME2`, …), built-in functions (`GETDATE`, `ISNULL`, `COUNT`, …), `@variables`, `@@system_vars`, and `--` / `/* */` comments are highlighted inside PHP double-quoted strings. PHP `$variable` interpolation is recognized and skipped so it never conflicts. Toggle with `theToyBox.syntaxHighlighting.phpSql`.
-- **✔ JS / TS — SQL in Strings** (`.js`, `.ts`, `.jsx`, `.tsx`, `.mjs`, `.cjs`): The same T-SQL token colors apply inside double-quoted strings, single-quoted strings, and template literals. Template `${…}` interpolations are skipped cleanly. Toggle with `theToyBox.syntaxHighlighting.jsSql`.
-- **✔ KDL Document Language** (`.kdl`): Node names, property keys, type annotations, strings, numbers, booleans/null, and comments — all colored to match the Dark+ theme.
-- **✔ Classic ASP / VBScript** (`.asp`): Dual-mode — HTML tags, attributes, and strings in the HTML sections; VBScript keywords, strings, numbers, and `'` / `REM` comments inside `<% %>` blocks.
-- **✔ ASP.NET Razor VB** (`.vbhtml`): Teal built-in types, blue keywords, gold `@` delimiters, italic-tan Razor directives (`@model`, `@using`, `@section`, …), and salmon HTML attributes — matching the Visual Studio Dark theme.
-- **✔ nginx Configuration** (`.conf`): Directives (blue), block names before `{` (teal bold), `$variables` (light blue), comments, strings, and numbers with optional `k`/`m`/`g` unit suffixes. Toggle with `theToyBox.syntaxHighlighting.nginx`.
-- **✔ Per-Language Toggle**: Each language can be enabled or disabled independently while the master switch controls all of them.
-- **✔ Enable/Disable**: Toggle everything with `theToyBox.syntaxHighlighting.enabled`.
+- **✔ SQL Inside PHP & JS/TS Strings**: SQL keywords, data types, functions, and variables are colored inside string literals — making inline queries much easier to read at a glance.
+- **✔ Classic ASP / VBScript**: Full color coding for `.asp` files — HTML sections and VBScript code blocks are each highlighted appropriately.
+- **✔ ASP.NET Razor VB**: Highlights `.vbhtml` files with colors that match the Visual Studio Dark theme.
+- **✔ nginx Configuration**: Colors directives, block names, variables, and values in `.conf` files.
+- **✔ KDL Document Language**: Full color coding for `.kdl` files.
+- **✔ Per-Language Control**: Each language can be toggled independently, or you can switch everything off with a single setting.
 
 ---
 
 ## Hover Documentation
 
-Context-aware hover tooltips that surface inline documentation as you read or write code — no external docs tab needed.
+Hover over keywords in supported file types to see inline documentation — no need to leave the editor or open a docs tab.
 
-- **✔ nginx Directives**: Hover over any directive (e.g. `server_name`, `proxy_pass`, `gzip`) to see its full syntax, default value, and a short description. Covers ~100 directives.
-- **✔ nginx Built-in Variables**: Hover over any `$variable` (e.g. `$host`, `$request_uri`, `$remote_addr`) to see exactly what it contains. Covers ~80 built-in variables.
-- **✔ Classic ASP / VBScript Keywords**: Hover over a VBScript keyword (`Dim`, `For Each`, `Function`, `On Error Resume Next`, …) to see its syntax and a usage example. Covers ~60 keywords.
-- **✔ Classic ASP Built-in Objects**: Hover over `Response`, `Request`, `Server`, `Session`, `Application`, or `Err` for a full listing of their key methods and properties with descriptions.
-- **✔ Respects All Toggles**: Hover providers honour both the master `theToyBox.syntaxHighlighting.enabled` switch and the per-language toggle.
-- **✔ Low-Latency**: A 400 ms cancellable delay prevents tooltip flicker while navigating — the provider cancels immediately if the cursor moves on.
+- **✔ nginx**: Hover over any directive or built-in variable to see what it does, its syntax, and its default value. Covers ~100 directives and ~80 variables.
+- **✔ Classic ASP / VBScript**: Hover over keywords or the six built-in ASP objects (`Response`, `Request`, `Server`, etc.) to see their usage and available methods.
+- **✔ Flicker-Free**: The tooltip only appears after a brief pause so it doesn't pop up while you're navigating through code.
 
 ---
 
 ## Word Frequency Panel
 
-A sidebar panel that tallies every unique word and token in the active file and displays them ranked by frequency.
+A sidebar panel that counts every word in the active file and ranks them by how often they appear.
 
 ![Word Frequency Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/wordFrequency.png)
 
-- **✔ Frequency Ranking**: All tokens sorted highest-to-lowest so the most-used identifiers surface immediately.
-- **✔ Expandable Occurrences**: Click any row to expand it and see every line number where that word appears as clickable chips — each chip jumps the cursor to that exact line.
-- **✔ Real-Time Filter**: A search box narrows the list as you type. Expanding a row is preserved through filtering.
-- **✔ Auto-Refresh**: The panel updates automatically when you switch files or edit the document.
-- **✔ Enable/Disable**: Toggle the panel on or off via `theToyBox.wordFrequency.enabled`.
+- **✔ Ranked List**: The most-used words rise to the top — useful for spotting dominant identifiers or unexpected repetition.
+- **✔ Jump to Any Occurrence**: Expand any word to see every line it appears on. Click a line number to jump straight there.
+- **✔ Live Filter**: Type in the search box to narrow the list in real time.
+- **✔ Auto-Refresh**: Updates automatically as you edit or switch files.
 
 ---
 
 ## Custom Comment Highlighting
 
-Categorize important notes visually in both the editor and the outline with color-coded comment markers.
+Mark important comments with a special character and they'll stand out with a distinct color — both in the editor and in the outline.
 
 ![Custom Comment Highlighting](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/customComments.png)
 
-- **✔ 10 Trigger Symbols**: `!` `*` `?` `#` `@` `$` `%` `^` `&` `~` — each maps to a distinct color and label (e.g. `!` → **CRITICAL**, `?` → **QUESTION**).
-- **✔ Full-Line Background Highlight**: Optional background color wash across the entire line for instant visual scanning.
-- **✔ Custom Label Mapping**: Map symbols to specific words shown in the outline panel.
-- **✔ SQL-Safe & PHP-Safe Scanning**: Intelligent detection that ignores SQL strings, temp tables, and PHP variable references (e.g., `$varName`) while still highlighting actual comments.
-- **✔ Excluded File Types**: Specify file extensions (e.g., `.md`) to skip comment highlighting entirely.
-- **✔ Configurable Colors**: Each symbol's color is fully customizable via settings.
+- **✔ 10 Trigger Symbols**: Use `!` `*` `?` `#` `@` `$` `%` `^` `&` `~` at the start of a comment to apply a color (e.g. `!` → **CRITICAL**, `?` → **QUESTION**).
+- **✔ Full-Line Highlight**: Optionally color the entire line background for instant visual scanning.
+- **✔ Custom Labels & Colors**: Change what each symbol means and what color it uses via settings.
+- **✔ Exclude File Types**: Skip highlighting in specific file types (e.g. `.md`) where you don't want it.
 
 ---
 
 ## Indent Rainbow
 
-Adds a subtle pastel background highlight to each indentation level so nesting depth is instantly visible at a glance.
+Adds a subtle color band to each level of indentation so you can instantly see how deeply nested a block of code is.
 
 ![Indent Rainbow](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/indentRainbow.png)
 
-- **✔ Alternating Warm/Cool Palette**: 12 curated pastel tones alternate between warm and cool so adjacent levels are never visually similar.
-- **✔ Adjustable Opacity**: Set the intensity from 1–100% to match your preference (default: 10%).
-- **✔ Tab & Space Support**: Highlights work for both tab-indented and space-indented files (Python, YAML, etc.). Space levels are grouped by the editor's tab size setting.
-- **✔ Custom Color Palette**: Override the built-in colors with your own hex values via `theToyBox.indentRainbowColors`. Leave the setting empty to revert to the default pastel palette.
-- **✔ Enable/Disable**: Toggle on or off without restarting VS Code.
+- **✔ Works for Tabs and Spaces**: Handles both indentation styles, including Python and YAML files that use spaces.
+- **✔ Adjustable Intensity**: Dial the opacity up or down to suit your preference (default is a subtle 10%).
+- **✔ Custom Colors**: Replace the built-in pastel palette with your own hex color list, or leave it empty to keep the defaults.
 
 ---
 
 ## GitHub-Style Markdown Alerts
 
-The built-in VS Code Markdown preview now renders GitHub-style alert callouts with color-coded styling and icons.
+Renders GitHub-style alert callouts in VS Code's built-in Markdown preview with color-coded styling and icons.
 
 ![GitHub-Style Markdown Alerts](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/githubStyleAlerts.png)
 
-- **✔ Built-in Preview Integration**: Works directly in the standard Markdown preview (`Ctrl+Shift+V`) — no separate command needed.
-- **✔ Five Alert Types**: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`, each with a distinct color and Material Symbols icon.
-- **✔ Custom Heading**: Add a custom heading after the alert type — e.g. `[!NOTE][My Heading]` — to replace the default title.
-- **✔ Flexible Syntax**: Works with or without a space after `>` — both `> [!NOTE]` and `>[!NOTE]` are recognized.
-- **✔ Offline Font**: The Material Symbols icon font is bundled with the extension — no network request needed.
-- **✔ Custom Webview Preview**: Also available as **"The Toy Box: Open Markdown Preview with Alerts"** for a standalone dark-themed preview panel.
-- **✔ Enable/Disable**: Toggle the entire feature on or off via `theToyBox.markdownPreview.enabled`.
+- **✔ Five Alert Types**: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]` — each with a distinct color and icon.
+- **✔ Custom Headings**: Add your own title after the alert type (e.g. `[!NOTE][My Heading]`) to replace the default.
+- **✔ Works in the Built-In Preview**: No separate command needed — just open the standard Markdown preview.
+- **✔ Standalone Preview**: Also available as **"The Toy Box: Open Markdown Preview with Alerts"** for a dedicated dark-themed panel.
 
 ![markdownTask](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/markdownTask.png)
 
@@ -143,88 +120,81 @@ The built-in VS Code Markdown preview now renders GitHub-style alert callouts wi
 
 ## JSON Formatter
 
-Instantly turn messy, single-line JSON strings into perfectly indented, readable code.
+Instantly turn a compact, single-line JSON string into properly indented, readable code.
 
 ![JSON Formatter](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/jsonFormatting.png)
 
-- **✔ Smart Parsing**: Validates JSON structure before formatting to prevent data loss.
-- **✔ Tab-Aware**: Automatically uses your editor's current tab/space settings.
-- **✔ Context Menu**: Right-click any JSON selection and choose **"The Toy Box: Format JSON Selection"**.
+- **✔ Right-Click to Format**: Select any JSON string, right-click, and choose **"The Toy Box: Format JSON Selection"**.
+- **✔ Safe**: Validates the JSON before making any changes so you never lose data.
+- **✔ Respects Your Settings**: Uses your editor's current indentation style automatically.
 
 ---
 
 ## Smart Code Alignment
 
-Align operators across multiple lines perfectly using the least number of tabs possible.
+Select a group of lines and align their operators into a clean vertical column with a single command.
 
 ![Smart Code Alignment](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/smartCodeAlignment.png)
 
-- **✔ Multi-Operator Support**: Aligns `=` (assignment), `:` (object keys), `=>` (fat arrow / PHP arrays), `+=`, and `-=`.
-- **✔ Auto-Detection**: The operator is detected automatically from the selection — more specific operators take priority (e.g. `=>` before `=`). A picker only appears when detection is ambiguous.
-- **✔ Indentation Aware**: Correctly calculates visual width so operators align even across lines at different indentation levels.
-- **✔ Tab-Based**: Uses your editor's specific tab size to calculate the perfect visual gutter.
-- **✔ Selection-Scoped**: Only aligns the lines you select — the rest of the file is untouched.
+- **✔ Multiple Operators**: Aligns `=`, `:`, `=>`, `+=`, and `-=`.
+- **✔ Auto-Detects the Operator**: Figures out which operator to align from your selection — no manual picking needed in most cases.
+- **✔ Selection-Only**: Only the lines you select are changed. Nothing else in the file is touched.
 
 ---
 
 ## Blocked Changes
 
-Protect files from accidental commits while keeping them visible in your editor for active development.
+Keep certain files out of your commits while still being able to edit them freely — useful for local config overrides or work-in-progress files you never want to accidentally push.
 
 ![Blocked Changes](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/blockedChanges.png)
 
-- **✔ Block from the Changes Panel**: Right-click any file in Git's **Changes** section and choose **Block Change** (or click the `Circle with slash icon` inline button). The file moves to the **Blocked Changes** panel and disappears from Changes.
-- **✔ Hidden from Changes**: Blocked files are marked with `git update-index --skip-worktree` so Git stops reporting local modifications — VS Code's Source Control panel reflects this immediately.
-- **✔ Pre-Commit Hook**: A pure-POSIX-sh hook snippet is automatically injected into `.git/hooks/pre-commit`. If you attempt to commit a blocked file, the commit is rejected with a clear message listing which files need to be unblocked first.
-- **✔ Unblock or Discard**: Each row in the Blocked Changes panel has an **Unblock** (`Unlock icon`) button to restore the file to normal tracking, and a **Discard** (`Discard icon`) button to throw away local changes and remove the block in one step.
-- **✔ Persistent**: The blocked list is stored in `.toybox-blocked.txt` at the repo root. Blocks survive editor restarts and are re-applied automatically on activation.
-- **✔ Optional .gitignore Entry**: Enable `Blocked Changes - Add To Gitignore` to automatically add `.toybox-blocked.txt` to `.gitignore` so the block list is never committed.
-- **✔ Enable/Disable**: Toggle the entire feature on or off via `Blocked Changes - enabled`.
+- **✔ Block from the Changes Panel**: Right-click any file in Git's **Changes** section and choose **Block Change**. The file moves to the **Blocked Changes** panel and disappears from Changes instantly.
+- **✔ Commit Protection**: A pre-commit hook is automatically installed — if you try to commit a blocked file, the commit is rejected with a clear message telling you which files to unblock first.
+- **✔ Unblock or Discard**: Each blocked file has an **Unblock** button to restore normal tracking, and a **Discard** button to throw away local changes and remove the block in one step.
+- **✔ Persists Across Restarts**: The block list is saved to the repo root and re-applied automatically every time you open the workspace.
+- **✔ Team-Safe**: Unblocking and the optional `.gitignore` entry both ask for confirmation, so one teammate's settings can't silently affect another's workflow.
+- **✔ Works on Managed Machines**: Resolves git through VS Code's own settings, so it works correctly even on computers where git isn't on the system PATH.
 
 ---
 
 ## Auto-Cleanup on Save
 
-Keeps files consistently formatted every time you save — no manual effort required.
+Keeps files consistently tidy every time you save — trailing spaces, mixed indentation, and whitespace-only lines are cleaned up automatically.
 
 ![Auto-Cleanup on Save](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/auto-CleanupOnSave.png)
 
 - **✔ Trim Trailing Whitespace**: Removes invisible trailing spaces and tabs from every line.
-- **✔ Convert Spaces to Tabs**: Intelligently converts leading spaces to tabs based on detected indentation width. Skipped automatically when VS Code's `editor.insertSpaces` is `true` for the document.
-- **✔ Empty Line Cleanup**: Strips lines that contain only whitespace (manual command only — save does not clear whitespace from blank lines you are actively editing).
-- **✔ Cursor-Safe**: Lines under the active cursor and all lines covered by the active selection are skipped during save-cleanup to prevent disruptive edits while typing or block-tabbing.
-- **✔ Per-Extension Overrides**: Exclude specific file types (e.g. `.yaml`, `.json`, `.md`) from tab conversion or whitespace trimming independently.
-- **✔ Enable/Disable**: Toggle `theToyBox.cleanOnSave` to run cleanup manually instead.
+- **✔ Convert Spaces to Tabs**: Converts leading spaces to tabs where appropriate. Automatically skipped for files configured to use spaces.
+- **✔ Safe While Editing**: Lines you're actively typing on or have selected are never touched during a save.
+- **✔ Per-File-Type Overrides**: Exclude specific file types (e.g. `.yaml`, `.json`) from any cleanup rule independently.
 
 ---
 
 ## Auto Rename Matching Tags
 
-Automatically keeps opening and closing HTML/XML tags in sync as you type.
+Automatically keeps opening and closing HTML/XML tags in sync as you type — rename one and the other updates instantly.
 
-- **✔ Structural Awareness**: Uses a structural partner-finding algorithm to correctly match nested tags — doesn't just find the nearest tag by name.
-- **✔ Void Element Aware**: Self-closing tags (`<br>`, `<img>`, `<input>`, etc.) are automatically excluded.
-- **✔ Language Selective**: Active only for configured languages (HTML, XML, PHP, JavaScript, JSX, TSX by default).
-- **✔ Performance Guard**: Automatically disables on files over a configurable line limit (default: 5,000 lines) to protect performance on large files.
-- **✔ Debounced**: Waits 150ms after the last keystroke before applying to avoid fighting with the undo stack while typing rapidly.
+- **✔ Nesting-Aware**: Correctly finds the matching tag even in deeply nested structures.
+- **✔ Skips Self-Closing Tags**: Void elements like `<br>`, `<img>`, and `<input>` are ignored automatically.
+- **✔ Performance Guard**: Automatically disables on very large files to keep the editor responsive.
+- **✔ Configurable**: Choose which languages it activates for and set a file size limit.
 
 ---
 
 ## Install JetBrainsMono Nerd Font
 
-Get native operator ligatures (`==` → `⩵`, `!=` → `≠`, `=>` → `⇒`, `->` → `→`, and more) with correct cursor placement — no extension hacks needed.
+Get operator ligatures (`==`, `!=`, `=>`, `->`, and more) that render as clean symbols — with correct cursor placement.
 
 ![JetBrainsMono Nerd Font comparison](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/nerdFont.png)
 
-Run the command **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette to:
+Run **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette to download, install, and configure the font automatically.
 
-- **✔ Download** the latest JetBrainsMono Nerd Font release directly from the official [Nerd Fonts GitHub](https://github.com/ryanoasis/nerd-fonts) repository.
-- **✔ Install** to your per-user fonts folder — no admin/sudo rights required.
-- **✔ Configure** `editor.fontFamily` and `editor.fontLigatures` automatically (with your confirmation).
-- **✔ Terminal Support**: Optionally sets `terminal.integrated.fontFamily` to the Mono variant (single-width Nerd glyphs — ideal for Powerline/Oh-My-Posh prompts).
-- **✔ Cross-Platform**: Works on Windows, macOS, and Linux with platform-appropriate font installation paths.
+- **✔ No Admin Rights Required**: Installs to your personal fonts folder.
+- **✔ Auto-Configures VS Code**: Sets the font family and enables ligatures with your confirmation.
+- **✔ Terminal Support**: Optionally configures the integrated terminal font too — great for Powerline or Oh-My-Posh prompts.
+- **✔ Cross-Platform**: Works on Windows, macOS, and Linux.
 
-> **Note:** After installation, fully close and reopen VS Code (File → Exit, then reopen) for the OS font system to make the new font available. A window reload is not sufficient.
+> **Note:** Fully close and reopen VS Code after installation for the font to become available. A window reload is not enough.
 
 ---
 
