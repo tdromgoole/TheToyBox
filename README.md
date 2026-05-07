@@ -167,6 +167,22 @@ Align operators across multiple lines perfectly using the least number of tabs p
 
 ---
 
+## Blocked Changes
+
+Protect files from accidental commits while keeping them visible in your editor for active development.
+
+![Blocked Changes](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/blockedChanges.png)
+
+- **✔ Block from the Changes Panel**: Right-click any file in Git's **Changes** section and choose **Block Change** (or click the `Circle with slash icon` inline button). The file moves to the **Blocked Changes** panel and disappears from Changes.
+- **✔ Hidden from Changes**: Blocked files are marked with `git update-index --skip-worktree` so Git stops reporting local modifications — VS Code's Source Control panel reflects this immediately.
+- **✔ Pre-Commit Hook**: A pure-POSIX-sh hook snippet is automatically injected into `.git/hooks/pre-commit`. If you attempt to commit a blocked file, the commit is rejected with a clear message listing which files need to be unblocked first.
+- **✔ Unblock or Discard**: Each row in the Blocked Changes panel has an **Unblock** (`Unlock icon`) button to restore the file to normal tracking, and a **Discard** (`Discard icon`) button to throw away local changes and remove the block in one step.
+- **✔ Persistent**: The blocked list is stored in `.toybox-blocked.txt` at the repo root. Blocks survive editor restarts and are re-applied automatically on activation.
+- **✔ Optional .gitignore Entry**: Enable `Blocked Changes - Add To Gitignore` to automatically add `.toybox-blocked.txt` to `.gitignore` so the block list is never committed.
+- **✔ Enable/Disable**: Toggle the entire feature on or off via `Blocked Changes - enabled`.
+
+---
+
 ## Auto-Cleanup on Save
 
 Keeps files consistently formatted every time you save — no manual effort required.
@@ -174,9 +190,9 @@ Keeps files consistently formatted every time you save — no manual effort requ
 ![Auto-Cleanup on Save](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/auto-CleanupOnSave.png)
 
 - **✔ Trim Trailing Whitespace**: Removes invisible trailing spaces and tabs from every line.
-- **✔ Convert Spaces to Tabs**: Intelligently converts leading spaces to tabs based on detected indentation width.
-- **✔ Empty Line Cleanup**: Strips lines that contain only whitespace.
-- **✔ Cursor-Safe**: Lines under the active cursor are skipped during save-cleanup to prevent disruptive edits while typing.
+- **✔ Convert Spaces to Tabs**: Intelligently converts leading spaces to tabs based on detected indentation width. Skipped automatically when VS Code's `editor.insertSpaces` is `true` for the document.
+- **✔ Empty Line Cleanup**: Strips lines that contain only whitespace (manual command only — save does not clear whitespace from blank lines you are actively editing).
+- **✔ Cursor-Safe**: Lines under the active cursor and all lines covered by the active selection are skipped during save-cleanup to prevent disruptive edits while typing or block-tabbing.
 - **✔ Per-Extension Overrides**: Exclude specific file types (e.g. `.yaml`, `.json`, `.md`) from tab conversion or whitespace trimming independently.
 - **✔ Enable/Disable**: Toggle `theToyBox.cleanOnSave` to run cleanup manually instead.
 
@@ -215,6 +231,13 @@ Run the command **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Comm
 # Extension Settings
 
 All settings are unified under the `theToyBox` namespace.
+
+### Blocked Changes
+
+| Setting                                   | Default | Description                                                                            |
+| :---------------------------------------- | :-----: | :------------------------------------------------------------------------------------- |
+| `theToyBox.blockedChanges.enabled`        | `true`  | Enable/Disable the Blocked Changes feature (panel, block button, and pre-commit hook). |
+| `theToyBox.blockedChanges.addToGitignore` | `false` | Automatically add `.toybox-blocked.txt` to the repository's `.gitignore` file.         |
 
 ### Outline
 

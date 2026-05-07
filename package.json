@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.24",
+	"version": "0.0.25",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -84,6 +84,13 @@
 			]
 		},
 		"views": {
+			"scm": [
+				{
+					"id": "blockedChangesView",
+					"name": "Blocked Changes",
+					"when": "config.theToyBox.blockedChanges.enabled"
+				}
+			],
 			"better-outline-container": [
 				{
 					"type": "webview",
@@ -132,6 +139,21 @@
 				"command": "wordFrequency.refresh",
 				"title": "Refresh",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "theToyBox.blockChange",
+				"title": "Block Change",
+				"icon": "$(circle-slash)"
+			},
+			{
+				"command": "theToyBox.unblockChange",
+				"title": "Unblock Change",
+				"icon": "$(unlock)"
+			},
+			{
+				"command": "theToyBox.discardBlockedChange",
+				"title": "Discard Changes",
+				"icon": "$(discard)"
 			}
 		],
 		"keybindings": [
@@ -178,6 +200,40 @@
 					"group": "navigation"
 				}
 			],
+			"scm/resourceState/context": [
+				{
+					"command": "theToyBox.blockChange",
+					"when": "config.theToyBox.blockedChanges.enabled && scmProvider == git && (scmResourceGroup == workingTree || scmResourceGroup == untracked)",
+					"group": "inline@0"
+				},
+				{
+					"command": "theToyBox.blockChange",
+					"when": "config.theToyBox.blockedChanges.enabled && scmProvider == git && (scmResourceGroup == workingTree || scmResourceGroup == untracked)",
+					"group": "toybox@1"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "theToyBox.unblockChange",
+					"when": "view == blockedChangesView && viewItem == blockedFile",
+					"group": "inline@1"
+				},
+				{
+					"command": "theToyBox.discardBlockedChange",
+					"when": "view == blockedChangesView && viewItem == blockedFile",
+					"group": "inline@2"
+				},
+				{
+					"command": "theToyBox.unblockChange",
+					"when": "view == blockedChangesView && viewItem == blockedFile",
+					"group": "toybox@1"
+				},
+				{
+					"command": "theToyBox.discardBlockedChange",
+					"when": "view == blockedChangesView && viewItem == blockedFile",
+					"group": "toybox@2"
+				}
+			],
 			"editor/context": [
 				{
 					"command": "theToyBox.alignEquals",
@@ -192,6 +248,21 @@
 			]
 		},
 		"configuration": [
+			{
+				"title": "Blocked Changes",
+				"properties": {
+					"theToyBox.blockedChanges.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Blocked Changes feature. When disabled, the Blocked Changes panel is hidden and files are not blocked from commits."
+					},
+					"theToyBox.blockedChanges.addToGitignore": {
+						"type": "boolean",
+						"default": false,
+						"description": "When enabled, automatically adds .toybox-blocked.txt to the repository's .gitignore file."
+					}
+				}
+			},
 			{
 				"title": "Cleanup",
 				"properties": {

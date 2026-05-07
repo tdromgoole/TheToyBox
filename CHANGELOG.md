@@ -2,6 +2,12 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.25]
+
+- **New Feature**: **Blocked Changes** — A new "Blocked Changes" panel appears in the Source Control view. Right-click any file in Git's Changes section and choose **Block Change** to move it to the Blocked Changes list. Blocked files are hidden from the Changes section (via `git update-index --skip-worktree`) and cannot be committed — a pre-commit hook installed automatically into `.git/hooks/pre-commit` blocks any attempt. Use the **Unblock Change** or **Discard Changes** inline buttons to release a file. Toggle the entire feature on/off with `theToyBox.blockedChanges.enabled`. Optionally add `.toybox-blocked.txt` to `.gitignore` automatically with `theToyBox.blockedChanges.addToGitignore`.
+- **Bug Fix**: **Auto-Cleanup — Tabs no longer removed from lines being actively edited on save** — blank lines containing whitespace (e.g. a tab the user just inserted while indenting code) were cleared during save cleanup even when the cursor had moved away to another line. The save listener now preserves all whitespace-only lines and also protects every line covered by the active selection(s), so block-tabbing a multi-line selection and saving immediately no longer strips the new indentation.
+- **Bug Fix**: **Auto-Cleanup — Spaces no longer converted to tabs when VS Code is configured for spaces** — `convertSpacesToTabs` now respects VS Code's own `editor.insertSpaces` setting per document. If the active file is configured to use spaces (per-language or globally), space-to-tab conversion is skipped entirely regardless of the extension setting.
+
 ## [0.0.24]
 
 - **New Feature**: **Better Outline — nginx Support** — Opening an nginx configuration file (`.conf` or language ID `nginx`) now populates the Better Outline panel with a hierarchical tree of block directives (`http`, `server`, `location`, `upstream`, `events`, `stream`, `map`, `if`, etc.) and notable leaf directives (`listen`, `server_name`, `proxy_pass`, `root`, `rewrite`, `return`, `include`, `ssl_certificate`, `try_files`, etc.). Each block type has a distinct icon. `#region` / `#endregion` markers are supported.

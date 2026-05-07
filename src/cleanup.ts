@@ -35,12 +35,16 @@ export function getCleanEdits(
 	cursorLines?: number | number[],
 	startLine?: number,
 	endLine?: number,
+	clearWhitespaceOnlyLines: boolean = true,
 ): vscode.TextEdit[] {
 	const edits: vscode.TextEdit[] = [];
 
 	// 1. Configuration: Get ignored extensions for tab conversion
 	const config = vscode.workspace.getConfiguration("theToyBox");
-	const convertSpacesToTabs = config.get<boolean>("convertSpacesToTabs", true);
+	const convertSpacesToTabs = config.get<boolean>(
+		"convertSpacesToTabs",
+		true,
+	);
 	const ignoredExtensions = config.get<string[]>("ignoreTabConversion", [
 		".yaml",
 		".yml",
@@ -53,12 +57,21 @@ export function getCleanEdits(
 
 	// Check if current file extension should skip tab conversion
 	const fileExtension = path.extname(document.fileName).toLowerCase();
-	const skipTabConversion = ignoredExtensions.includes(fileExtension);
 	const skipTrimWhitespace = ignoreTrimExtensions.includes(fileExtension);
 
 	// Use VS Code's tabSize setting for the document (respects per-language overrides)
-	const editorConfig = vscode.workspace.getConfiguration("editor", document.uri,);
+	const editorConfig = vscode.workspace.getConfiguration(
+		"editor",
+		document.uri,
+	);
 	const indentUnit = editorConfig.get<number>("tabSize", 4);
+	// Respect VS Code's own insertSpaces setting: if the document is configured
+	// to use spaces, do not convert spaces to tabs even if convertSpacesToTabs
+	// is enabled — the editor setting is the authoritative source of truth for
+	// what kind of whitespace this document should use.
+	const editorInsertSpaces = editorConfig.get<boolean>("insertSpaces", false);
+	const skipTabConversion =
+		ignoredExtensions.includes(fileExtension) || editorInsertSpaces;
 
 	// Normalize cursorLines to a Set for efficient lookup
 	const ignoredLines = new Set<number>();
@@ -81,9 +94,9 @@ export function getCleanEdits(
 	// Floor-division then gives the fewest tabs that preserve the hierarchy:
 	// e.g. spaceUnit=3 → 3→1 tab, 6→2, 9→3; spaceUnit=2 → 2→1, 4→2, 6→3.
 	const spaceUnit =
-	convertSpacesToTabs && !skipTabConversion
-		? detectSpaceUnit(document, lineStart, lineEnd, indentUnit)
-		: indentUnit;
+		convertSpacesToTabs && !skipTabConversion
+			? detectSpaceUnit(document, lineStart, lineEnd, indentUnit)
+			: indentUnit;
 
 	for (let i = lineStart; i <= lineEnd; i++) {
 		const line = document.lineAt(i);
@@ -95,7 +108,7 @@ export function getCleanEdits(
 
 		// 1. Handle Empty or Whitespace-only Lines
 		if (line.isEmptyOrWhitespace) {
-			if (line.text.length > 0) {
+			if (clearWhitespaceOnlyLines && line.text.length > 0) {
 				edits.push(vscode.TextEdit.delete(line.range));
 			}
 			continue;
@@ -162,43 +175,54 @@ export function registerCleanupCommand(
 		async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
-			vscode.window.showWarningMessage("No active editor");
-			return;
+				vscode.window.showWarningMessage("No active editor");
+				return;
 			}
 
 			try {
-					let edits: vscode.TextEdit[];
+				let edits: vscode.TextEdit[];
 
-			// Handle multi-cursor selection (Ctrl+D)
-			if (editor.selections.length > 1) {
-				const cursorLines = editor.selections.map((sel) => sel.active.line);
-				edits = getCleanEdits(editor.document, cursorLines);
-			} else {
-				const selection = editor.selection;
-				const startLine = Math.min(selection.start.line, selection.end.line);
-				const endLine = Math.max(selection.start.line, selection.end.line);
-				const isMultilineSelection = startLine !== endLine;
-
-				if (isMultilineSelection) {
-				edits = getCleanEdits(
-					editor.document,
-					selection.active.line,
-					startLine,
-					endLine,
-				);
+				// Handle multi-cursor selection (Ctrl+D)
+				if (editor.selections.length > 1) {
+					const cursorLines = editor.selections.map(
+						(sel) => sel.active.line,
+					);
+					edits = getCleanEdits(editor.document, cursorLines);
 				} else {
-				edits = getCleanEdits(editor.document, selection.active.line);
+					const selection = editor.selection;
+					const startLine = Math.min(
+						selection.start.line,
+						selection.end.line,
+					);
+					const endLine = Math.max(
+						selection.start.line,
+						selection.end.line,
+					);
+					const isMultilineSelection = startLine !== endLine;
+
+					if (isMultilineSelection) {
+						edits = getCleanEdits(
+							editor.document,
+							selection.active.line,
+							startLine,
+							endLine,
+						);
+					} else {
+						edits = getCleanEdits(
+							editor.document,
+							selection.active.line,
+						);
+					}
 				}
-			}
 
-			const workEdit = new vscode.WorkspaceEdit();
-			workEdit.set(editor.document.uri, edits);
+				const workEdit = new vscode.WorkspaceEdit();
+				workEdit.set(editor.document.uri, edits);
 
-			await vscode.workspace.applyEdit(workEdit);
-			updateDecorations(editor);
-			updateIndentRainbow(editor);
+				await vscode.workspace.applyEdit(workEdit);
+				updateDecorations(editor);
+				updateIndentRainbow(editor);
 			} catch (error) {
-			vscode.window.showErrorMessage(`Error cleaning file: ${error}`);
+				vscode.window.showErrorMessage(`Error cleaning file: ${error}`);
 			}
 		},
 	);
@@ -231,13 +255,24 @@ export function registerSaveListener(
 
 		let edits: vscode.TextEdit[];
 
-		if (editor.selections.length > 1) {
-			const cursorLines = editor.selections.map((sel) => sel.active.line);
-			edits = getCleanEdits(document, cursorLines);
-		} else {
-			const cursorLine = editor.selection.active.line;
-			edits = getCleanEdits(document, cursorLine);
+		// Collect every line touched by every active selection so that lines the
+		// user is actively editing (including all lines in a block-tab selection)
+		// are not modified during save.
+		const selectionLines: number[] = [];
+		for (const sel of editor.selections) {
+			const start = Math.min(sel.start.line, sel.end.line);
+			const end = Math.max(sel.start.line, sel.end.line);
+			for (let l = start; l <= end; l++) {
+				selectionLines.push(l);
+			}
 		}
+		edits = getCleanEdits(
+			document,
+			selectionLines,
+			undefined,
+			undefined,
+			false,
+		);
 
 		if (edits.length > 0) {
 			event.waitUntil(Promise.resolve(edits));

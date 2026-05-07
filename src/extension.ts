@@ -23,6 +23,7 @@ import {
 } from "./syntaxHighlighting";
 import { registerNginxHoverProvider } from "./syntax/nginxHover";
 import { registerAspHoverProvider } from "./syntax/aspHover";
+import { registerBlockedChanges } from "./blockedChanges";
 
 let startupTimeout: NodeJS.Timeout | undefined;
 
@@ -46,6 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
 	refreshSyntaxHighlighting();
 	registerNginxHoverProvider(context);
 	registerAspHoverProvider(context);
+	registerBlockedChanges(context);
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
