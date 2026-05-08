@@ -153,6 +153,7 @@ Keep certain files out of your commits while still being able to edit them freel
 - **✔ Unblock or Discard**: Each blocked file has an **Unblock** button to restore normal tracking, and a **Discard** button to throw away local changes and remove the block in one step.
 - **✔ Persists Across Restarts**: The block list is saved to the repo root and re-applied automatically every time you open the workspace.
 - **✔ Team-Safe**: Unblocking and the optional `.gitignore` entry both ask for confirmation, so one teammate's settings can't silently affect another's workflow.
+- **✔ Works with New Files Too**: Blocking a brand-new file that hasn't been committed yet hides it from the Changes panel just like any other file — no extra steps needed.
 - **✔ Works on Managed Machines**: Resolves git through VS Code's own settings, so it works correctly even on computers where git isn't on the system PATH.
 
 ---

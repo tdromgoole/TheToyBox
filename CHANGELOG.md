@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.27]
+
+- **Bug Fix**: **Blocked Changes — New and untracked files now hidden correctly** — Blocking a file that has never been committed now hides it from the Changes panel just like tracked files. Previously, only files already known to Git could be hidden; new files would be added to the Blocked Changes list but remain visible in Changes with a warning.
+
 ## [0.0.26]
 
 - **Bug Fix**: **Blocked Changes — Instant Changes panel updates** — Blocking or unblocking a file now reflects immediately in VS Code's Changes panel. Previously there was a 2–3 second delay while waiting for the Git extension's next scheduled poll cycle. The extension now triggers an immediate status refresh after each operation.
