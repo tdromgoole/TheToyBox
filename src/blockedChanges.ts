@@ -68,16 +68,96 @@ function toRelativePosix(root: string, absolutePath: string): string {
 	return path.relative(root, absolutePath).replace(/\\/g, "/");
 }
 
-/** Marks (or un-marks) a file so Git ignores local changes to it.
+/** Returns the git executable path from VS Code's git.path setting, falling
+ *  back to "git" (relies on PATH). VS Code resolves this correctly even on
+ *  machines where git is not in the system PATH. */
+function getGitPath(): string {
+	return (
+		vscode.workspace.getConfiguration("git").get<string>("path") || "git"
+	);
+}
+
+/** Returns true if the file is tracked in the git index. */
+function isTrackedByGit(root: string, relPath: string): boolean {
+	try {
+		execFileSync(getGitPath(), ["ls-files", "--error-unmatch", relPath], {
+			cwd: root,
+			stdio: ["ignore", "ignore", "ignore"],
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** Marks (or un-marks) a tracked file so Git ignores local changes to it.
  *  When skip=true the file disappears from Git's working tree status,
- *  hiding it from VS Code's "Changes" section. */
-function setSkipWorktree(root: string, relPath: string, skip: boolean): void {
+ *  hiding it from VS Code's "Changes" section.
+ *  Returns true on success, false if git is not found or the command fails. */
+function setSkipWorktree(
+	root: string,
+	relPath: string,
+	skip: boolean,
+): boolean {
 	try {
 		const flag = skip ? "--skip-worktree" : "--no-skip-worktree";
-		execFileSync("git", ["update-index", flag, relPath], { cwd: root });
+		execFileSync(getGitPath(), ["update-index", flag, relPath], {
+			cwd: root,
+		});
+		return true;
 	} catch {
-		// Non-fatal: if the file isn't tracked yet (untracked), git will error;
-		// that's fine — untracked files aren't shown in Changes anyway.
+		return false;
+	}
+}
+
+/** Adds or removes a path from `.git/info/exclude` (a local-only gitignore
+ *  that is never committed).  Used to hide untracked files from the Changes
+ *  view without touching the project's .gitignore. */
+function setGitInfoExclude(
+	root: string,
+	relPath: string,
+	exclude: boolean,
+): boolean {
+	const excludePath = path.join(root, ".git", "info", "exclude");
+	try {
+		let content = "";
+		if (fs.existsSync(excludePath)) {
+			content = fs.readFileSync(excludePath, "utf8");
+		}
+		if (exclude) {
+			const lines = content.split(/\r?\n/);
+			if (!lines.some((l) => l.trim() === relPath)) {
+				fs.writeFileSync(
+					excludePath,
+					content.trimEnd() + "\n" + relPath + "\n",
+				);
+			}
+		} else {
+			const lines = content.split(/\r?\n/);
+			const filtered = lines.filter((l) => l.trim() !== relPath);
+			if (filtered.length !== lines.length) {
+				fs.writeFileSync(excludePath, filtered.join("\n"));
+			}
+		}
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** Hides (or un-hides) a file from VS Code's Changes view.
+ *  For tracked files uses --skip-worktree; for untracked files uses
+ *  .git/info/exclude so the file is treated as ignored locally. */
+function hideFromChanges(
+	root: string,
+	relPath: string,
+	hide: boolean,
+): boolean {
+	if (isTrackedByGit(root, relPath)) {
+		return setSkipWorktree(root, relPath, hide);
+	} else {
+		// Untracked file: --skip-worktree doesn't apply; use local exclude instead.
+		return setGitInfoExclude(root, relPath, hide);
 	}
 }
 
@@ -233,7 +313,7 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 
 	if (isEnabled()) {
 		for (const relPath of loadBlockedPaths(root)) {
-			setSkipWorktree(root, relPath, true);
+			hideFromChanges(root, relPath, true);
 		}
 	}
 
@@ -243,32 +323,44 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 			if (e.affectsConfiguration("theToyBox.blockedChanges.enabled")) {
 				const enabled = isEnabled();
 				for (const relPath of loadBlockedPaths(root)) {
-					setSkipWorktree(root, relPath, enabled);
+					hideFromChanges(root, relPath, enabled);
 				}
 			}
 		}),
 	);
 
-	// Apply .gitignore setting on activation and whenever the setting changes.
-	const applyGitignoreSetting = () => {
-		const enabled = vscode.workspace
+	// On activation: only add the .gitignore entry if the setting is enabled.
+	// Never remove it automatically — a teammate may have checked it in
+	// intentionally even if the local setting is unchecked.
+	const isGitignoreEnabled = () =>
+		vscode.workspace
 			.getConfiguration("theToyBox")
 			.get<boolean>("blockedChanges.addToGitignore", false);
-		if (enabled) {
-			ensureGitignoreEntry(root);
-		} else {
-			removeGitignoreEntry(root);
-		}
-	};
-	applyGitignoreSetting();
+
+	if (isGitignoreEnabled()) {
+		ensureGitignoreEntry(root);
+	}
+
 	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration((e) => {
+		vscode.workspace.onDidChangeConfiguration(async (e) => {
 			if (
 				e.affectsConfiguration(
 					"theToyBox.blockedChanges.addToGitignore",
 				)
 			) {
-				applyGitignoreSetting();
+				if (isGitignoreEnabled()) {
+					ensureGitignoreEntry(root);
+				} else {
+					const choice = await vscode.window.showWarningMessage(
+						`Remove "${BLOCKED_FILE}" from .gitignore?`,
+						{ modal: true },
+						"Yes",
+						"No",
+					);
+					if (choice === "Yes") {
+						removeGitignoreEntry(root);
+					}
+				}
 			}
 		}),
 	);
@@ -292,7 +384,7 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 		// Block — triggered from scm/resourceState/context on Git workingTree items
 		vscode.commands.registerCommand(
 			"theToyBox.blockChange",
-			(resource: vscode.SourceControlResourceState) => {
+			async (resource: vscode.SourceControlResourceState) => {
 				if (!resource?.resourceUri || !isEnabled()) {
 					return;
 				}
@@ -301,7 +393,19 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				if (!blocked.includes(rel)) {
 					blocked.push(rel);
 					saveBlockedPaths(root, blocked);
-					setSkipWorktree(root, rel, true);
+					const hidden = hideFromChanges(root, rel, true);
+					if (!hidden) {
+						vscode.window.showWarningMessage(
+							`The Toy Box: "${path.basename(rel)}" was added to Blocked Changes but could not be hidden from the Changes view — git may not be accessible.`,
+						);
+					}
+					// Force VS Code's Git extension to re-scan immediately so the
+					// file disappears from the Changes view without waiting for
+					// the next poll cycle (which causes a 2–3 s visible delay).
+					const api = vscode.extensions
+						.getExtension("vscode.git")
+						?.exports?.getAPI(1);
+					await api?.getRepository(resource.resourceUri)?.status();
 					refresh();
 				}
 			},
@@ -310,15 +414,19 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 		// Unblock — triggered from view/item/context on BlockedFileItem rows
 		vscode.commands.registerCommand(
 			"theToyBox.unblockChange",
-			(item: BlockedFileItem) => {
+			async (item: BlockedFileItem) => {
 				if (!item?.relPath) {
 					return;
 				}
-				setSkipWorktree(root, item.relPath, false);
+				hideFromChanges(root, item.relPath, false);
 				saveBlockedPaths(
 					root,
 					loadBlockedPaths(root).filter((p) => p !== item.relPath),
 				);
+				const api = vscode.extensions
+					.getExtension("vscode.git")
+					?.exports?.getAPI(1);
+				await api?.getRepository(item.resourceUri)?.status();
 				refresh();
 			},
 		),
@@ -355,12 +463,12 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				}
 
 				try {
-					setSkipWorktree(root, item.relPath, false);
+					hideFromChanges(root, item.relPath, false);
 					await repo.clean([item.resourceUri]);
 				} catch (err: unknown) {
-					// Re-apply skip-worktree so the file stays hidden in Changes
+					// Re-apply the hide so the file stays hidden in Changes
 					// and remains in the Blocked Changes list in a consistent state.
-					setSkipWorktree(root, item.relPath, true);
+					hideFromChanges(root, item.relPath, true);
 					const msg =
 						err instanceof Error ? err.message : String(err);
 					vscode.window.showErrorMessage(

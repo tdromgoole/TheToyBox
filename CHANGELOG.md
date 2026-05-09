@@ -2,6 +2,17 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.27]
+
+- **Bug Fix**: **Blocked Changes — New and untracked files now hidden correctly** — Blocking a file that has never been committed now hides it from the Changes panel just like tracked files. Previously, only files already known to Git could be hidden; new files would be added to the Blocked Changes list but remain visible in Changes with a warning.
+
+## [0.0.26]
+
+- **Bug Fix**: **Blocked Changes — Instant Changes panel updates** — Blocking or unblocking a file now reflects immediately in VS Code's Changes panel. Previously there was a 2–3 second delay while waiting for the Git extension's next scheduled poll cycle. The extension now triggers an immediate status refresh after each operation.
+- **Bug Fix**: **Blocked Changes — Reliable git access on work computers** — The extension now resolves the git executable via VS Code's own `git.path` setting rather than relying on the system PATH. This fixes blocking/unblocking silently failing on managed machines where git is not on the PATH.
+- **Improvement**: **Blocked Changes — Safer "Add to .gitignore" toggle** — Unchecking the "Add to .gitignore" setting no longer automatically removes the `.gitignore` entry. Instead a Yes/No dialog is shown, giving you a chance to keep the entry if a teammate checked it in intentionally. On activation the extension only adds the entry (never removes it silently) so a teammate's unchecked setting cannot delete an entry another developer checked in.
+- **Improvement**: **Blocked Changes — Warning when hide fails** — If a file is added to Blocked Changes but cannot be hidden from the Changes panel (e.g. the file is untracked or git is inaccessible), a warning notification is now shown explaining why.
+
 ## [0.0.25]
 
 - **New Feature**: **Blocked Changes** — A new "Blocked Changes" panel appears in the Source Control view. Right-click any file in Git's Changes section and choose **Block Change** to move it to the Blocked Changes list. Blocked files are hidden from the Changes section (via `git update-index --skip-worktree`) and cannot be committed — a pre-commit hook installed automatically into `.git/hooks/pre-commit` blocks any attempt. Use the **Unblock Change** or **Discard Changes** inline buttons to release a file. Toggle the entire feature on/off with `theToyBox.blockedChanges.enabled`. Optionally add `.toybox-blocked.txt` to `.gitignore` automatically with `theToyBox.blockedChanges.addToGitignore`.
