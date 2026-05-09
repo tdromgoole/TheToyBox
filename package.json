@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.27",
+	"version": "0.0.28",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -154,6 +154,10 @@
 				"command": "theToyBox.discardBlockedChange",
 				"title": "Discard Changes",
 				"icon": "$(discard)"
+			},
+			{
+				"command": "theToyBox.printFile",
+				"title": "The Toy Box: Print File"
 			}
 		],
 		"keybindings": [
@@ -244,6 +248,18 @@
 					"command": "theToyBox.formatJson",
 					"group": "modification",
 					"when": "editorHasSelection"
+				},
+				{
+					"command": "theToyBox.printFile",
+					"group": "z_toybox_print@1",
+					"when": "editorTextFocus && config.theToyBox.print.enabled"
+				}
+			],
+			"explorer/context": [
+				{
+					"command": "theToyBox.printFile",
+					"group": "z_toybox_print@1",
+					"when": "!explorerResourceIsFolder && config.theToyBox.print.enabled"
 				}
 			]
 		},
@@ -447,6 +463,16 @@
 						"type": "boolean",
 						"default": true,
 						"description": "Briefly highlight the line in the editor when clicking an item in the Better Outline panel."
+					}
+				}
+			},
+			{
+				"title": "Print",
+				"properties": {
+					"theToyBox.print.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Print File feature. When disabled, the option is hidden from context menus."
 					}
 				}
 			},

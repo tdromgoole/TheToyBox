@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [0.0.28]
+
+- **New Feature**: **Print File** — Print any open file directly from VS Code. Right-click in the editor or right-click a file in the Explorer and choose **"The Toy Box: Print File"**. The file opens in your system's default browser with a clean, line-numbered layout and the print dialog appears automatically — no manual steps needed. Works on Windows, macOS, and Linux. Toggle the feature on or off with `theToyBox.print.enabled`.
+
 ## [0.0.27]
 
 - **Bug Fix**: **Blocked Changes — New and untracked files now hidden correctly** — Blocking a file that has never been committed now hides it from the Changes panel just like tracked files. Previously, only files already known to Git could be hidden; new files would be added to the Blocked Changes list but remain visible in Changes with a warning.

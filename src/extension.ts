@@ -24,6 +24,7 @@ import {
 import { registerNginxHoverProvider } from "./syntax/nginxHover";
 import { registerAspHoverProvider } from "./syntax/aspHover";
 import { registerBlockedChanges } from "./blockedChanges";
+import { registerPrintCommand } from "./printer";
 
 let startupTimeout: NodeJS.Timeout | undefined;
 
@@ -48,6 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
 	registerNginxHoverProvider(context);
 	registerAspHoverProvider(context);
 	registerBlockedChanges(context);
+	registerPrintCommand(context);
 
 	/**
 	 * Helper to refresh all visual UI elements at once.

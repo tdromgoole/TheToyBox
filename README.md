@@ -203,6 +203,12 @@ Run **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette 
 
 All settings are unified under the `theToyBox` namespace.
 
+### Print
+
+| Setting                   | Default | Description                                                                      |
+| :------------------------ | :-----: | :------------------------------------------------------------------------------- |
+| `theToyBox.print.enabled` | `true`  | Enable/Disable the Print File feature (hides the option from all context menus). |
+
 ### Blocked Changes
 
 | Setting                                   | Default | Description                                                                            |
