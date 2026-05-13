@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "0.0.28",
+	"version": "1.0.0",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -12,8 +12,39 @@
 		"vscode": "^1.90.0"
 	},
 	"icon": "images/icon.png",
+	"galleryBanner": {
+		"color": "#1e1e1e",
+		"theme": "dark"
+	},
 	"categories": [
+		"Formatters",
+		"Programming Languages",
+		"Visualization",
 		"Other"
+	],
+	"keywords": [
+		"productivity",
+		"outline",
+		"syntax highlighting",
+		"indent rainbow",
+		"cleanup",
+		"formatter",
+		"json",
+		"markdown",
+		"alignment",
+		"tag rename",
+		"custom comments",
+		"word frequency",
+		"asp",
+		"nginx",
+		"kdl",
+		"sql",
+		"git",
+		"blocked changes",
+		"bookmarks",
+		"todo",
+		"session restore",
+		"scratch pad"
 	],
 	"extensionDependencies": [
 		"vscode.markdown-language-features"
@@ -101,6 +132,21 @@
 					"type": "webview",
 					"id": "wordFrequencyView",
 					"name": "Word Frequency"
+				},
+				{
+					"type": "webview",
+					"id": "bookmarksView",
+					"name": "Bookmarks"
+				},
+				{
+					"type": "webview",
+					"id": "todoAggregatorView",
+					"name": "Tagged Comments"
+				},
+				{
+					"type": "webview",
+					"id": "scratchPadView",
+					"name": "Scratch Pad"
 				}
 			]
 		},
@@ -158,6 +204,35 @@
 			{
 				"command": "theToyBox.printFile",
 				"title": "The Toy Box: Print File"
+			},
+			{
+				"command": "theToyBox.toggleBookmark",
+				"title": "The Toy Box: Toggle Bookmark"
+			},
+			{
+				"command": "theToyBox.nextBookmark",
+				"title": "The Toy Box: Next Bookmark"
+			},
+			{
+				"command": "theToyBox.previousBookmark",
+				"title": "The Toy Box: Previous Bookmark"
+			},
+			{
+				"command": "theToyBox.scanTodos",
+				"title": "The Toy Box: Scan Workspace for Tagged Comments",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "theToyBox.saveSession",
+				"title": "The Toy Box: Save Session"
+			},
+			{
+				"command": "theToyBox.restoreSession",
+				"title": "The Toy Box: Restore Session"
+			},
+			{
+				"command": "theToyBox.manageSessions",
+				"title": "The Toy Box: Manage Sessions"
 			}
 		],
 		"keybindings": [
@@ -184,6 +259,24 @@
 				"key": "ctrl+shift+alt+c",
 				"mac": "cmd+shift+alt+c",
 				"when": "editorTextFocus"
+			},
+			{
+				"command": "theToyBox.toggleBookmark",
+				"key": "ctrl+shift+alt+b",
+				"mac": "cmd+shift+alt+b",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "theToyBox.nextBookmark",
+				"key": "ctrl+shift+alt+n",
+				"mac": "cmd+shift+alt+n",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "theToyBox.previousBookmark",
+				"key": "ctrl+shift+alt+p",
+				"mac": "cmd+shift+alt+p",
+				"when": "editorTextFocus"
 			}
 		],
 		"menus": {
@@ -201,6 +294,11 @@
 				{
 					"command": "wordFrequency.refresh",
 					"when": "view == wordFrequencyView",
+					"group": "navigation"
+				},
+				{
+					"command": "theToyBox.scanTodos",
+					"when": "view == todoAggregatorView",
 					"group": "navigation"
 				}
 			],
@@ -276,6 +374,16 @@
 						"type": "boolean",
 						"default": false,
 						"description": "When enabled, automatically adds .toybox-blocked.txt to the repository's .gitignore file."
+					}
+				}
+			},
+			{
+				"title": "Bookmarks",
+				"properties": {
+					"theToyBox.bookmarks.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Bookmarks panel."
 					}
 				}
 			},
@@ -410,7 +518,7 @@
 				}
 			},
 			{
-				"title": "Markdown Headings",
+				"title": "Markdown Settings",
 				"properties": {
 					"theToyBox.markdownHeadings.enabled": {
 						"type": "boolean",
@@ -438,12 +546,7 @@
 							"h6": "#FF9A3C"
 						},
 						"description": "Map each heading level (h1–h6) to a hex color."
-					}
-				}
-			},
-			{
-				"title": "Markdown Preview",
-				"properties": {
+					},
 					"theToyBox.markdownPreview.enabled": {
 						"type": "boolean",
 						"default": true,
@@ -532,6 +635,26 @@
 				}
 			},
 			{
+				"title": "Scratch Pad",
+				"properties": {
+					"theToyBox.scratchPad.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Scratch Pad panel."
+					}
+				}
+			},
+			{
+				"title": "Session Restore",
+				"properties": {
+					"theToyBox.sessionRestore.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Session Restore commands."
+					}
+				}
+			},
+			{
 				"title": "Syntax Highlighting",
 				"properties": {
 					"theToyBox.syntaxHighlighting.enabled": {
@@ -568,6 +691,21 @@
 						"type": "boolean",
 						"default": true,
 						"description": "Enable decoration-based syntax highlighting for nginx configuration (.conf) files."
+					}
+				}
+			},
+			{
+				"title": "Tagged Comments (Workspace Scan)",
+				"properties": {
+					"theToyBox.todoAggregator.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Tagged Comments workspace scan panel."
+					},
+					"theToyBox.todoAggregator.exclude": {
+						"type": "string",
+						"default": "**/node_modules/**,**/dist/**,**/.git/**,**/out/**",
+						"description": "Comma-separated glob patterns to exclude when scanning the workspace for tagged comments."
 					}
 				}
 			},

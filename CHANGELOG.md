@@ -2,6 +2,17 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.0.0]
+
+- **New Feature**: **Bookmarks** — Place persistent markers on any line with `Ctrl+Shift+Alt+B`. A dedicated sidebar panel lists all bookmarks across open files; click any entry to jump straight to it. Navigate between bookmarks with `Ctrl+Shift+Alt+N` (next) and `Ctrl+Shift+Alt+P` (previous). Bookmarks are highlighted in the editor overview ruler and saved to the workspace so they survive restarts. Toggle the panel with `theToyBox.bookmarks.enabled`.
+- **New Feature**: **Tagged Comments (Workspace Scan)** — A new sidebar panel collects every custom-tagged comment (`!`, `%`, `?`, etc.) from across the entire workspace. The panel auto-scans a few seconds after VS Code loads so results are ready without any manual step, and cached results are shown immediately on startup. Click any item to jump to that file and line. Filter buttons at the top of the panel let you show or hide results by tag type (NOTE is hidden by default). Files are updated incrementally on save so a full rescan is rarely needed. Toggle with `theToyBox.todoAggregator.enabled`.
+- **New Feature**: **Scratch Pad** — A persistent notes panel in the Better Outline sidebar. Everything you type is saved instantly to the workspace and restored automatically the next time you open VS Code. Includes a Save to File button to export notes as a `.txt` file. Each workspace keeps its own separate scratch pad. Toggle with `theToyBox.scratchPad.enabled`.
+- **New Feature**: **Session Restore** — Save and restore named snapshots of your open tabs. **"The Toy Box: Save Session"** captures all open files and the active tab. **"The Toy Box: Restore Session"** reopens a saved set. **"The Toy Box: Manage Sessions"** lets you rename or delete saved sessions. Sessions are stored per workspace. Toggle with `theToyBox.sessionRestore.enabled`.
+- **Bug Fix**: **Scratch Pad — Content now saves reliably on close** — Notes were sometimes lost when VS Code was closed quickly because content was being saved on a debounce timer that could be cancelled before it fired. Content is now saved immediately on every keystroke, so nothing is ever lost.
+- **Improvement**: **Tagged Comments — Click to navigate** — Clicking any item in the Tagged Comments panel now opens the file and moves the cursor to the exact line.
+- **Improvement**: **Tagged Comments — Filter bar** — Tag type filter buttons appear at the top of the panel. Toggle any tag type on or off to focus the list. Filter state is remembered across panel reloads. NOTE is hidden by default to reduce noise.
+- **Improvement**: **Tagged Comments — Auto-scan and result caching** — The panel now scans automatically 5 seconds after startup and saves results to workspace state, so the previous scan is visible immediately on next launch even before the next scan completes.
+
 ## [0.0.28]
 
 - **New Feature**: **Print File** — Print any open file directly from VS Code. Right-click in the editor or right-click a file in the Explorer and choose **"The Toy Box: Print File"**. The file opens in your system's default browser with a clean, line-numbered layout and the print dialog appears automatically — no manual steps needed. Works on Windows, macOS, and Linux. Toggle the feature on or off with `theToyBox.print.enabled`.

@@ -25,6 +25,10 @@ import { registerNginxHoverProvider } from "./syntax/nginxHover";
 import { registerAspHoverProvider } from "./syntax/aspHover";
 import { registerBlockedChanges } from "./blockedChanges";
 import { registerPrintCommand } from "./printer";
+import { registerBookmarks, updateBookmarkDecorations } from "./bookmarks";
+import { registerTodoAggregator } from "./todoAggregator";
+import { registerScratchPad } from "./scratchPad";
+import { registerSessionRestore } from "./sessionRestore";
 
 let startupTimeout: NodeJS.Timeout | undefined;
 
@@ -50,6 +54,17 @@ export function activate(context: vscode.ExtensionContext) {
 	registerAspHoverProvider(context);
 	registerBlockedChanges(context);
 	registerPrintCommand(context);
+	const bookmarksProvider = registerBookmarks(context);
+	const todoProvider = registerTodoAggregator(context);
+	const scratchPadProvider = registerScratchPad(context);
+	registerSessionRestore(context);
+
+	// Auto-scan tagged comments once VS Code has fully settled after startup.
+	// The delay lets the workspace index finish so file discovery is complete.
+	const todoScanTimeout = setTimeout(() => todoProvider.scan(), 5000);
+	context.subscriptions.push({
+		dispose: () => clearTimeout(todoScanTimeout),
+	});
 
 	/**
 	 * Helper to refresh all visual UI elements at once.
@@ -118,6 +133,18 @@ export function activate(context: vscode.ExtensionContext) {
 				refreshSyntaxHighlighting();
 				triggerVisualUpdates();
 			}
+
+			if (e.affectsConfiguration("theToyBox.bookmarks")) {
+				bookmarksProvider.refresh();
+			}
+
+			if (e.affectsConfiguration("theToyBox.todoAggregator")) {
+				todoProvider.refresh();
+			}
+
+			if (e.affectsConfiguration("theToyBox.scratchPad")) {
+				scratchPadProvider.refresh();
+			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
 			alignWithTabs();
@@ -141,6 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.onDidChangeActiveTextEditor((editor) => {
 			if (editor) {
 				triggerVisualUpdates(editor);
+				updateBookmarkDecorations(context);
 			}
 		}),
 
@@ -163,6 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 4. Initial Run for the currently open file
 	if (vscode.window.activeTextEditor) {
 		triggerVisualUpdates(vscode.window.activeTextEditor);
+		updateBookmarkDecorations(context);
 		// VS Code may not have fully rendered the editor at activation time,
 		// so schedule a second pass after a short delay to ensure decorations
 		// are applied even when the file was already open on launch.
