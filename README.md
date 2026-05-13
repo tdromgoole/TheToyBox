@@ -12,13 +12,13 @@
 
 # Why The Toy Box?
 
-Most productivity extensions solve one small problem. **The Toy Box solves the structural workflow problem.**
+Most productivity extensions solve one small problem. **The Toy Box solves several at once.**
 
-- **Keep files clean** automatically.
-- **See structure clearly** across Web, SQL, and PHP languages.
-- **Navigate faster** with a smarter sidebar.
-- **Format on the fly** with built-in JSON and alignment tools.
-- **Stay fast** — optimized for large enterprise files.
+- Keep files clean automatically on save.
+- See the structure of your code clearly, even in SQL, PHP, and config files.
+- Navigate faster with a smarter sidebar and persistent bookmarks.
+- Track important comments across your entire workspace.
+- Keep notes, save your place, and protect files from accidental commits.
 
 ---
 
@@ -199,9 +199,88 @@ Run **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette 
 
 ---
 
+## Bookmarks
+
+Place persistent markers on important lines and jump between them without losing your place.
+
+- **✔ Toggle Anywhere**: Press `Ctrl+Shift+Alt+B` (or use the Command Palette) to bookmark the current line. Press it again to remove the bookmark.
+- **✔ Quick Navigation**: Jump to the next or previous bookmark with keyboard shortcuts.
+- **✔ Sidebar Panel**: All bookmarks across all open files are listed in the sidebar. Click any entry to go straight to that line.
+- **✔ Always Visible**: Bookmarks are highlighted in the editor's overview ruler so you can spot them at a glance even in long files.
+- **✔ Persists Across Sessions**: Bookmarks are saved to the workspace and restored automatically the next time you open it.
+
+---
+
+## Tagged Comments (Workspace Scan)
+
+Collects every special comment from across your entire workspace into one searchable list — so nothing important gets buried.
+
+- **✔ Scans Automatically**: The workspace is scanned a few seconds after VS Code loads. No manual step needed.
+- **✔ Results Persist**: Results from the last scan are shown immediately on startup, even before the next scan runs.
+- **✔ Click to Navigate**: Click any item to jump directly to that file and line.
+- **✔ Filter by Tag Type**: Use the filter buttons at the top of the panel to show only the tag types you care about (e.g. only CRITICAL and TODO). Your filter choices are remembered.
+- **✔ Incremental Updates**: When you save a file, that file's entries are updated automatically — no full rescan needed.
+
+> Tag types and colors are controlled by the Custom Comments settings (`theToyBox.customComments.colors` and `.labels`).
+
+---
+
+## Scratch Pad
+
+A persistent notes panel built into the sidebar — always one click away, automatically saved.
+
+- **✔ Always There**: Scratch Pad lives in the Better Outline sidebar. Open it whenever you need a quick note.
+- **✔ Auto-Saves**: Everything you type is saved instantly to the workspace. Notes are restored exactly as you left them the next time you open VS Code.
+- **✔ Save to File**: Export your notes to a `.txt` file at any time with the Save to File button.
+- **✔ Per-Workspace**: Each workspace has its own scratch pad, so notes for different projects stay separate.
+
+---
+
+## Session Restore
+
+Save and restore named snapshots of your open files — useful when you switch between tasks or pick up work after a break.
+
+- **✔ Save a Session**: Run **"The Toy Box: Save Session"** to capture all currently open files and the active tab.
+- **✔ Restore a Session**: Run **"The Toy Box: Restore Session"** to reopen a saved set of files.
+- **✔ Manage Sessions**: Run **"The Toy Box: Manage Sessions"** to rename or delete saved sessions.
+- **✔ Per-Workspace**: Sessions are stored per workspace, so each project keeps its own history.
+
+---
+
 # Extension Settings
 
 All settings are unified under the `theToyBox` namespace.
+
+### Bookmarks
+
+| Setting                       | Default | Description                                 |
+| :---------------------------- | :-----: | :------------------------------------------ |
+| `theToyBox.bookmarks.enabled` | `true`  | Enable/Disable the Bookmarks sidebar panel. |
+
+### Tagged Comments
+
+| Setting                            |     Default      | Description                                                    |
+| :--------------------------------- | :--------------: | :------------------------------------------------------------- |
+| `theToyBox.todoAggregator.enabled` |      `true`      | Enable/Disable the Tagged Comments workspace scan panel.       |
+| `theToyBox.todoAggregator.exclude` | _(see defaults)_ | Comma-separated glob patterns to exclude from workspace scans. |
+
+### Scratch Pad
+
+| Setting                        | Default | Description                                   |
+| :----------------------------- | :-----: | :-------------------------------------------- |
+| `theToyBox.scratchPad.enabled` | `true`  | Enable/Disable the Scratch Pad sidebar panel. |
+
+### Session Restore
+
+| Setting                            | Default | Description                                  |
+| :--------------------------------- | :-----: | :------------------------------------------- |
+| `theToyBox.sessionRestore.enabled` | `true`  | Enable/Disable the Session Restore commands. |
+
+### Print
+
+| Setting                   | Default | Description                                                                      |
+| :------------------------ | :-----: | :------------------------------------------------------------------------------- |
+| `theToyBox.print.enabled` | `true`  | Enable/Disable the Print File feature (hides the option from all context menus). |
 
 ### Blocked Changes
 
