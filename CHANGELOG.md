@@ -2,6 +2,17 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.0]
+
+- **New Feature**: **Quick Notes** — A lightweight note system that turns any untitled file into a numbered quick note the moment you start typing. Notes are saved to a dedicated folder automatically and reopen every time VS Code starts, so your in-progress thoughts are always waiting for you. Press `Ctrl+S` on a note to save it as a permanent file, or close a note and choose to **Save as File**, **Keep for Later**, or **Delete**. Open the quick note list with **"The Toy Box: Open Quick Note"** or create a fresh one with `Ctrl+Shift+Alt+Q`.
+- **Improvement**: **Quick Notes — Reopen on startup** — All existing quick notes are opened automatically when VS Code starts.
+- **Improvement**: **Quick Notes — Save as File on Ctrl+S** — Pressing the save shortcut on a quick note file opens a Save As dialog instead of doing a plain file save, regardless of what key the user has mapped to save.
+- **Improvement**: **Quick Notes — Close dialog** — Closing a quick note tab prompts with three choices: **Save as File** (pick a permanent location), **Keep for Later** (leave the note in storage), or **Delete** (remove it entirely).
+- **Improvement**: **Quick Notes — Lowest-available numbering** — New notes always take the lowest unused number. If notes 1 and 2 are deleted, the next note created is note 1, not note 5.
+- **Improvement**: **Quick Notes — Configurable storage folder** — A new setting (`theToyBox.quickNotes.notesFolder`) lets you point notes at any folder. Leave it empty to use the built-in default. The **"The Toy Box: Reset Quick Notes Folder to Default"** command clears a custom path and returns to the default location.
+- **Improvement**: **Quick Notes — Enable/Disable toggle** — The entire Quick Notes feature can be turned off with `theToyBox.quickNotes.enabled`.
+- **Improvement**: **Settings — Alphabetical order** — All extension settings sections and properties within each section are now sorted A–Z for easier discovery in the Settings UI.
+
 ## [1.0.0]
 
 - **New Feature**: **Bookmarks** — Place persistent markers on any line with `Ctrl+Shift+Alt+B`. A dedicated sidebar panel lists all bookmarks across open files; click any entry to jump straight to it. Navigate between bookmarks with `Ctrl+Shift+Alt+N` (next) and `Ctrl+Shift+Alt+P` (previous). Bookmarks are highlighted in the editor overview ruler and saved to the workspace so they survive restarts. Toggle the panel with `theToyBox.bookmarks.enabled`.

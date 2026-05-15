@@ -1,8 +1,8 @@
 {
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
-	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, and real-time HTML/XML tag renaming — all in one package.",
-	"version": "1.0.0",
+	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, real-time HTML/XML tag renaming, and Quick Notes — all in one package.",
+	"version": "1.1.0",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -44,7 +44,9 @@
 		"bookmarks",
 		"todo",
 		"session restore",
-		"scratch pad"
+		"scratch pad",
+		"quick notes",
+		"notes"
 	],
 	"extensionDependencies": [
 		"vscode.markdown-language-features"
@@ -142,11 +144,6 @@
 					"type": "webview",
 					"id": "todoAggregatorView",
 					"name": "Tagged Comments"
-				},
-				{
-					"type": "webview",
-					"id": "scratchPadView",
-					"name": "Scratch Pad"
 				}
 			]
 		},
@@ -233,6 +230,22 @@
 			{
 				"command": "theToyBox.manageSessions",
 				"title": "The Toy Box: Manage Sessions"
+			},
+			{
+				"command": "theToyBox.newQuickNote",
+				"title": "The Toy Box: New Quick Note"
+			},
+			{
+				"command": "theToyBox.openQuickNote",
+				"title": "The Toy Box: Open Quick Note"
+			},
+			{
+				"command": "theToyBox.saveQuickNoteAsFile",
+				"title": "The Toy Box: Save Quick Note as File"
+			},
+			{
+				"command": "theToyBox.quickNotes.resetNotesFolder",
+				"title": "The Toy Box: Reset Quick Notes Folder to Default"
 			}
 		],
 		"keybindings": [
@@ -277,6 +290,11 @@
 				"key": "ctrl+shift+alt+p",
 				"mac": "cmd+shift+alt+p",
 				"when": "editorTextFocus"
+			},
+			{
+				"command": "theToyBox.newQuickNote",
+				"key": "ctrl+shift+alt+q",
+				"mac": "cmd+shift+alt+q"
 			}
 		],
 		"menus": {
@@ -365,15 +383,15 @@
 			{
 				"title": "Blocked Changes",
 				"properties": {
-					"theToyBox.blockedChanges.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable the Blocked Changes feature. When disabled, the Blocked Changes panel is hidden and files are not blocked from commits."
-					},
 					"theToyBox.blockedChanges.addToGitignore": {
 						"type": "boolean",
 						"default": false,
 						"description": "When enabled, automatically adds .toybox-blocked.txt to the repository's .gitignore file."
+					},
+					"theToyBox.blockedChanges.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Blocked Changes feature. When disabled, the Blocked Changes panel is hidden and files are not blocked from commits."
 					}
 				}
 			},
@@ -395,21 +413,6 @@
 						"default": true,
 						"description": "Run cleanup automatically on save."
 					},
-					"theToyBox.trimTrailingWhitespace": {
-						"type": "boolean",
-						"default": true,
-						"description": "Trim trailing whitespace from lines during cleanup."
-					},
-					"theToyBox.ignoreTrimWhitespace": {
-						"type": "array",
-						"description": "List of file extensions to skip trailing whitespace trimming (e.g., .md, .txt).",
-						"default": [
-							".md"
-						],
-						"items": {
-							"type": "string"
-						}
-					},
 					"theToyBox.convertSpacesToTabs": {
 						"type": "boolean",
 						"default": true,
@@ -426,27 +429,27 @@
 						"items": {
 							"type": "string"
 						}
+					},
+					"theToyBox.ignoreTrimWhitespace": {
+						"type": "array",
+						"description": "List of file extensions to skip trailing whitespace trimming (e.g., .md, .txt).",
+						"default": [
+							".md"
+						],
+						"items": {
+							"type": "string"
+						}
+					},
+					"theToyBox.trimTrailingWhitespace": {
+						"type": "boolean",
+						"default": true,
+						"description": "Trim trailing whitespace from lines during cleanup."
 					}
 				}
 			},
 			{
 				"title": "Custom Comments",
 				"properties": {
-					"theToyBox.customComments.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable or disable custom comment highlighting."
-					},
-					"theToyBox.customComments.showBackground": {
-						"type": "boolean",
-						"default": true,
-						"description": "If enabled, comments will have a background highlight across the entire line."
-					},
-					"theToyBox.customComments.fullLineHighlight": {
-						"type": "boolean",
-						"default": true,
-						"description": "If enabled, highlighting covers the entire line."
-					},
 					"theToyBox.customComments.colors": {
 						"type": "object",
 						"default": {
@@ -463,6 +466,11 @@
 						},
 						"description": "Map special characters to hex colors."
 					},
+					"theToyBox.customComments.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable custom comment highlighting."
+					},
 					"theToyBox.customComments.excludedFileTypes": {
 						"type": "array",
 						"default": [
@@ -472,6 +480,11 @@
 						"items": {
 							"type": "string"
 						}
+					},
+					"theToyBox.customComments.fullLineHighlight": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, highlighting covers the entire line."
 					},
 					"theToyBox.customComments.labels": {
 						"type": "object",
@@ -488,6 +501,11 @@
 							"~": "TEMPORARY"
 						},
 						"description": "Map symbols to specific label words (e.g., ! -> CRITICAL)."
+					},
+					"theToyBox.customComments.showBackground": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, comments will have a background highlight across the entire line."
 					}
 				}
 			},
@@ -499,13 +517,6 @@
 						"default": true,
 						"description": "Display rainbow colors for indentation levels on file load and when editing."
 					},
-					"theToyBox.indentRainbowOpacity": {
-						"type": "number",
-						"default": 10,
-						"minimum": 1,
-						"maximum": 100,
-						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
-					},
 					"theToyBox.indentRainbowColors": {
 						"type": "array",
 						"default": [],
@@ -514,27 +525,19 @@
 							"type": "string",
 							"pattern": "^#[0-9A-Fa-f]{6}$"
 						}
+					},
+					"theToyBox.indentRainbowOpacity": {
+						"type": "number",
+						"default": 10,
+						"minimum": 1,
+						"maximum": 100,
+						"description": "Opacity of the indent rainbow background colors, as a percentage (1–100)."
 					}
 				}
 			},
 			{
 				"title": "Markdown Settings",
 				"properties": {
-					"theToyBox.markdownHeadings.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable or disable heading highlighting in Markdown files."
-					},
-					"theToyBox.markdownHeadings.showBackground": {
-						"type": "boolean",
-						"default": true,
-						"description": "If enabled, headings will have a background color highlight."
-					},
-					"theToyBox.markdownHeadings.fullLineHighlight": {
-						"type": "boolean",
-						"default": true,
-						"description": "If enabled, the background highlight covers the entire line."
-					},
 					"theToyBox.markdownHeadings.colors": {
 						"type": "object",
 						"default": {
@@ -547,6 +550,21 @@
 						},
 						"description": "Map each heading level (h1–h6) to a hex color."
 					},
+					"theToyBox.markdownHeadings.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable heading highlighting in Markdown files."
+					},
+					"theToyBox.markdownHeadings.fullLineHighlight": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, the background highlight covers the entire line."
+					},
+					"theToyBox.markdownHeadings.showBackground": {
+						"type": "boolean",
+						"default": true,
+						"description": "If enabled, headings will have a background color highlight."
+					},
 					"theToyBox.markdownPreview.enabled": {
 						"type": "boolean",
 						"default": true,
@@ -557,15 +575,15 @@
 			{
 				"title": "Outline",
 				"properties": {
-					"theToyBox.showRegionsInOutline": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable the Better Outline panel to show #region markers and nested symbols."
-					},
 					"theToyBox.outline.highlightOnClick": {
 						"type": "boolean",
 						"default": true,
 						"description": "Briefly highlight the line in the editor when clicking an item in the Better Outline panel."
+					},
+					"theToyBox.showRegionsInOutline": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable the Better Outline panel to show #region markers and nested symbols."
 					}
 				}
 			},
@@ -580,17 +598,27 @@
 				}
 			},
 			{
+				"title": "Quick Notes",
+				"properties": {
+					"theToyBox.quickNotes.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Quick Notes feature."
+					},
+					"theToyBox.quickNotes.notesFolder": {
+						"type": "string",
+						"default": "",
+						"description": "Folder where quick note files are stored. Leave empty to use the extension's built-in storage location. Use the 'The Toy Box: Reset Quick Notes Folder to Default' command to clear a custom path."
+					}
+				}
+			},
+			{
 				"title": "Rename Matching Tags",
 				"properties": {
 					"theToyBox.autoRenameMatchingTags": {
 						"type": "boolean",
 						"default": true,
 						"description": "Auto-rename matching HTML/XML tags when either the opening or closing tag is edited."
-					},
-					"theToyBox.performance.maxLinesForTagRename": {
-						"type": "number",
-						"default": 5000,
-						"description": "Maximum file length (in lines) for auto-renaming to be active."
 					},
 					"theToyBox.autoRenameTag.activationOnLanguage": {
 						"type": "array",
@@ -631,16 +659,11 @@
 						"items": {
 							"type": "string"
 						}
-					}
-				}
-			},
-			{
-				"title": "Scratch Pad",
-				"properties": {
-					"theToyBox.scratchPad.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable or disable the Scratch Pad panel."
+					},
+					"theToyBox.performance.maxLinesForTagRename": {
+						"type": "number",
+						"default": 5000,
+						"description": "Maximum file length (in lines) for auto-renaming to be active."
 					}
 				}
 			},
@@ -657,40 +680,40 @@
 			{
 				"title": "Syntax Highlighting",
 				"properties": {
-					"theToyBox.syntaxHighlighting.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Master toggle for decoration-based syntax highlighting. When disabled, no decoration types are created and all per-language settings are ignored."
-					},
 					"theToyBox.syntaxHighlighting.asp": {
 						"type": "boolean",
 						"default": true,
 						"description": "Enable decoration-based syntax highlighting for Active Server Pages (ASP) Classic VBScript files."
 					},
-					"theToyBox.syntaxHighlighting.kdl": {
+					"theToyBox.syntaxHighlighting.enabled": {
 						"type": "boolean",
 						"default": true,
-						"description": "Enable decoration-based syntax highlighting for KDL Document Language (KDL) files."
-					},
-					"theToyBox.syntaxHighlighting.razorVb": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable decoration-based syntax highlighting for ASP.NET Razor VB (.vbhtml) files."
-					},
-					"theToyBox.syntaxHighlighting.phpSql": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable T-SQL syntax highlighting inside PHP double-quoted strings."
+						"description": "Master toggle for decoration-based syntax highlighting. When disabled, no decoration types are created and all per-language settings are ignored."
 					},
 					"theToyBox.syntaxHighlighting.jsSql": {
 						"type": "boolean",
 						"default": true,
 						"description": "Enable T-SQL syntax highlighting inside JavaScript/TypeScript strings and template literals."
 					},
+					"theToyBox.syntaxHighlighting.kdl": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable decoration-based syntax highlighting for KDL Document Language (KDL) files."
+					},
 					"theToyBox.syntaxHighlighting.nginx": {
 						"type": "boolean",
 						"default": true,
 						"description": "Enable decoration-based syntax highlighting for nginx configuration (.conf) files."
+					},
+					"theToyBox.syntaxHighlighting.phpSql": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable T-SQL syntax highlighting inside PHP double-quoted strings."
+					},
+					"theToyBox.syntaxHighlighting.razorVb": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable decoration-based syntax highlighting for ASP.NET Razor VB (.vbhtml) files."
 					}
 				}
 			},
@@ -712,27 +735,10 @@
 			{
 				"title": "Word Frequency",
 				"properties": {
-					"theToyBox.wordFrequency.enabled": {
-						"type": "boolean",
-						"default": true,
-						"description": "Enable or disable the Word Frequency panel in the sidebar."
-					},
-					"theToyBox.wordFrequency.minLength": {
-						"type": "number",
-						"default": 2,
-						"minimum": 1,
-						"maximum": 50,
-						"description": "Minimum word length to include in the frequency list."
-					},
 					"theToyBox.wordFrequency.caseSensitive": {
 						"type": "boolean",
 						"default": true,
 						"description": "When enabled, 'Word' and 'word' are counted separately. When disabled, tokens are merged case-insensitively."
-					},
-					"theToyBox.wordFrequency.excludeStopWords": {
-						"type": "boolean",
-						"default": false,
-						"description": "Filter out common programming stop words (if, else, return, var, let, const, etc.)."
 					},
 					"theToyBox.wordFrequency.customStopWords": {
 						"type": "array",
@@ -741,6 +747,23 @@
 						"items": {
 							"type": "string"
 						}
+					},
+					"theToyBox.wordFrequency.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable or disable the Word Frequency panel in the sidebar."
+					},
+					"theToyBox.wordFrequency.excludeStopWords": {
+						"type": "boolean",
+						"default": false,
+						"description": "Filter out common programming stop words (if, else, return, var, let, const, etc.)."
+					},
+					"theToyBox.wordFrequency.minLength": {
+						"type": "number",
+						"default": 2,
+						"minimum": 1,
+						"maximum": 50,
+						"description": "Minimum word length to include in the frequency list."
 					}
 				}
 			}

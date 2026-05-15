@@ -27,7 +27,7 @@ import { registerBlockedChanges } from "./blockedChanges";
 import { registerPrintCommand } from "./printer";
 import { registerBookmarks, updateBookmarkDecorations } from "./bookmarks";
 import { registerTodoAggregator } from "./todoAggregator";
-import { registerScratchPad } from "./scratchPad";
+import { registerQuickNotes, deactivateQuickNotes } from "./quickNotes";
 import { registerSessionRestore } from "./sessionRestore";
 
 let startupTimeout: NodeJS.Timeout | undefined;
@@ -56,7 +56,7 @@ export function activate(context: vscode.ExtensionContext) {
 	registerPrintCommand(context);
 	const bookmarksProvider = registerBookmarks(context);
 	const todoProvider = registerTodoAggregator(context);
-	const scratchPadProvider = registerScratchPad(context);
+	registerQuickNotes(context);
 	registerSessionRestore(context);
 
 	// Auto-scan tagged comments once VS Code has fully settled after startup.
@@ -141,10 +141,6 @@ export function activate(context: vscode.ExtensionContext) {
 			if (e.affectsConfiguration("theToyBox.todoAggregator")) {
 				todoProvider.refresh();
 			}
-
-			if (e.affectsConfiguration("theToyBox.scratchPad")) {
-				scratchPadProvider.refresh();
-			}
 		}),
 		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
 			alignWithTabs();
@@ -220,6 +216,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+	deactivateQuickNotes();
 	if (startupTimeout) {
 		clearTimeout(startupTimeout);
 		startupTimeout = undefined;
