@@ -6,7 +6,7 @@
 ![Rating](https://badgen.net/vs-marketplace/rating/ThomasDromgoole.theToyBox)
 ![License](https://img.shields.io/github/license/tdromgoole/TheToyBox)
 
-> A VS Code extension that bundles a collection of everyday developer tools — cleaner files, smarter navigation, better visuals, and safer Git workflows.
+> A VS Code extension that bundles a collection of everyday developer tools — cleaner files, smarter navigation, better visuals, safer Git workflows, and a built-in quick notes system.
 
 ---
 
@@ -19,6 +19,7 @@ Most productivity extensions solve one small problem. **The Toy Box solves sever
 - Navigate faster with a smarter sidebar and persistent bookmarks.
 - Track important comments across your entire workspace.
 - Keep notes, save your place, and protect files from accidental commits.
+- Capture ideas instantly with Quick Notes — they reopen automatically every time VS Code starts.
 
 ---
 
@@ -236,6 +237,19 @@ A persistent notes panel built into the sidebar — always one click away, autom
 
 ---
 
+## Quick Notes
+
+A lightweight note system that creates real files, reopens them automatically on startup, and gets out of your way until you need them.
+
+- **✔ Instant Creation**: Run **"The Toy Box: New Quick Note"** (`Ctrl+Shift+Alt+Q`) or just start typing in any untitled file — it becomes a numbered quick note automatically after a brief pause.
+- **✔ Always Waiting**: All your quick notes reopen automatically every time VS Code starts. Nothing to remember, nothing to hunt for.
+- **✔ Save When Ready**: Press `Ctrl+S` on a note to save it as a permanent file wherever you like. Or close a note and choose from **Save as File**, **Keep for Later**, or **Delete**.
+- **✔ Smart Numbering**: Note slots are always reused from the lowest available number — if you delete notes 1 and 2, the next new note is note 1 again.
+- **✔ Language-Aware**: Switch a note’s language mode to JavaScript, SQL, or anything else and it remembers that choice the next time the note opens.
+- **✔ Configurable Storage**: Point notes at any folder on your machine via settings. Use **"The Toy Box: Reset Quick Notes Folder to Default"** to go back to the built-in location at any time.
+
+---
+
 ## Session Restore
 
 Save and restore named snapshots of your open files — useful when you switch between tasks or pick up work after a break.
@@ -263,6 +277,13 @@ All settings are unified under the `theToyBox` namespace.
 | :--------------------------------- | :--------------: | :------------------------------------------------------------- |
 | `theToyBox.todoAggregator.enabled` |      `true`      | Enable/Disable the Tagged Comments workspace scan panel.       |
 | `theToyBox.todoAggregator.exclude` | _(see defaults)_ | Comma-separated glob patterns to exclude from workspace scans. |
+
+### Quick Notes
+
+| Setting                            | Default | Description                                                                     |
+| :--------------------------------- | :-----: | :------------------------------------------------------------------------------ |
+| `theToyBox.quickNotes.enabled`     | `true`  | Enable/Disable the Quick Notes feature entirely.                                |
+| `theToyBox.quickNotes.notesFolder` |  `""`   | Custom folder for note files. Leave empty to use the built-in storage location. |
 
 ### Scratch Pad
 
