@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.1]
+
+- **Bug Fix**: **Quick Notes — Changing the storage folder no longer breaks the feature** — If you switch the notes folder while notes are open, each open note now shows a dialog asking whether to **Save as File**, **Keep for Later**, or **Delete** before the transition happens. Previously, changing the folder caused the extension to lose track of open notes and stop working until VS Code was restarted.
+
 ## [1.1.0]
 
 - **New Feature**: **Quick Notes** — A lightweight note system that turns any untitled file into a numbered quick note the moment you start typing. Notes are saved to a dedicated folder automatically and reopen every time VS Code starts, so your in-progress thoughts are always waiting for you. Press `Ctrl+S` on a note to save it as a permanent file, or close a note and choose to **Save as File**, **Keep for Later**, or **Delete**. Open the quick note list with **"The Toy Box: Open Quick Note"** or create a fresh one with `Ctrl+Shift+Alt+Q`.

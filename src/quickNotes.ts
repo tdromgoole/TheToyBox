@@ -20,6 +20,10 @@ const untitledContent = new Map<string, string>();
 // Prevents re-entry if VS Code fires additional change events on the same doc.
 const alreadyConverted = new Set<string>();
 
+// Set to true while handleNoteDirChange is closing old tabs to suppress the
+// duplicate dialog that would otherwise fire from onTabsClosed.
+let changingDir = false;
+
 // ─── Registration ─────────────────────────────────────────────────────────────
 
 export function registerQuickNotes(ctx: vscode.ExtensionContext): void {
@@ -105,11 +109,87 @@ function onConfigChanged(e: vscode.ConfigurationChangeEvent): void {
 
 	const newDir = resolveNotesDir();
 	if (newDir !== notesDir) {
-		notesDir = newDir;
-		fs.mkdirSync(notesDir, { recursive: true });
-		out.appendLine(`[config] notesDir changed to ${notesDir}`);
+		// Don't update notesDir yet — handleNoteDirChange does it after closing
+		// the currently-open note tabs so isNoteFile can still resolve them.
+		void handleNoteDirChange(notesDir, newDir);
+	} else if (isFeatureEnabled()) {
+		void openAllNotes();
+	}
+}
+
+/**
+ * Called when the notes directory setting changes. Prompts for each currently
+ * open note tab, then switches notesDir to newDir and opens notes from there.
+ * changingDir suppresses onTabsClosed while we handle tabs here so each note
+ * gets exactly one prompt.
+ */
+async function handleNoteDirChange(
+	oldDir: string,
+	newDir: string,
+): Promise<void> {
+	// Collect all open note tabs from the old directory.
+	const oldTabs: Array<{
+		tab: vscode.Tab;
+		noteName: string;
+		filePath: string;
+	}> = [];
+	for (const tabGroup of vscode.window.tabGroups.all) {
+		for (const tab of tabGroup.tabs) {
+			if (!(tab.input instanceof vscode.TabInputText)) {
+				continue;
+			}
+			const fsPath = (tab.input as vscode.TabInputText).uri.fsPath;
+			const rel = path.relative(oldDir, fsPath);
+			if (
+				!rel.startsWith("..") &&
+				!path.isAbsolute(rel) &&
+				!rel.includes(path.sep) &&
+				/^toybox-note-\d+$/.test(rel)
+			) {
+				oldTabs.push({ tab, noteName: rel, filePath: fsPath });
+			}
+		}
 	}
 
+	// Suppress onTabsClosed while we close these tabs manually.
+	changingDir = true;
+	try {
+		for (const { tab, noteName, filePath } of oldTabs) {
+			if (!fs.existsSync(filePath)) {
+				try {
+					await vscode.window.tabGroups.close(tab, true);
+				} catch {
+					/* ignore */
+				}
+				continue;
+			}
+			const choice = await vscode.window.showInformationMessage(
+				`Quick note "${noteName}" is from the previous notes folder. What would you like to do?`,
+				"Save as File",
+				"Keep for Later",
+				"Delete",
+			);
+			if (choice === "Save as File") {
+				await saveNoteAsFile(filePath, noteName);
+			} else if (choice === "Delete") {
+				deleteNote(filePath, noteName);
+			}
+			// Close the tab regardless — it belongs to the old directory.
+			// "Keep for Later" leaves the file on disk but stops tracking it.
+			try {
+				await vscode.window.tabGroups.close(tab, true);
+			} catch {
+				/* ignore */
+			}
+		}
+	} finally {
+		changingDir = false;
+	}
+
+	// Now switch to the new directory.
+	notesDir = newDir;
+	fs.mkdirSync(notesDir, { recursive: true });
+	out.appendLine(`[config] notesDir changed to ${notesDir}`);
 	if (isFeatureEnabled()) {
 		void openAllNotes();
 	}
@@ -590,7 +670,7 @@ async function onDocumentClosed(doc: vscode.TextDocument): Promise<void> {
 }
 
 async function onTabsClosed({ closed }: vscode.TabChangeEvent): Promise<void> {
-	if (deactivating || !isFeatureEnabled()) {
+	if (deactivating || changingDir || !isFeatureEnabled()) {
 		return;
 	}
 	for (const tab of closed) {
@@ -697,9 +777,12 @@ function deleteNote(filePath: string, noteName: string): void {
  */
 export function deactivateQuickNotes(): void {
 	deactivating = true;
-	for (const [noteName, timer] of saveTimers) {
+	for (const [noteKey, timer] of saveTimers) {
 		clearTimeout(timer);
-		const noteFilePath = path.join(notesDir, noteName);
+		if (!/^toybox-note-\d+$/.test(noteKey)) {
+			continue; // untitled URI key — content tracked in untitledContent
+		}
+		const noteFilePath = path.join(notesDir, noteKey);
 		const doc = vscode.workspace.textDocuments.find(
 			(d) => d.uri.fsPath === noteFilePath,
 		);

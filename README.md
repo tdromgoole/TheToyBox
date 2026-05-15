@@ -247,6 +247,7 @@ A lightweight note system that creates real files, reopens them automatically on
 - **✔ Smart Numbering**: Note slots are always reused from the lowest available number — if you delete notes 1 and 2, the next new note is note 1 again.
 - **✔ Language-Aware**: Switch a note’s language mode to JavaScript, SQL, or anything else and it remembers that choice the next time the note opens.
 - **✔ Configurable Storage**: Point notes at any folder on your machine via settings. Use **"The Toy Box: Reset Quick Notes Folder to Default"** to go back to the built-in location at any time.
+- **✔ Smooth Folder Changes**: Switching the storage folder while notes are open prompts you about each note — save it as a permanent file, keep it in the old folder, or delete it. Nothing is lost silently.
 
 ---
 
