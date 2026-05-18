@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.2]
+
+- **Bug Fix**: **Quick Notes — Custom folder paths with `~` now work on Linux and macOS** — Entering a path like `~/my-notes` as the notes folder now correctly resolves to your home directory. Previously the `~` was treated as a literal character, causing the folder to fail to create and Quick Notes to stop working entirely.
+
 ## [1.1.1]
 
 - **Bug Fix**: **Quick Notes — Changing the storage folder no longer breaks the feature** — If you switch the notes folder while notes are open, each open note now shows a dialog asking whether to **Save as File**, **Keep for Later**, or **Delete** before the transition happens. Previously, changing the folder caused the extension to lose track of open notes and stop working until VS Code was restarted.

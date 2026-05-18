@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 const LANG_MAP_KEY = "toybox.quickNotes.languages";
@@ -93,7 +94,12 @@ function resolveNotesDir(ctx?: vscode.ExtensionContext): string {
 		.getConfiguration("theToyBox.quickNotes")
 		.get<string>("notesFolder", "");
 	if (custom && custom.trim() !== "") {
-		return custom.trim();
+		let resolved = custom.trim();
+		if (resolved.startsWith("~")) {
+			const home = os.homedir();
+			resolved = path.join(home, resolved.slice(1));
+		}
+		return resolved;
 	}
 	const base = ctx ?? extContext;
 	return path.join(base.globalStorageUri.fsPath, "notes");
