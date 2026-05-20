@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.3]
+
+- **Bug Fix**: **Quick Notes — Now works correctly on Linux** — Quick Notes was silently broken on Linux regardless of whether a custom notes folder was set. Notes were not auto-saved, untitled files were not converted to notes, and notes did not reopen on startup. The root cause was a fragile startup sequence where a single unexpected error could prevent the feature's event handlers from ever being registered. The startup sequence is now fault-tolerant, and any unexpected error during initialisation is shown as a visible notification with the exact message so it can be reported.
+
 ## [1.1.2]
 
 - **Bug Fix**: **Quick Notes — Custom folder paths with `~` now work on Linux and macOS** — Entering a path like `~/my-notes` as the notes folder now correctly resolves to your home directory. Previously the `~` was treated as a literal character, causing the folder to fail to create and Quick Notes to stop working entirely.
