@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 const LANG_MAP_KEY = "toybox.quickNotes.languages";
@@ -27,15 +28,34 @@ let changingDir = false;
 // ─── Registration ─────────────────────────────────────────────────────────────
 
 export function registerQuickNotes(ctx: vscode.ExtensionContext): void {
+	try {
+		registerQuickNotesImpl(ctx);
+	} catch (e) {
+		// Surface any unexpected startup error as a visible notification so
+		// users on any platform (Linux in particular) can report the exact
+		// message rather than seeing a silently broken feature.
+		vscode.window.showErrorMessage(
+			`Quick Notes failed to initialise: ${e}. Please report this error.`,
+		);
+	}
+}
+
+function registerQuickNotesImpl(ctx: vscode.ExtensionContext): void {
 	extContext = ctx;
 	out = vscode.window.createOutputChannel("Quick Notes");
 	ctx.subscriptions.push(out);
 	notesDir = resolveNotesDir(ctx);
-	fs.mkdirSync(notesDir, { recursive: true });
+	try {
+		fs.mkdirSync(notesDir, { recursive: true });
+	} catch (e) {
+		out.appendLine(`[init] failed to create notesDir: ${e}`);
+	}
 	out.appendLine(`[init] notesDir = ${notesDir}`);
 
 	if (isFeatureEnabled()) {
-		void openAllNotes();
+		openAllNotes().catch((e) =>
+			out.appendLine(`[init] openAllNotes failed: ${e}`),
+		);
 	}
 
 	ctx.subscriptions.push(
@@ -60,18 +80,34 @@ export function registerQuickNotes(ctx: vscode.ExtensionContext): void {
 					);
 			},
 		),
-		vscode.commands.registerCommand(
-			"workbench.action.files.save",
-			async () => {
-				const doc = vscode.window.activeTextEditor?.document;
-				if (doc && isNoteFile(doc.uri.fsPath)) {
-					await saveActiveQuickNoteAsFile();
-				} else if (doc) {
-					// Use doc.save() directly to avoid infinite recursion.
-					await doc.save();
-				}
-			},
-		),
+	);
+
+	// Register the workbench.action.files.save override in its own try/catch.
+	// VS Code documents overriding built-in commands as unsupported, and some
+	// builds (notably on Linux) throw when an extension attempts it.  Keeping
+	// this isolated ensures a failure here never prevents the event handlers
+	// below from being registered.
+	try {
+		ctx.subscriptions.push(
+			vscode.commands.registerCommand(
+				"workbench.action.files.save",
+				async () => {
+					const doc = vscode.window.activeTextEditor?.document;
+					if (doc && isNoteFile(doc.uri.fsPath)) {
+						await saveActiveQuickNoteAsFile();
+					} else if (doc) {
+						// Use doc.save() directly to avoid infinite recursion.
+						await doc.save();
+					}
+				},
+			),
+		);
+	} catch {
+		// Built-in command override not supported on this build; Quick Notes
+		// continues to work — notes just save via the debounce auto-save path.
+	}
+
+	ctx.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument(onDocumentOpened),
 		vscode.workspace.onDidChangeTextDocument(onDocumentChanged),
 		vscode.workspace.onDidCloseTextDocument(onDocumentClosed),
@@ -93,7 +129,12 @@ function resolveNotesDir(ctx?: vscode.ExtensionContext): string {
 		.getConfiguration("theToyBox.quickNotes")
 		.get<string>("notesFolder", "");
 	if (custom && custom.trim() !== "") {
-		return custom.trim();
+		let resolved = custom.trim();
+		if (resolved.startsWith("~")) {
+			const home = os.homedir();
+			resolved = path.join(home, resolved.slice(1));
+		}
+		return resolved;
 	}
 	const base = ctx ?? extContext;
 	return path.join(base.globalStorageUri.fsPath, "notes");
