@@ -5,6 +5,24 @@ import { scanSqlTokens, skipBracedBlock } from "./sqlScanner";
 // Finds double-quoted PHP strings and highlights T-SQL syntax within them.
 // Token types emitted: sqlKeyword, sqlType, sqlFunction, sqlVariable, comment, number
 
+// Only scan strings that contain at least one unambiguous SQL statement keyword.
+const SQL_ANCHOR_RE =
+	/\b(?:select|insert|update|delete|create|alter|drop|merge|truncate)\b/i;
+
+// Find the index just past the closing quote, handling escape sequences.
+function findStringEnd(text: string, start: number, closeChar: string): number {
+	let i = start;
+	while (i < text.length) {
+		if (text[i] === "\\" && i + 1 < text.length) {
+			i += 2;
+			continue;
+		}
+		if (text[i] === closeChar) return i + 1;
+		i++;
+	}
+	return i;
+}
+
 // ─── PHP interpolation skipper ────────────────────────────────────────────────
 // Handles $var, $var[key], ${expr}, and {$expr} inside double-quoted strings.
 // Returns the new position if an interpolation was consumed, or -1 if not.
@@ -100,7 +118,12 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 
 		// ── Double-quoted string — scan SQL tokens inside ────────────────────
 		if (ch === '"') {
-			i = scanSqlTokens(text, i + 1, tokens, '"', phpInterpolation);
+			const strEnd = findStringEnd(text, i + 1, '"');
+			if (SQL_ANCHOR_RE.test(text.slice(i + 1, strEnd - 1))) {
+				i = scanSqlTokens(text, i + 1, tokens, '"', phpInterpolation);
+			} else {
+				i = strEnd;
+			}
 			continue;
 		}
 

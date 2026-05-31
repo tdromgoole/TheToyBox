@@ -2,6 +2,11 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.4]
+
+- **Bug Fix**: **SQL Syntax Highlighting — No longer highlights common words in non-SQL strings** — The SQL highlighter in JS/TS and PHP files was too aggressive, coloring everyday words like `left`, `right`, `top`, `text`, `cursor`, and `image` inside CSS class strings, HTML attributes, and any other non-SQL string. The highlighter now only activates inside strings that contain an unambiguous SQL statement keyword (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, `MERGE`, or `TRUNCATE`), leaving all other strings untouched.
+- **Improvement**: **Blocked Changes — Warning when local changes would prevent branch switching** — If a blocked file has unsaved modifications that differ from what's committed, a warning now appears in the Blocked Changes panel and as a notification. The warning names the affected files and reminds you to stash or discard the changes before switching branches. It clears automatically once the situation is resolved.
+
 ## [1.1.3]
 
 - **Bug Fix**: **Quick Notes — Now works correctly on Linux** — Quick Notes was silently broken on Linux regardless of whether a custom notes folder was set. Notes were not auto-saved, untitled files were not converted to notes, and notes did not reopen on startup. The root cause was a fragile startup sequence where a single unexpected error could prevent the feature's event handlers from ever being registered. The startup sequence is now fault-tolerant, and any unexpected error during initialisation is shown as a visible notification with the exact message so it can be reported.

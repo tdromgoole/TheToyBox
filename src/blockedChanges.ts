@@ -365,18 +365,90 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 		}),
 	);
 
-	/** Re-read the persisted list, refresh the tree, and update the empty-state message. */
+	// ── Branch-switch safety check ─────────────────────────────────────────────
+	// If a blocked file (hidden by --skip-worktree) has local modifications that
+	// differ from HEAD, git will refuse to switch branches.  We detect this by
+	// comparing each tracked blocked file's disk content against the committed
+	// blob, then warn the user so they know to stash or discard first.
+
+	let branchWarnShown = false;
+
+	const getDirtyBlocked = (): string[] => {
+		try {
+			return loadBlockedPaths(root).filter((relPath) => {
+				if (!isTrackedByGit(root, relPath)) {
+					return false;
+				}
+				try {
+					const committed = execFileSync(
+						getGitPath(),
+						["show", `HEAD:${relPath}`],
+						{ cwd: root, stdio: ["ignore", "pipe", "ignore"] },
+					);
+					const diskPath = path.join(root, relPath);
+					if (!fs.existsSync(diskPath)) {
+						return false;
+					}
+					return !committed.equals(fs.readFileSync(diskPath));
+				} catch {
+					return false;
+				}
+			});
+		} catch {
+			return [];
+		}
+	};
+
+	/** Re-read the persisted list, refresh the tree, and update status messages.
+	 *  Also checks for dirty blocked files and shows a branch-switch warning. */
 
 	const refresh = () => {
 		provider.refresh();
-		const count = loadBlockedPaths(root).length;
-		treeView.message =
-			count === 0
-				? "No blocked files. Right-click a file in Changes and choose Block Change."
-				: undefined;
+		const blocked = loadBlockedPaths(root);
+
+		if (blocked.length === 0) {
+			treeView.message =
+				"No blocked files. Right-click a file in Changes and choose Block Change.";
+			branchWarnShown = false;
+			return;
+		}
+
+		const dirty = getDirtyBlocked();
+		if (dirty.length > 0) {
+			const plural = dirty.length !== 1;
+			treeView.message = `⚠ ${dirty.length} blocked file${
+				plural ? "s have" : " has"
+			} local changes — stash or discard before switching branches.`;
+
+			if (!branchWarnShown) {
+				branchWarnShown = true;
+				const names = dirty
+					.map((p) => `"${path.basename(p)}"`)
+					.join(", ");
+				vscode.window
+					.showWarningMessage(
+						`Blocked Changes: ${names} ${
+							plural ? "have" : "has"
+						} local modifications. You won't be able to switch branches until you stash or discard ${
+							plural ? "them" : "it"
+						}.`,
+						"Show Blocked Files",
+					)
+					.then((choice) => {
+						if (choice === "Show Blocked Files") {
+							vscode.commands.executeCommand(
+								"blockedChangesView.focus",
+							);
+						}
+					});
+			}
+		} else {
+			branchWarnShown = false;
+			treeView.message = undefined;
+		}
 	};
 
-	refresh(); // set initial empty-state message
+	refresh(); // set initial state
 
 	// ── Commands ───────────────────────────────────────────────────────────────
 
@@ -485,4 +557,31 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 			},
 		),
 	);
+
+	// ── File-save subscription ────────────────────────────────────────────────
+	// Re-check dirty state whenever the user saves a blocked file.
+	context.subscriptions.push(
+		vscode.workspace.onDidSaveTextDocument((doc) => {
+			const rel = toRelativePosix(root, doc.uri.fsPath);
+			if (loadBlockedPaths(root).includes(rel)) {
+				refresh();
+			}
+		}),
+	);
+
+	// ── Git-state subscription ────────────────────────────────────────────────
+	// Re-check when the repository state changes (stash, rebase, merge, etc.)
+	// so the warning clears automatically once the user resolves the situation.
+	// Debounced to avoid hammering git on rapid-fire change events.
+	let stateRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+	const gitExt = vscode.extensions.getExtension("vscode.git")?.exports;
+	const gitRepo = gitExt?.getAPI(1)?.getRepository(vscode.Uri.file(root));
+	if (gitRepo) {
+		context.subscriptions.push(
+			gitRepo.state.onDidChange(() => {
+				clearTimeout(stateRefreshTimer);
+				stateRefreshTimer = setTimeout(refresh, 1500);
+			}),
+		);
+	}
 }

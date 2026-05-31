@@ -47,7 +47,7 @@ Brings proper color coding to file types that VS Code doesn't highlight by defau
 
 ![SQL in Strings](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/sqlInStrings.png)
 
-- **✔ SQL Inside PHP & JS/TS Strings**: SQL keywords, data types, functions, and variables are colored inside string literals — making inline queries much easier to read at a glance.
+- **✔ SQL Inside PHP & JS/TS Strings**: SQL keywords, data types, functions, and variables are colored inside string literals — making inline queries much easier to read at a glance. Only strings that contain an actual SQL statement are highlighted, so CSS class names, template strings, and other non-SQL strings are left untouched.
 - **✔ Classic ASP / VBScript**: Full color coding for `.asp` files — HTML sections and VBScript code blocks are each highlighted appropriately.
 - **✔ ASP.NET Razor VB**: Highlights `.vbhtml` files with colors that match the Visual Studio Dark theme.
 - **✔ nginx Configuration**: Colors directives, block names, variables, and values in `.conf` files.
@@ -151,6 +151,7 @@ Keep certain files out of your commits while still being able to edit them freel
 
 - **✔ Block from the Changes Panel**: Right-click any file in Git's **Changes** section and choose **Block Change**. The file moves to the **Blocked Changes** panel and disappears from Changes instantly.
 - **✔ Commit Protection**: A pre-commit hook is automatically installed — if you try to commit a blocked file, the commit is rejected with a clear message telling you which files to unblock first.
+- **✔ Branch-Switch Warning**: If a blocked file has local changes, you'll see a clear warning in the panel and as a notification — including which files are affected and a reminder to stash or discard them before switching branches. The warning disappears automatically once the files are clean.
 - **✔ Unblock or Discard**: Each blocked file has an **Unblock** button to restore normal tracking, and a **Discard** button to throw away local changes and remove the block in one step.
 - **✔ Persists Across Restarts**: The block list is saved to the repo root and re-applied automatically every time you open the workspace.
 - **✔ Team-Safe**: Unblocking and the optional `.gitignore` entry both ask for confirmation, so one teammate's settings can't silently affect another's workflow.
