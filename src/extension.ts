@@ -33,6 +33,18 @@ import { registerSessionRestore } from "./sessionRestore";
 let startupTimeout: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+	try {
+		return _activate(context);
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		vscode.window.showErrorMessage(
+			`The Toy Box failed to activate: ${msg}`,
+		);
+		console.error("[The Toy Box] Activation error:", err);
+	}
+}
+
+function _activate(context: vscode.ExtensionContext) {
 	// 1. Initial Setup & Module Registration
 	initDecorations(context);
 	refreshComments();
@@ -52,7 +64,25 @@ export function activate(context: vscode.ExtensionContext) {
 	refreshSyntaxHighlighting();
 	registerNginxHoverProvider(context);
 	registerAspHoverProvider(context);
-	registerBlockedChanges(context);
+
+	// Blocked Changes depends on git operations and reads the vscode.git
+	// contributed configuration. Defer until vscode.git has activated to avoid
+	// "Extension 'vscode.git' is not known or not activated" errors when our
+	// extension activates before the built-in Git extension.
+	const gitExtension = vscode.extensions.getExtension("vscode.git");
+	const doRegisterBlockedChanges = () => registerBlockedChanges(context);
+	if (gitExtension?.isActive) {
+		doRegisterBlockedChanges();
+	} else {
+		const waitForGit = vscode.extensions.onDidChange(() => {
+			if (vscode.extensions.getExtension("vscode.git")?.isActive) {
+				waitForGit.dispose();
+				doRegisterBlockedChanges();
+			}
+		});
+		context.subscriptions.push(waitForGit);
+	}
+
 	registerPrintCommand(context);
 	const bookmarksProvider = registerBookmarks(context);
 	const todoProvider = registerTodoAggregator(context);

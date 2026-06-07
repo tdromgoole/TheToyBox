@@ -72,9 +72,16 @@ function toRelativePosix(root: string, absolutePath: string): string {
  *  back to "git" (relies on PATH). VS Code resolves this correctly even on
  *  machines where git is not in the system PATH. */
 function getGitPath(): string {
-	return (
-		vscode.workspace.getConfiguration("git").get<string>("path") || "git"
-	);
+	try {
+		return (
+			vscode.workspace.getConfiguration("git").get<string>("path") ||
+			"git"
+		);
+	} catch {
+		// vscode.git may not be activated yet (e.g. during extension activation
+		// before the built-in Git extension has initialised). Fall back safely.
+		return "git";
+	}
 }
 
 /** Returns true if the file is tracked in the git index. */

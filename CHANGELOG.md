@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.6]
+
+- **Bug Fix**: **All commands — "command not found" on startup resolved** — The extension could silently fail to activate if the built-in `vscode.git` extension had not yet initialised at the time The Toy Box started. Reading git configuration during activation threw `"Extension 'vscode.git' is not known or not activated"`, which prevented all commands (including Align with Tabs, Format JSON, etc.) from ever being registered. Blocked Changes setup is now deferred until `vscode.git` is active, and the git path lookup falls back gracefully if called before that point. A top-level error handler was also added so any future activation failures surface as a visible notification instead of a silent no-op.
+
 ## [1.1.5]
 
 - **Improvement**: **Unit Test Coverage** — Added a comprehensive unit test suite covering all pure-logic components: the JSON formatter, all seven outline parsers (INI, YAML, Markdown, JSON, CSS, KDL, nginx), and all six syntax tokenizers (KDL, Classic ASP, nginx, JS/TS SQL, Razor VB, PHP SQL). Tests run automatically as part of the build pipeline. No user-facing behaviour has changed.
