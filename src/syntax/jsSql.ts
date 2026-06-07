@@ -1,5 +1,5 @@
-import { TokenMatch } from "./types";
-import { scanSqlTokens, skipBracedBlock } from "./sqlScanner";
+import { TokenMatch } from "./types.js";
+import { scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
 
 // JS / TS SQL tokenizer
 // Finds SQL in double-quoted strings, single-quoted strings, and template

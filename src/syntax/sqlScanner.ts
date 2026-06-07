@@ -1,4 +1,4 @@
-import { TokenMatch } from "./types";
+import { TokenMatch } from "./types.js";
 
 // ─── T-SQL keyword / type / function sets (all lowercase) ────────────────────
 // Shared by phpSql.ts and jsSql.ts.

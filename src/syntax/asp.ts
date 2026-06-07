@@ -1,4 +1,4 @@
-import { TokenMatch } from "./types";
+import { TokenMatch } from "./types.js";
 
 // ASP Classic (VBScript) tokenizer
 // Handles both pure ASP files and the server-side portions of HTML+ASP.

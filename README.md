@@ -8,6 +8,244 @@
 
 > A VS Code extension that bundles a collection of everyday developer tools — cleaner files, smarter navigation, better visuals, safer Git workflows, and a built-in quick notes system.
 
+Most productivity extensions solve one problem. **The Toy Box solves several at once**, with every feature independently toggleable so you only use what you want.
+
+---
+
+## What's Inside
+
+| Category                 | Features                                                                          |
+| :----------------------- | :-------------------------------------------------------------------------------- |
+| **Code Navigation**      | Better Outline Panel, Bookmarks, Word Frequency, Session Restore                  |
+| **Visual Aids**          | Syntax Highlighting, Hover Docs, Custom Comments, Indent Rainbow, Markdown Alerts |
+| **Code Quality**         | Auto-Cleanup on Save, Smart Alignment, JSON Formatter, Auto Rename Tags           |
+| **Notes & Productivity** | Quick Notes, Scratch Pad, Tagged Comments                                         |
+| **Git & Safety**         | Blocked Changes                                                                   |
+| **Extras**               | Install JetBrainsMono Nerd Font                                                   |
+
+---
+
+## Code Navigation
+
+### Better Outline Panel
+
+A dedicated sidebar that gives you a clear, hierarchical view of your code — a smarter, more detailed version of VS Code's built-in outline.
+
+![Better Outline Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/betterOutline.png)
+
+- **Broad Language Support** — Works with SQL, PHP, JavaScript, TypeScript, CSS/SCSS, JSON, YAML, INI, nginx, KDL, and more, each with tailored structure detection.
+- **Meaningful Structure** — Surfaces what matters per language: tables and procedures in SQL, functions and classes in PHP/JS, sections and keys in config files.
+- **Collapsible Regions** — `#region` / `#endregion` markers create collapsible folders that nest any symbols found inside them.
+- **Comment Integration** — Important comments appear alongside your code symbols in the outline.
+- **Highlight on Click** — Clicking an item jumps to that line and briefly flashes it in the editor.
+
+### Bookmarks
+
+Place persistent markers on important lines and jump between them without losing your place.
+
+- **Toggle Anywhere** — Press `Ctrl+Shift+Alt+B` to bookmark the current line; press again to remove it.
+- **Quick Navigation** — Jump to the next or previous bookmark with `Ctrl+Shift+Alt+N` / `Ctrl+Shift+Alt+P`.
+- **Sidebar Panel** — All bookmarks across open files are listed together. Click any entry to go straight to that line.
+- **Persists Across Sessions** — Bookmarks are saved to the workspace and restored automatically on next open.
+
+### Word Frequency Panel
+
+A sidebar panel that counts every word in the active file and ranks them by frequency.
+
+![Word Frequency Panel](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/wordFrequency.png)
+
+- **Ranked List** — Most-used words rise to the top, useful for spotting dominant identifiers or unexpected repetition.
+- **Jump to Any Occurrence** — Expand a word to see every line it appears on; click to jump there.
+- **Live Filter** — Type to narrow the list in real time. Updates automatically as you edit or switch files.
+
+### Session Restore
+
+Save and restore named snapshots of your open files — useful when switching between tasks or picking up work after a break.
+
+- **Save a Session** — Captures all currently open files and the active tab.
+- **Restore a Session** — Reopens a saved set of files with a single command.
+- **Manage Sessions** — Rename or delete saved sessions via a quick-pick menu.
+- **Per-Workspace** — Each project keeps its own session history.
+
+---
+
+## Visual Aids
+
+### Syntax Highlighting
+
+Brings proper color coding to file types that VS Code doesn't highlight by default, and adds SQL coloring inside string literals in backend code.
+
+![SQL in Strings](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/sqlInStrings.png)
+
+- **SQL Inside PHP & JS/TS Strings** — SQL keywords, types, functions, and variables are colored inside string literals. Only strings that actually contain a SQL statement are highlighted — CSS classes, template strings, and other non-SQL strings are left alone.
+- **Classic ASP / VBScript** — Full color coding for `.asp` files, with HTML and VBScript sections each styled appropriately.
+- **ASP.NET Razor VB** — Highlights `.vbhtml` files with colors matching the Visual Studio Dark theme.
+- **nginx & KDL** — Colors directives, variables, and block names in `.conf` and `.kdl` files.
+- **Per-Language Control** — Toggle each language independently, or turn everything off with one setting.
+
+### Hover Documentation
+
+Hover over keywords to see inline documentation without leaving the editor.
+
+- **nginx** — Covers ~100 directives and ~80 built-in variables with syntax, description, and default values.
+- **Classic ASP / VBScript** — Covers language keywords and the six built-in ASP objects (`Response`, `Request`, `Server`, etc.).
+
+### Custom Comment Highlighting
+
+Mark important comments with a special character and they stand out with a distinct color — in the editor and in the outline.
+
+![Custom Comment Highlighting](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/customComments.png)
+
+- **10 Trigger Symbols** — Use `!` `*` `?` `#` `@` `$` `%` `^` `&` `~` at the start of a comment to apply a color (e.g. `!` → **CRITICAL**, `?` → **QUESTION**).
+- **Full-Line Highlight** — Optionally color the entire line background for instant visual scanning.
+- **Fully Customizable** — Change each symbol's label and color via settings, and exclude specific file types.
+
+### Indent Rainbow
+
+Adds a subtle color band to each indentation level so you can instantly see how deeply nested a block is.
+
+![Indent Rainbow](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/indentRainbow.png)
+
+- Works with both tabs and spaces, including Python and YAML files.
+- Adjustable opacity (default: a subtle 10%) and a fully custom color palette.
+
+### GitHub-Style Markdown Alerts
+
+Renders GitHub-style alert callouts in VS Code's built-in Markdown preview.
+
+![GitHub-Style Markdown Alerts](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/githubStyleAlerts.png)
+
+Supports `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]` — each with a distinct color and icon. Works automatically in the standard Markdown preview, or open a dedicated dark-themed panel with **"The Toy Box: Open Markdown Preview with Alerts"**.
+
+![markdownTask](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/markdownTask.png)
+
+---
+
+## Code Quality & Editing
+
+### Auto-Cleanup on Save
+
+Keeps files consistently tidy on every save — trailing spaces, mixed indentation, and whitespace-only lines are cleaned up automatically.
+
+![Auto-Cleanup on Save](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/auto-CleanupOnSave.png)
+
+- Trims trailing whitespace and converts leading spaces to tabs (skipped automatically for files configured to use spaces).
+- Lines you're actively typing on are never touched during a save.
+- Each cleanup rule can be disabled per file type independently.
+
+### Smart Code Alignment
+
+Select a group of lines and align their operators into a clean vertical column with a single command (`Ctrl+Shift+Alt+A`).
+
+![Smart Code Alignment](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/smartCodeAlignment.png)
+
+Aligns `=`, `:`, `=>`, `+=`, and `-=`. Auto-detects the operator from your selection — only the lines you select are changed.
+
+### JSON Formatter
+
+Instantly turn a compact JSON string into properly indented, readable code.
+
+![JSON Formatter](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/jsonFormatting.png)
+
+Select any JSON, right-click, and choose **"The Toy Box: Format JSON Selection"** (`Ctrl+Shift+Alt+J`). Validates before changing anything, and uses your editor's current indentation style.
+
+### Auto Rename Matching Tags
+
+Automatically keeps opening and closing HTML/XML tags in sync as you type — rename one and the other updates instantly.
+
+- Nesting-aware, skips self-closing void elements, and automatically disables on very large files to stay responsive.
+- Configurable per language and file size limit.
+
+---
+
+## Notes & Productivity
+
+### Quick Notes
+
+A lightweight note system that creates real files, reopens them automatically on startup, and gets out of your way until you need them.
+
+- **Instant Creation** — Run **"The Toy Box: New Quick Note"** (`Ctrl+Shift+Alt+Q`) or just start typing in any untitled file — it becomes a numbered note automatically.
+- **Always Waiting** — All quick notes reopen automatically every time VS Code starts.
+- **Save When Ready** — Press `Ctrl+S` to save as a permanent file, or close and choose **Save as File**, **Keep for Later**, or **Delete**.
+- **Configurable Storage** — Point notes at any folder via settings. Switching folders while notes are open prompts you about each one so nothing is lost.
+
+### Scratch Pad
+
+A persistent notes panel built into the sidebar — always one click away, automatically saved.
+
+- Lives in the Better Outline sidebar and auto-saves everything you type to the workspace.
+- Restored exactly as you left it on next launch. Each workspace has its own separate scratch pad.
+- Export to a `.txt` file at any time with the Save to File button.
+
+### Tagged Comments (Workspace Scan)
+
+Collects every special comment from across your entire workspace into one searchable list.
+
+- **Auto-Scans** — The workspace is scanned a few seconds after VS Code loads, with cached results shown instantly on startup.
+- **Click to Navigate** — Click any item to jump directly to that file and line.
+- **Filter by Tag Type** — Show only the tag types you care about; filter choices are remembered.
+- **Incremental Updates** — Saving a file updates only that file's entries — no full rescan needed.
+
+> Tag types and colors are shared with the Custom Comments settings.
+
+---
+
+## Git & Safety
+
+### Blocked Changes
+
+Keep certain files out of your commits while still editing them freely — ideal for local config overrides or work-in-progress files you never want to accidentally push.
+
+![Blocked Changes](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/blockedChanges.png)
+
+- **Block from the Changes Panel** — Right-click any file in Git's Changes section and choose **Block Change**. It moves to the Blocked Changes panel and disappears from Changes instantly.
+- **Commit Protection** — A pre-commit hook is installed automatically. Trying to commit a blocked file rejects the commit with a clear message.
+- **Branch-Switch Warning** — If a blocked file has local changes when you try to switch branches, a warning appears listing the affected files. It clears once the files are clean.
+- **Unblock or Discard** — Each blocked file has an **Unblock** button and a **Discard** button (throws away changes and removes the block).
+- **Persists Across Restarts** — The block list is saved to the repo root and re-applied on next open.
+
+---
+
+## Extras
+
+### Install JetBrainsMono Nerd Font
+
+Get operator ligatures (`==`, `!=`, `=>`, `->`, and more) that render as clean symbols with correct cursor placement.
+
+![JetBrainsMono Nerd Font comparison](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/nerdFont.png)
+
+Run **"The Toy Box: Install JetBrainsMono Nerd Font"** from the Command Palette. No admin rights required — installs to your personal fonts folder, auto-configures VS Code, and optionally sets up the integrated terminal font too.
+
+> **Note:** Fully close and reopen VS Code after installation. A window reload is not enough.
+
+---
+
+## Settings
+
+Every feature can be enabled or disabled independently. All settings live under the `theToyBox` namespace — search **"Toy Box"** in VS Code's Settings UI to see them all.
+
+Common controls include per-feature toggles, cleanup rules and file-type exclusions, indent rainbow opacity and custom colors, custom comment symbol-to-color mappings, syntax highlighting per-language switches, Markdown heading colors, and Quick Notes storage folder.
+
+---
+
+## Release Notes
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
+---
+
+## Author
+
+**Thomas Dromgoole**
+
+If this extension improves your workflow, consider leaving a rating ⭐
+
+---
+
+## License
+
+MIT
+
 ---
 
 # Why The Toy Box?
@@ -266,130 +504,20 @@ Save and restore named snapshots of your open files — useful when you switch b
 
 # Extension Settings
 
-All settings are unified under the `theToyBox` namespace.
+Every feature in The Toy Box can be enabled or disabled independently, and most have additional options to tailor their behaviour to your workflow. All settings live under the `theToyBox` namespace in VS Code's Settings UI — just search for **"Toy Box"** to see them all.
 
-### Bookmarks
+Common things you can control:
 
-| Setting                       | Default | Description                                 |
-| :---------------------------- | :-----: | :------------------------------------------ |
-| `theToyBox.bookmarks.enabled` | `true`  | Enable/Disable the Bookmarks sidebar panel. |
-
-### Tagged Comments
-
-| Setting                            |     Default      | Description                                                    |
-| :--------------------------------- | :--------------: | :------------------------------------------------------------- |
-| `theToyBox.todoAggregator.enabled` |      `true`      | Enable/Disable the Tagged Comments workspace scan panel.       |
-| `theToyBox.todoAggregator.exclude` | _(see defaults)_ | Comma-separated glob patterns to exclude from workspace scans. |
-
-### Quick Notes
-
-| Setting                            | Default | Description                                                                     |
-| :--------------------------------- | :-----: | :------------------------------------------------------------------------------ |
-| `theToyBox.quickNotes.enabled`     | `true`  | Enable/Disable the Quick Notes feature entirely.                                |
-| `theToyBox.quickNotes.notesFolder` |  `""`   | Custom folder for note files. Leave empty to use the built-in storage location. |
-
-### Scratch Pad
-
-| Setting                        | Default | Description                                   |
-| :----------------------------- | :-----: | :-------------------------------------------- |
-| `theToyBox.scratchPad.enabled` | `true`  | Enable/Disable the Scratch Pad sidebar panel. |
-
-### Session Restore
-
-| Setting                            | Default | Description                                  |
-| :--------------------------------- | :-----: | :------------------------------------------- |
-| `theToyBox.sessionRestore.enabled` | `true`  | Enable/Disable the Session Restore commands. |
-
-### Print
-
-| Setting                   | Default | Description                                                                      |
-| :------------------------ | :-----: | :------------------------------------------------------------------------------- |
-| `theToyBox.print.enabled` | `true`  | Enable/Disable the Print File feature (hides the option from all context menus). |
-
-### Blocked Changes
-
-| Setting                                   | Default | Description                                                                            |
-| :---------------------------------------- | :-----: | :------------------------------------------------------------------------------------- |
-| `theToyBox.blockedChanges.enabled`        | `true`  | Enable/Disable the Blocked Changes feature (panel, block button, and pre-commit hook). |
-| `theToyBox.blockedChanges.addToGitignore` | `false` | Automatically add `.toybox-blocked.txt` to the repository's `.gitignore` file.         |
-
-### Outline
-
-| Setting                              | Default | Description                                                                       |
-| :----------------------------------- | :-----: | :-------------------------------------------------------------------------------- |
-| `theToyBox.showRegionsInOutline`     | `true`  | Enable/Disable the Better Outline panel.                                          |
-| `theToyBox.outline.highlightOnClick` | `true`  | Briefly highlight the navigated line in the editor when clicking an outline item. |
-
-### Word Frequency
-
-| Setting                           | Default | Description                                      |
-| :-------------------------------- | :-----: | :----------------------------------------------- |
-| `theToyBox.wordFrequency.enabled` | `true`  | Enable/Disable the Word Frequency sidebar panel. |
-
-### Cleanup
-
-| Setting                            |          Default           | Description                                  |
-| :--------------------------------- | :------------------------: | :------------------------------------------- |
-| `theToyBox.cleanOnSave`            |           `true`           | Run cleanup automatically on save.           |
-| `theToyBox.trimTrailingWhitespace` |           `true`           | Trim trailing whitespace from lines.         |
-| `theToyBox.ignoreTrimWhitespace`   |         `[".md"]`          | File extensions to skip whitespace trimming. |
-| `theToyBox.convertSpacesToTabs`    |           `true`           | Convert leading spaces to tabs.              |
-| `theToyBox.ignoreTabConversion`    | `[".yaml",".yml",".json"]` | File extensions to skip tab conversion.      |
-
-### Indent Rainbow
-
-| Setting                          | Default | Description                                                                            |
-| :------------------------------- | :-----: | :------------------------------------------------------------------------------------- |
-| `theToyBox.indentRainbow`        | `true`  | Enable/Disable rainbow indent guides.                                                  |
-| `theToyBox.indentRainbowOpacity` |  `10`   | Opacity of indent colors as a percentage (1–100).                                      |
-| `theToyBox.indentRainbowColors`  |  `[]`   | Custom hex color palette (e.g. `["#FF6B6B","#FFD93D"]`). Empty = use built-in pastels. |
-
-### Rename Matching Tags
-
-| Setting                                        |      Default       | Description                                                |
-| :--------------------------------------------- | :----------------: | :--------------------------------------------------------- |
-| `theToyBox.autoRenameMatchingTags`             |       `true`       | Enable/Disable auto tag renaming.                          |
-| `theToyBox.performance.maxLinesForTagRename`   |       `5000`       | Maximum file length (lines) for tag renaming to be active. |
-| `theToyBox.autoRenameTag.activationOnLanguage` | `["html","xml",…]` | Language IDs where auto tag renaming is active.            |
-| `theToyBox.autoRenameTag.voidElements`         |  `["br","img",…]`  | Self-closing tags excluded from renaming.                  |
-
-### Markdown Preview
-
-| Setting                             | Default | Description                                                           |
-| :---------------------------------- | :-----: | :-------------------------------------------------------------------- |
-| `theToyBox.markdownPreview.enabled` | `true`  | Enable/Disable Markdown alert rendering (built-in preview & webview). |
-
-### Markdown Headings
-
-| Setting                                        |     Default      | Description                                            |
-| :--------------------------------------------- | :--------------: | :----------------------------------------------------- |
-| `theToyBox.markdownHeadings.enabled`           |      `true`      | Enable/Disable heading highlighting in Markdown files. |
-| `theToyBox.markdownHeadings.showBackground`    |      `true`      | Toggle background color on heading highlights.         |
-| `theToyBox.markdownHeadings.fullLineHighlight` |      `true`      | Highlight the full line or just the heading text.      |
-| `theToyBox.markdownHeadings.colors`            | _(see defaults)_ | Map each heading level (h1–h6) to a hex color.         |
-
-### Syntax Highlighting
-
-| Setting                                | Default | Description                                                                   |
-| :------------------------------------- | :-----: | :---------------------------------------------------------------------------- |
-| `theToyBox.syntaxHighlighting.enabled` | `true`  | Master switch — enable/disable decoration-based syntax highlighting.          |
-| `theToyBox.syntaxHighlighting.phpSql`  | `true`  | Enable/Disable T-SQL highlighting inside PHP double-quoted strings.           |
-| `theToyBox.syntaxHighlighting.jsSql`   | `true`  | Enable/Disable T-SQL highlighting inside JS/TS strings and template literals. |
-| `theToyBox.syntaxHighlighting.kdl`     | `true`  | Enable/Disable highlighting for KDL Document Language (`.kdl`) files.         |
-| `theToyBox.syntaxHighlighting.asp`     | `true`  | Enable/Disable highlighting for Classic ASP / VBScript (`.asp`) files.        |
-| `theToyBox.syntaxHighlighting.razorVb` | `true`  | Enable/Disable highlighting for ASP.NET Razor VB (`.vbhtml`) files.           |
-| `theToyBox.syntaxHighlighting.nginx`   | `true`  | Enable/Disable highlighting for nginx configuration (`.conf`) files.          |
-
-### Custom Comments
-
-| Setting                                      |     Default      | Description                                                 |
-| :------------------------------------------- | :--------------: | :---------------------------------------------------------- |
-| `theToyBox.customComments.enabled`           |      `true`      | Enable/Disable custom comment highlighting.                 |
-| `theToyBox.customComments.showBackground`    |      `true`      | Show a background highlight behind comment lines.           |
-| `theToyBox.customComments.fullLineHighlight` |      `true`      | Highlight the full line or just the comment text.           |
-| `theToyBox.customComments.colors`            | _(see defaults)_ | Map trigger characters to hex colors.                       |
-| `theToyBox.customComments.labels`            | _(see defaults)_ | Map trigger characters to label words shown in the outline. |
-| `theToyBox.customComments.excludedFileTypes` |    `[".md"]`     | File extensions to skip custom comment highlighting.        |
+- **Turn individual features on or off** — almost every feature has its own enable/disable toggle.
+- **Auto-cleanup** — choose which rules apply and which file types to skip.
+- **Indent rainbow** — set the opacity and supply your own color palette.
+- **Custom comments** — map symbols to colors and labels, choose which file types to skip.
+- **Syntax highlighting** — toggle each supported language independently with a master on/off switch.
+- **Markdown headings** — pick a color for each heading level.
+- **Outline** — control click-to-highlight behaviour and region visibility.
+- **Quick Notes** — set a custom storage folder or leave it empty for the built-in default.
+- **Blocked Changes** — optionally add the block list to `.gitignore` automatically.
+- **Tag rename, word frequency, bookmarks, session restore, scratch pad, print** — each has its own enable/disable toggle and any relevant options.
 
 ---
 

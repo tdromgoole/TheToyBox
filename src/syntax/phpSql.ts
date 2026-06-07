@@ -1,5 +1,5 @@
-import { TokenMatch } from "./types";
-import { scanSqlTokens, skipBracedBlock } from "./sqlScanner";
+import { TokenMatch } from "./types.js";
+import { scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
 
 // PHP SQL tokenizer
 // Finds double-quoted PHP strings and highlights T-SQL syntax within them.

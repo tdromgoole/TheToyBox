@@ -2,6 +2,10 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.5]
+
+- **Improvement**: **Unit Test Coverage** — Added a comprehensive unit test suite covering all pure-logic components: the JSON formatter, all seven outline parsers (INI, YAML, Markdown, JSON, CSS, KDL, nginx), and all six syntax tokenizers (KDL, Classic ASP, nginx, JS/TS SQL, Razor VB, PHP SQL). Tests run automatically as part of the build pipeline. No user-facing behaviour has changed.
+
 ## [1.1.4]
 
 - **Bug Fix**: **SQL Syntax Highlighting — No longer highlights common words in non-SQL strings** — The SQL highlighter in JS/TS and PHP files was too aggressive, coloring everyday words like `left`, `right`, `top`, `text`, `cursor`, and `image` inside CSS class strings, HTML attributes, and any other non-SQL string. The highlighter now only activates inside strings that contain an unambiguous SQL statement keyword (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, `MERGE`, or `TRUNCATE`), leaving all other strings untouched.

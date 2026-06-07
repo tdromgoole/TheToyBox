@@ -142,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
 				todoProvider.refresh();
 			}
 		}),
-		vscode.commands.registerCommand("theToyBox.alignEquals", () => {
+		vscode.commands.registerCommand("theToyBox.alignWithTabs", () => {
 			alignWithTabs();
 		}),
 		vscode.commands.registerCommand("theToyBox.formatJson", () => {

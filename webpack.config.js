@@ -26,6 +26,12 @@ const extensionConfig = {
 	resolve: {
 		// support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
 		extensions: [".ts", ".js"],
+		// Allow importing TS files using the .js extension (required for ESM
+		// compatibility: source uses .js in imports so the compiled output works
+		// in Node.js ESM, and webpack resolves .js → .ts here).
+		extensionAlias: {
+			".js": [".ts", ".js"],
+		},
 	},
 	module: {
 		rules: [
