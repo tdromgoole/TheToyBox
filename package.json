@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, real-time HTML/XML tag renaming, and Quick Notes — all in one package.",
-	"version": "1.1.6",
+	"version": "1.1.7",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -46,7 +46,10 @@
 		"session restore",
 		"scratch pad",
 		"quick notes",
-		"notes"
+		"notes",
+		"print",
+		"pdf",
+		"save as pdf"
 	],
 	"extensionDependencies": [
 		"vscode.markdown-language-features"
@@ -200,7 +203,13 @@
 			},
 			{
 				"command": "theToyBox.printFile",
-				"title": "The Toy Box: Print File"
+				"title": "The Toy Box: Print File",
+				"icon": "$(export)"
+			},
+			{
+				"command": "theToyBox.savePdf",
+				"title": "The Toy Box: Save as PDF",
+				"icon": "$(export)"
 			},
 			{
 				"command": "theToyBox.toggleBookmark",
@@ -298,6 +307,13 @@
 			}
 		],
 		"menus": {
+			"editor/title": [
+				{
+					"command": "theToyBox.savePdf",
+					"when": "(editorLangId == markdown || editorLangId == html) && config.theToyBox.print.enabled",
+					"group": "navigation"
+				}
+			],
 			"view/title": [
 				{
 					"command": "betterOutline.collapseAll",

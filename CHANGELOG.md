@@ -2,6 +2,14 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.7]
+
+- **New Feature**: **Save as PDF** — Export any open file directly to a PDF from the editor toolbar or the right-click context menu. Use the **$(export)** icon in the editor title bar (visible for Markdown and HTML files) or run **"The Toy Box: Save as PDF"** from the command palette. A save-as dialog lets you pick the output location. No browser is required — PDFs are generated entirely inside VS Code with no external dependencies.
+    - **Markdown files** are fully rendered before export — headings, bold and italic text, tables, code blocks, task lists, blockquotes, GitHub-style alerts, horizontal rules, and links all appear in the PDF just as they do in the preview panel.
+    - **HTML files** are rendered in a temporary webview (so CSS and JavaScript apply) before the visible content is captured and written to PDF.
+    - **All other file types** are exported as syntax-aware source code with line numbers.
+    - All PDFs use a print-friendly dark-on-white colour scheme regardless of your editor theme.
+
 ## [1.1.6]
 
 - **Bug Fix**: **All commands — "command not found" on startup resolved** — The extension could silently fail to activate if the built-in `vscode.git` extension had not yet initialised at the time The Toy Box started. Reading git configuration during activation threw `"Extension 'vscode.git' is not known or not activated"`, which prevented all commands (including Align with Tabs, Format JSON, etc.) from ever being registered. Blocked Changes setup is now deferred until `vscode.git` is active, and the git path lookup falls back gracefully if called before that point. A top-level error handler was also added so any future activation failures surface as a visible notification instead of a silent no-op.
