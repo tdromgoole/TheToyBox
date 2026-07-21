@@ -1,4 +1,4 @@
-import { TokenMatch } from "./types";
+import { TokenMatch } from "./types.js";
 
 // Razor VB (.vbhtml) tokenizer
 // Handles HTML with embedded VB via @-transitions and @Code...End Code blocks.

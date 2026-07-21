@@ -2,6 +2,27 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.7]
+
+- **New Feature**: **Save as PDF** — Export any open file directly to a PDF from the editor toolbar or the right-click context menu. Use the **$(export)** icon in the editor title bar (visible for Markdown and HTML files) or run **"The Toy Box: Save as PDF"** from the command palette. A save-as dialog lets you pick the output location. No browser is required — PDFs are generated entirely inside VS Code with no external dependencies.
+    - **Markdown files** are fully rendered before export — headings, bold and italic text, tables, code blocks, task lists, blockquotes, GitHub-style alerts, horizontal rules, and links all appear in the PDF just as they do in the preview panel.
+    - **HTML files** are rendered in a temporary webview (so CSS and JavaScript apply) before the visible content is captured and written to PDF.
+    - **All other file types** are exported as syntax-aware source code with line numbers.
+    - All PDFs use a print-friendly dark-on-white colour scheme regardless of your editor theme.
+
+## [1.1.6]
+
+- **Bug Fix**: **All commands — "command not found" on startup resolved** — The extension could silently fail to activate if the built-in `vscode.git` extension had not yet initialised at the time The Toy Box started. Reading git configuration during activation threw `"Extension 'vscode.git' is not known or not activated"`, which prevented all commands (including Align with Tabs, Format JSON, etc.) from ever being registered. Blocked Changes setup is now deferred until `vscode.git` is active, and the git path lookup falls back gracefully if called before that point. A top-level error handler was also added so any future activation failures surface as a visible notification instead of a silent no-op.
+
+## [1.1.5]
+
+- **Improvement**: **Unit Test Coverage** — Added a comprehensive unit test suite covering all pure-logic components: the JSON formatter, all seven outline parsers (INI, YAML, Markdown, JSON, CSS, KDL, nginx), and all six syntax tokenizers (KDL, Classic ASP, nginx, JS/TS SQL, Razor VB, PHP SQL). Tests run automatically as part of the build pipeline. No user-facing behaviour has changed.
+
+## [1.1.4]
+
+- **Bug Fix**: **SQL Syntax Highlighting — No longer highlights common words in non-SQL strings** — The SQL highlighter in JS/TS and PHP files was too aggressive, coloring everyday words like `left`, `right`, `top`, `text`, `cursor`, and `image` inside CSS class strings, HTML attributes, and any other non-SQL string. The highlighter now only activates inside strings that contain an unambiguous SQL statement keyword (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, `MERGE`, or `TRUNCATE`), leaving all other strings untouched.
+- **Improvement**: **Blocked Changes — Warning when local changes would prevent branch switching** — If a blocked file has unsaved modifications that differ from what's committed, a warning now appears in the Blocked Changes panel and as a notification. The warning names the affected files and reminds you to stash or discard the changes before switching branches. It clears automatically once the situation is resolved.
+
 ## [1.1.3]
 
 - **Bug Fix**: **Quick Notes — Now works correctly on Linux** — Quick Notes was silently broken on Linux regardless of whether a custom notes folder was set. Notes were not auto-saved, untitled files were not converted to notes, and notes did not reopen on startup. The root cause was a fragile startup sequence where a single unexpected error could prevent the feature's event handlers from ever being registered. The startup sequence is now fault-tolerant, and any unexpected error during initialisation is shown as a visible notification with the exact message so it can be reported.

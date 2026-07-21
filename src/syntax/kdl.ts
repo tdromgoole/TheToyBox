@@ -1,4 +1,4 @@
-import { TokenMatch } from "./types";
+import { TokenMatch } from "./types.js";
 
 // ─── KDL tokenizer ────────────────────────────────────────────────────────────
 export function tokenizeKdl(text: string): TokenMatch[] {

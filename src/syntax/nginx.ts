@@ -1,4 +1,4 @@
-import { TokenMatch } from "./types";
+import { TokenMatch } from "./types.js";
 
 // ─── Nginx configuration tokenizer ───────────────────────────────────────────
 // Token types emitted: comment, string, number, keyword, nginxVariable, nginxBlock
