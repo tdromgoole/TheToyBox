@@ -2,6 +2,12 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.8]
+
+- **Improvement**: **Save as PDF — Mermaid diagrams now appear in exported PDFs** — Markdown files containing `mermaid` fenced code blocks are now fully rendered before export. The diagrams are rendered live in a temporary webview using the Mermaid library, each diagram is rasterized to an image, and the images are embedded directly in the PDF output. If a diagram fails to render, the source text appears as a fallback.
+- **Improvement**: **Save as PDF — SVG images in HTML pages now appear in exported PDFs** — When exporting an HTML file, SVG elements are converted to images before the page content is captured, so charts, icons, and other vector graphics appear in the resulting PDF instead of being silently dropped.
+- **Improvement**: **Save as PDF — Images scale correctly to fit the page** — Embedded images are scaled to fit within the content area of the page, never scaled up beyond their original size, and capped at 70% of the page height so they never crowd out surrounding text.
+
 ## [1.1.7]
 
 - **New Feature**: **Save as PDF** — Export any open file directly to a PDF from the editor toolbar or the right-click context menu. Use the **$(export)** icon in the editor title bar (visible for Markdown and HTML files) or run **"The Toy Box: Save as PDF"** from the command palette. A save-as dialog lets you pick the output location. No browser is required — PDFs are generated entirely inside VS Code with no external dependencies.

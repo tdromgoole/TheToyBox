@@ -20,8 +20,9 @@
  * Code text size: 9pt, line height 13pt
  */
 
-import { assemblePdf as _unused } from "./pdfAssembler"; // keep import tree connected
+import { assemblePdf as _unused, PdfImage } from "./pdfAssembler"; // keep import tree connected
 export { assemblePdf } from "./pdfAssembler";
+export type { PdfImage } from "./pdfAssembler";
 
 // ─── Page geometry ────────────────────────────────────────────────────────────
 const W = 595; // A4 width  pts
@@ -234,7 +235,8 @@ type BlockType =
 	| { kind: "ol"; items: string[]; start: number }
 	| { kind: "table"; head: string[][]; rows: string[][] }
 	| { kind: "alert"; type: string; titleHtml: string; bodyHtml: string }
-	| { kind: "task"; items: Array<{ checked: boolean; html: string }> };
+	| { kind: "task"; items: Array<{ checked: boolean; html: string }> }
+	| { kind: "img"; data: Buffer; widthPx: number; heightPx: number };
 
 /** Very lightweight HTML block extractor. Input is the output of renderMarkdownToHtml. */
 function extractBlocks(html: string): BlockType[] {
@@ -443,6 +445,34 @@ function extractBlocks(html: string): BlockType[] {
 			continue;
 		}
 
+		// Inline image from DOM serializer (data:image/jpeg;base64 JPEG)
+		if (/^<img\b/i.test(html.slice(i))) {
+			const tagEnd = html.indexOf(">", i);
+			if (tagEnd !== -1) {
+				const tagStr = html.slice(i, tagEnd + 1);
+				const srcM = tagStr.match(
+					/\bsrc="data:image\/jpeg;base64,([^"]+)"/i,
+				);
+				const wM = tagStr.match(/\bwidth="(\d+)"/i);
+				const hM = tagStr.match(/\bheight="(\d+)"/i);
+				if (srcM) {
+					blocks.push({
+						kind: "img",
+						data: Buffer.from(srcM[1], "base64"),
+						widthPx: wM ? Number(wM[1]) : 800,
+						heightPx: hM ? Number(hM[1]) : 400,
+					});
+				}
+				i = tagEnd + 1;
+				while (
+					i < html.length &&
+					(html[i] === "\n" || html[i] === "\r" || html[i] === " ")
+				)
+					i++;
+				continue;
+			}
+		}
+
 		// Block containers (div, section, article, etc.) — recurse into inner content
 		const bcMatch = html
 			.slice(i)
@@ -574,12 +604,14 @@ export function buildMarkdownPdfPages(
 	fileName: string,
 	date: string,
 	languageLabel = "Markdown",
+	imageCollector?: PdfImage[],
 ): string[] {
 	const blocks = extractBlocks(html);
 	const pages: string[] = [];
 	const parts: string[] = [];
 	let y = H - MY;
 	let pageNum = 0;
+	let imageCounter = 0;
 
 	function strokeRule(yy: number, thick: number, color: string): void {
 		parts.push(
@@ -870,6 +902,40 @@ export function buildMarkdownPdfPages(
 					y -= BODY_LH;
 				}
 				y -= 10;
+				emitParagraphSpacing();
+				break;
+			}
+
+			case "img": {
+				// Scale to fit content width, never scale up, cap at 70% of content height
+				const maxW = CW;
+				const maxH = (H - MY * 2) * 0.7;
+				const scaleW = maxW / block.widthPx;
+				const scaleH = maxH / block.heightPx;
+				const scale = Math.min(1, scaleW, scaleH);
+				const dw = Math.round(block.widthPx * scale);
+				const dh = Math.round(block.heightPx * scale);
+
+				needSpace(dh + 10);
+
+				const imgName = `Im${imageCounter++}`;
+				// Center horizontally in the content area
+				const imgX = MX + (CW - dw) / 2;
+				const imgY = y - dh;
+				// PDF image operator: q <w> 0 0 <h> <x> <y> cm /<name> Do Q
+				parts.push(
+					`q\n${dw} 0 0 ${dh} ${imgX.toFixed(1)} ${imgY.toFixed(1)} cm\n/${imgName} Do\nQ\n`,
+				);
+				y -= dh + 10;
+
+				if (imageCollector) {
+					imageCollector.push({
+						name: imgName,
+						data: block.data,
+						width: block.widthPx,
+						height: block.heightPx,
+					});
+				}
 				emitParagraphSpacing();
 				break;
 			}
