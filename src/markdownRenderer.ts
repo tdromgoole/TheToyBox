@@ -91,6 +91,9 @@ function buildList(markdown: string, ordered: boolean): string {
  * Returns only the inner body content — no `<html>` / `<head>` wrapper.
  */
 export function renderMarkdownToHtml(markdown: string): string {
+	// Normalize line endings so all regexes below can assume LF only
+	markdown = markdown.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
 	// ── Pass 1: extract GitHub-style alerts ──────────────────────────────────
 	const lines = markdown.split("\n");
 	let result = "";
@@ -268,17 +271,14 @@ export function renderMarkdownToHtml(markdown: string): string {
 	markdown = markdown.replace(/\*([^*]+)\*/g, "<em>$1</em>");
 	markdown = markdown.replace(/~~([^~]+)~~/g, "<del>$1</del>");
 
-	// Restore inline code and code blocks
+	// Restore inline code
 	markdown = markdown.replace(
 		/%%INLINECODE_(\d+)%%/g,
 		(_m, i) => inlineCodes[Number(i)],
 	);
-	markdown = markdown.replace(
-		/%%CODEBLOCK_(\d+)%%/g,
-		(_m, i) => codeBlocks[Number(i)],
-	);
 
-	// Paragraphs
+	// Paragraphs — code block placeholders must be restored AFTER this step so
+	// blank lines inside fenced blocks don't get split into separate paragraphs.
 	markdown = markdown
 		.split(/\n{2,}/)
 		.map((para) => {
@@ -288,7 +288,7 @@ export function renderMarkdownToHtml(markdown: string): string {
 			}
 			if (
 				para.match(
-					/^<(?:h[1-6]|p|pre|div|ul|ol|li|table|thead|tbody|tr|th|td|hr|img|blockquote)/i,
+					/^(?:<(?:h[1-6]|p|pre|div|ul|ol|li|table|thead|tbody|tr|th|td|hr|img|blockquote)|%%CODEBLOCK)/i,
 				)
 			) {
 				return para;
@@ -297,6 +297,12 @@ export function renderMarkdownToHtml(markdown: string): string {
 		})
 		.filter(Boolean)
 		.join("\n");
+
+	// Restore code blocks
+	markdown = markdown.replace(
+		/%%CODEBLOCK_(\d+)%%/g,
+		(_m, i) => codeBlocks[Number(i)],
+	);
 
 	return markdown;
 }

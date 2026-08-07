@@ -2,6 +2,13 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.1.9]
+
+- **Bug Fix**: **Save as PDF — Tables in Markdown now always render correctly** — Tables were silently dropped when exporting Markdown files saved with Windows line endings (CRLF). Line endings are now normalised before rendering, so tables appear correctly regardless of how the file was saved.
+- **Improvement**: **Save as PDF — Table layout and styling improvements** — Table columns now size themselves to fit their content rather than dividing the page width equally. Inline code inside table cells is styled correctly. Cell padding and row spacing are more consistent.
+- **New Feature**: **Save as PDF — HTTP and Shell/Bash syntax highlighting** — Code blocks tagged as `http`, `https`, `bash`, `sh`, or `shell` now receive syntax colouring in the exported PDF. HTTP request lines, headers, status codes, and URL parameters each use distinct colours; shell variables, flags, quoted strings, and keywords are styled appropriately.
+- **Bug Fix**: **Save as PDF — Mermaid diagrams with blank lines now render correctly** — Mermaid sequence diagrams (and any fenced code block containing blank lines) were being split in half during rendering, which produced a syntax error and caused the diagram to appear as plain text. Fenced code blocks are now kept intact regardless of their internal blank lines.
+
 ## [1.1.8]
 
 - **Improvement**: **Save as PDF — Mermaid diagrams now appear in exported PDFs** — Markdown files containing `mermaid` fenced code blocks are now fully rendered before export. The diagrams are rendered live in a temporary webview using the Mermaid library, each diagram is rasterized to an image, and the images are embedded directly in the PDF output. If a diagram fails to render, the source text appears as a fallback.

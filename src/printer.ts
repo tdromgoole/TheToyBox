@@ -1,64 +1,15 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { randomBytes } from "crypto";
-import { TokenMatch } from "./syntax/types";
-import { tokenizeKdl } from "./syntax/kdl";
-import { tokenizeAsp } from "./syntax/asp";
-import { tokenizeRazorVb } from "./syntax/razorVb";
-import { tokenizePhpSql } from "./syntax/phpSql";
-import { tokenizeJsSql } from "./syntax/jsSql";
-import { tokenizeNginx } from "./syntax/nginx";
 import { assemblePdf, CODE_PDF_FONTS, PdfImage } from "./pdfAssembler";
 import { renderMarkdownToHtml } from "./markdownRenderer";
 import { buildMarkdownPdfPages, MARKDOWN_PDF_FONTS } from "./markdownToPdf";
-
-// ─── Token colour palette (mirrors syntaxHighlighting.ts TOKEN_STYLES) ────────
-const TOKEN_COLORS: Record<string, string> = {
-	comment: "#57A64A",
-	string: "#D69D85",
-	number: "#B5CEA8",
-	boolean: "#569CD6",
-	typeAnnotation: "#4EC9B0",
-	nodeName: "#4FC1FF",
-	propKey: "#9CDCFE",
-	keyword: "#569CD6",
-	vbType: "#4EC9B0",
-	htmlTag: "#569CD6",
-	htmlAttribute: "#FF8C69",
-	htmlString: "#D69D85",
-	aspDelimiter: "#DCDCAA",
-	razorDelimiter: "#DCDCAA",
-	razorDirective: "#CE9178",
-	sqlKeyword: "#569CD6",
-	sqlType: "#4EC9B0",
-	sqlFunction: "#DCDCAA",
-	sqlVariable: "#9CDCFE",
-	nginxVariable: "#9CDCFE",
-	nginxBlock: "#4EC9B0",
-};
-const TOKEN_BOLD = new Set([
-	"nodeName",
-	"aspDelimiter",
-	"razorDelimiter",
-	"nginxBlock",
-]);
-const TOKEN_ITALIC = new Set(["comment", "razorDirective"]);
-
-// ─── File-extension → tokenizer map ──────────────────────────────────────────
-const TOKENIZERS: Array<{
-	extensions: string[];
-	tokenize: (text: string) => TokenMatch[];
-}> = [
-	{ extensions: [".kdl"], tokenize: tokenizeKdl },
-	{ extensions: [".asp"], tokenize: tokenizeAsp },
-	{ extensions: [".vbhtml"], tokenize: tokenizeRazorVb },
-	{ extensions: [".php"], tokenize: tokenizePhpSql },
-	{
-		extensions: [".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"],
-		tokenize: tokenizeJsSql,
-	},
-	{ extensions: [".conf"], tokenize: tokenizeNginx },
-];
+import {
+	StyledRun,
+	CODE_TOKENIZERS as TOKENIZERS,
+	buildStyledRuns,
+	runsToLines,
+} from "./codeTokenizer";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,13 +19,6 @@ function escapeHtml(text: string): string {
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;");
-}
-
-interface StyledRun {
-	text: string;
-	color?: string;
-	bold?: boolean;
-	italic?: boolean;
 }
 
 // ─── Code PDF page builder ────────────────────────────────────────────────────
@@ -509,12 +453,21 @@ function buildMermaidPage(markdownHtml: string): string {
 	// <div class="mermaid">…</div>, unescaping HTML entities.
 	const withMermaid = markdownHtml.replace(
 		/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/gi,
-		(_, src: string) =>
-			`<div class="mermaid">${src
+		(_, src: string) => {
+			const decoded = src
 				.replace(/&amp;/g, "&")
 				.replace(/&lt;/g, "<")
 				.replace(/&gt;/g, ">")
-				.replace(/&quot;/g, '"')}</div>`,
+				.replace(/&quot;/g, '"');
+			// Quote participant/actor alias labels that contain chars Mermaid
+			// cannot accept in an unquoted label (e.g. / < > ( ) { }).
+			const fixed = decoded.replace(
+				/^(\s*(?:participant|actor)\s+\S+\s+as\s+)(?!")(.*\S)/gm,
+				(m, prefix: string, label: string) =>
+					/[/<>(){}]/.test(label) ? `${prefix}"${label}"` : m,
+			);
+			return `<div class="mermaid">${fixed}</div>`;
+		},
 	);
 
 	// Nonce-based CSP: CDN scripts allowed; inline scripts only via nonce
@@ -662,51 +615,6 @@ async function generateAndSavePdf(
 
 	await vscode.workspace.fs.writeFile(saveUri, pdfBuffer);
 	await vscode.env.openExternal(saveUri);
-}
-
-/** Converts source text + token list into styled run objects. */
-function buildStyledRuns(text: string, tokens: TokenMatch[]): StyledRun[] {
-	const sorted = [...tokens].sort((a, b) => a.start - b.start);
-	const runs: StyledRun[] = [];
-	let pos = 0;
-
-	for (const token of sorted) {
-		if (pos < token.start) {
-			runs.push({ text: text.slice(pos, token.start) });
-		}
-		runs.push({
-			text: text.slice(token.start, token.end),
-			color: TOKEN_COLORS[token.type],
-			bold: TOKEN_BOLD.has(token.type) || undefined,
-			italic: TOKEN_ITALIC.has(token.type) || undefined,
-		});
-		pos = token.end;
-	}
-
-	if (pos < text.length) {
-		runs.push({ text: text.slice(pos) });
-	}
-
-	return runs;
-}
-
-/** Splits an array of styled runs into per-line arrays, respecting multi-line tokens. */
-function runsToLines(runs: StyledRun[]): StyledRun[][] {
-	const lines: StyledRun[][] = [[]];
-
-	for (const run of runs) {
-		const parts = run.text.split("\n");
-		for (let i = 0; i < parts.length; i++) {
-			if (i > 0) {
-				lines.push([]);
-			}
-			if (parts[i].length > 0) {
-				lines[lines.length - 1].push({ ...run, text: parts[i] });
-			}
-		}
-	}
-
-	return lines;
 }
 
 function renderRun(run: StyledRun): string {
@@ -950,7 +858,49 @@ export function registerPrintCommand(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			"theToyBox.printFile",
-			(uri?: vscode.Uri) => openPrintPanel(context, uri),
+			async (uri?: vscode.Uri) => {
+				const enabled = vscode.workspace
+					.getConfiguration("theToyBox.print")
+					.get<boolean>("enabled", true);
+				if (!enabled) {
+					vscode.window.showInformationMessage(
+						'The Toy Box: Printing is disabled. Enable it in Settings under "Toy Box › Print: Enabled".',
+					);
+					return;
+				}
+
+				let document: vscode.TextDocument | undefined;
+				if (uri) {
+					try {
+						document = await vscode.workspace.openTextDocument(uri);
+					} catch {
+						vscode.window.showWarningMessage(
+							"The Toy Box: Could not open file for printing.",
+						);
+						return;
+					}
+				} else {
+					document = vscode.window.activeTextEditor?.document;
+				}
+
+				if (!document) {
+					vscode.window.showWarningMessage(
+						"The Toy Box: No file to save as PDF.",
+					);
+					return;
+				}
+
+				const fileName = document.fileName
+					? path.basename(document.fileName)
+					: "Untitled";
+
+				await generateAndSavePdf(
+					fileName,
+					document.languageId,
+					document.getText(),
+					context,
+				);
+			},
 		),
 	);
 
