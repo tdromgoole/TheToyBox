@@ -18,24 +18,39 @@ export interface PdfFontEntry {
 	base: string;
 }
 
+/** A pre-decoded JPEG image to embed as an Image XObject. */
+export interface PdfImage {
+	/** Resource name used in content streams, e.g. "Im0" */
+	name: string;
+	/** Raw JPEG bytes */
+	data: Buffer;
+	/** Pixel width */
+	width: number;
+	/** Pixel height */
+	height: number;
+}
+
 /**
  * Assemble a complete PDF-1.4 binary from per-page content streams.
  *
  * Object layout:
  *   1 = Catalog
  *   2 = Pages
- *   3 … 3+(fonts.length-1) = Font objects
- *   3+fonts.length + 2*i   = Page(i)
- *   3+fonts.length + 2*i+1 = ContentStream(i)
+ *   3 … 3+(fonts.length-1)               = Font objects
+ *   3+fonts.length … -1+images.length     = Image XObjects
+ *   imgBase+images.length + 2*i           = Page(i)
+ *   imgBase+images.length + 2*i+1         = ContentStream(i)
  */
 export function assemblePdf(
 	pageContents: string[],
 	title: string,
 	fonts: PdfFontEntry[],
+	images: PdfImage[] = [],
 ): Buffer {
 	const n = pageContents.length;
 	const fontBase = 3; // first font object number
-	const pageBase = fontBase + fonts.length; // first page object number
+	const imgBase = fontBase + fonts.length; // first image XObject number
+	const pageBase = imgBase + images.length; // first page object number
 	const totalObjs = pageBase + n * 2; // xref /Size (includes free obj 0)
 
 	const pageObjNum = (i: number) => pageBase + i * 2;
@@ -88,10 +103,34 @@ export function assemblePdf(
 		);
 	});
 
+	// Image XObjects (JPEG, DCTDecode)
+	for (let ii = 0; ii < images.length; ii++) {
+		const img = images[ii];
+		const num = imgBase + ii;
+		offsets[num] = offset;
+		const imgHeader = Buffer.from(
+			`${num} 0 obj\n` +
+				`<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height}` +
+				` /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.data.length} >>\n` +
+				`stream\n`,
+			"ascii",
+		);
+		const imgFooter = Buffer.from("\nendstream\nendobj\n", "ascii");
+		const imgBuf = Buffer.concat([imgHeader, img.data, imgFooter]);
+		chunks.push(imgBuf);
+		offset += imgBuf.length;
+	}
+
 	// Build the font resource dictionary string for page objects
 	const fontRes = fonts
 		.map((f, fi) => `/${f.name} ${fontBase + fi} 0 R`)
 		.join(" ");
+
+	// Build the image XObject resource dictionary string (empty if no images)
+	const imgRes =
+		images.length > 0
+			? ` /XObject << ${images.map((img, ii) => `/${img.name} ${imgBase + ii} 0 R`).join(" ")} >>`
+			: "";
 
 	// Page / content-stream pairs
 	for (let i = 0; i < n; i++) {
@@ -103,7 +142,7 @@ export function assemblePdf(
 				pn,
 				`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_W} ${PDF_H}] ` +
 					`/Contents ${sn} 0 R ` +
-					`/Resources << /Font << ${fontRes} >> >> >>`,
+					`/Resources << /Font << ${fontRes} >>${imgRes} >> >>`,
 			),
 		);
 		pushObj(sn, streamObjBuf(sn, Buffer.from(pageContents[i], "latin1")));

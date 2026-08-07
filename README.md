@@ -21,7 +21,7 @@ Most productivity extensions solve one problem. **The Toy Box solves several at 
 | **Code Quality**         | Auto-Cleanup on Save, Smart Alignment, JSON Formatter, Auto Rename Tags           |
 | **Notes & Productivity** | Quick Notes, Scratch Pad, Tagged Comments                                         |
 | **Git & Safety**         | Blocked Changes                                                                   |
-| **Print & Export**       | Save as PDF (Markdown, HTML, and source code)                                     |
+| **Print & Export**       | Save as PDF (Markdown with Mermaid diagrams, HTML, and source code)               |
 | **Extras**               | Install JetBrainsMono Nerd Font                                                   |
 
 ---
@@ -215,8 +215,8 @@ Export any open file to a PDF directly from the editor — no browser, no print 
 
 - **Toolbar Icon** — The **export** icon appears in the editor title bar when a Markdown or HTML file is open. Click it to go straight to the save dialog.
 - **Right-Click Export** — Right-click anywhere in the editor (or on a file in the Explorer) and choose **"The Toy Box: Save as PDF"**.
-- **Markdown files** are fully rendered before export — headings, bold and italic, tables, code blocks, task lists, blockquotes, GitHub-style alerts, links, and horizontal rules all appear in the PDF exactly as they do in the preview.
-- **HTML files** are rendered in a temporary webview so your CSS and JavaScript apply before the content is captured.
+- **Markdown files** are fully rendered before export — headings, bold and italic, tables, code blocks, task lists, blockquotes, GitHub-style alerts, links, and horizontal rules all appear in the PDF exactly as they do in the preview. Mermaid diagrams (` ```mermaid ` blocks) are rendered live and embedded as images.
+- **HTML files** are rendered in a temporary webview so your CSS and JavaScript apply before the content is captured. SVG elements are converted to images so charts and icons appear in the PDF.
 - **Source code files** are exported with line numbers and syntax-aware coloring using a print-friendly dark-on-white palette.
 - Works on any OS — everything is generated inside VS Code with no external dependencies.
 

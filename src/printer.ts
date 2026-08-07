@@ -8,7 +8,7 @@ import { tokenizeRazorVb } from "./syntax/razorVb";
 import { tokenizePhpSql } from "./syntax/phpSql";
 import { tokenizeJsSql } from "./syntax/jsSql";
 import { tokenizeNginx } from "./syntax/nginx";
-import { assemblePdf, CODE_PDF_FONTS } from "./pdfAssembler";
+import { assemblePdf, CODE_PDF_FONTS, PdfImage } from "./pdfAssembler";
 import { renderMarkdownToHtml } from "./markdownRenderer";
 import { buildMarkdownPdfPages, MARKDOWN_PDF_FONTS } from "./markdownToPdf";
 
@@ -270,6 +270,46 @@ const SERIALIZER_SCRIPT = `<script>
     }
     return out;
   }
+
+  // SVG → JPEG conversion map (populated before walk is called)
+  const svgImages = new Map();
+
+  async function svgToJpeg(svgEl) {
+    try {
+      let w = parseFloat(svgEl.getAttribute("width") || "0") || 0;
+      let h = parseFloat(svgEl.getAttribute("height") || "0") || 0;
+      if (!w || !h) {
+        const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+        if (vb && vb.width) { w = vb.width; h = vb.height; }
+      }
+      if (!w || !h) {
+        const r = svgEl.getBoundingClientRect();
+        w = r.width; h = r.height;
+      }
+      if (!w || !h || w < 10 || h < 10) return null;
+      // Render at higher resolution for PDF quality
+      const scale = Math.max(1.5, 1000 / w);
+      const cw = Math.round(w * scale);
+      const ch = Math.round(h * scale);
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const dataUrl = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+      return new Promise(function(resolve) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          canvas.width = cw; canvas.height = ch;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          resolve({ jpeg: canvas.toDataURL("image/jpeg", 0.9), w: cw, h: ch });
+        };
+        img.onerror = function() { resolve(null); };
+        img.src = dataUrl;
+      });
+    } catch(e) { return null; }
+  }
+
   function walk(node, depth) {
     if (!node || depth > 30) return "";
     if (node.nodeType === 3) {
@@ -278,10 +318,15 @@ const SERIALIZER_SCRIPT = `<script>
     }
     if (node.nodeType !== 1) return "";
     const tag = node.tagName.toLowerCase();
-    if (["script","style","noscript","svg","canvas","iframe","input","select","textarea","button"].includes(tag)) return "";
+    if (["script","style","noscript","canvas","iframe","input","select","textarea","button"].includes(tag)) return "";
     const cs = window.getComputedStyle(node);
     if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return "";
     const d = depth + 1;
+    if (tag === "svg") {
+      const imgData = svgImages.get(node);
+      if (imgData) return \`<img src="\${imgData.jpeg}" width="\${imgData.w}" height="\${imgData.h}">\\n\`;
+      return "";
+    }
     if (tag === "strong" || tag === "b")   return "<strong>" + kids(node,d) + "</strong>";
     if (tag === "em"     || tag === "i")   return "<em>"     + kids(node,d) + "</em>";
     if (tag === "del"    || tag === "s")   return "<del>"    + kids(node,d) + "</del>";
@@ -340,21 +385,26 @@ const SERIALIZER_SCRIPT = `<script>
       const ic = kids(node, d).trim();
       if (!ic) return "";
       // If content has any block-level tags, return as-is (they self-contain)
-      if (/<(h[1-6]|p|ul|ol|table|pre|hr)[ \\t\\n>]/.test(ic)) return ic + "\\n";
+      if (/<(h[1-6]|p|ul|ol|table|pre|hr|img)[ \\t\\n>\\/]/.test(ic)) return ic + "\\n";
       // Pure inline content: wrap in a paragraph
       return "<p>" + ic + "</p>\\n";
     }
     return kids(node, d);
   }
   window.addEventListener("load", function () {
-    setTimeout(function () {
+    setTimeout(async function () {
       try {
         const api = acquireVsCodeApi();
+        // Pre-render all SVG elements to JPEG before DOM serialization
+        for (const svgEl of document.querySelectorAll("svg")) {
+          const result = await svgToJpeg(svgEl);
+          if (result) svgImages.set(svgEl, result);
+        }
         api.postMessage({ type: "serialized", html: walk(document.body, 0) });
       } catch (e) {
         try { acquireVsCodeApi().postMessage({ type: "error", message: String(e) }); } catch (_) {}
       }
-    }, 1500);
+    }, 2500);
   });
 })();
 </script>`;
@@ -408,6 +458,103 @@ function renderHtmlViaWebview(htmlContent: string): Promise<string> {
 	});
 }
 
+/**
+ * Renders a pre-built Mermaid HTML page in a temporary webview.
+ * The HTML already has a nonce-based CSP and serializer — it is NOT sanitized.
+ */
+function renderMermaidViaWebview(pageHtml: string): Promise<string> {
+	return new Promise<string>((resolve, reject) => {
+		const panel = vscode.window.createWebviewPanel(
+			"theToyBox.mermaidRenderer",
+			"The Toy Box: Preparing PDF\u2026",
+			{ viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+			{ enableScripts: true },
+		);
+
+		const timer = setTimeout(() => {
+			panel.dispose();
+			reject(new Error("Mermaid rendering timed out"));
+		}, 15_000);
+
+		panel.webview.onDidReceiveMessage(
+			(msg: { type: string; html?: string; message?: string }) => {
+				clearTimeout(timer);
+				panel.dispose();
+				if (msg.type === "serialized" && msg.html != null) {
+					resolve(msg.html);
+				} else {
+					reject(
+						new Error(
+							msg.message ?? "Mermaid serialization failed",
+						),
+					);
+				}
+			},
+		);
+
+		panel.webview.html = pageHtml;
+	});
+}
+
+/**
+ * Builds a standalone HTML page that loads Mermaid.js (from CDN) to render
+ * diagrams.  Fenced-mermaid code blocks are converted to Mermaid divs, and
+ * the DOM serializer script is embedded.  A per-call nonce keeps script-src
+ * free of unsafe inline script (nonce is attached to each <script> tag).
+ */
+function buildMermaidPage(markdownHtml: string): string {
+	const nonce = randomBytes(16).toString("hex");
+
+	// Replace <pre><code class="language-mermaid">…</code></pre> with
+	// <div class="mermaid">…</div>, unescaping HTML entities.
+	const withMermaid = markdownHtml.replace(
+		/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/gi,
+		(_, src: string) =>
+			`<div class="mermaid">${src
+				.replace(/&amp;/g, "&")
+				.replace(/&lt;/g, "<")
+				.replace(/&gt;/g, ">")
+				.replace(/&quot;/g, '"')}</div>`,
+	);
+
+	// Nonce-based CSP: CDN scripts allowed; inline scripts only via nonce
+	const csp = [
+		"default-src 'none'",
+		`script-src https://cdn.jsdelivr.net 'nonce-${nonce}'`,
+		"style-src 'unsafe-inline'", // Mermaid injects inline styles at runtime — unavoidable
+		"img-src data: blob:",
+		"object-src 'none'",
+		"frame-ancestors 'none'",
+	].join("; ");
+
+	// Tag the serializer's <script> element with the nonce so it passes the CSP
+	const serializer = SERIALIZER_SCRIPT.replace(
+		"<script>",
+		`<script nonce="${nonce}">`,
+	);
+
+	return [
+		"<!DOCTYPE html>",
+		"<html>",
+		"<head>",
+		'<meta charset="UTF-8">',
+		`<meta http-equiv="Content-Security-Policy" content="${csp}">`,
+		"<style>",
+		"  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
+		"         background: #fff; color: #1a1a1a; padding: 20px; max-width: 900px; margin: 0 auto; }",
+		"  .mermaid { background: #fff; text-align: center; margin: 1em 0; }",
+		"</style>",
+		"</head>",
+		"<body>",
+		withMermaid,
+		`<script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>`,
+		`<script nonce="${nonce}">mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });</script>`,
+		serializer,
+		"</body>",
+		"</html>",
+	].join("\n");
+}
+
 /** Tokenize the document, generate the PDF, and prompt the user for a save location. */
 async function generateAndSavePdf(
 	fileName: string,
@@ -423,11 +570,32 @@ async function generateAndSavePdf(
 
 	let pageContents: string[];
 	let fontSet: typeof CODE_PDF_FONTS;
+	const imageCollector: PdfImage[] = [];
 
 	if (languageId === "markdown") {
 		// Render markdown → HTML → PDF pages using Helvetica fonts
 		const html = renderMarkdownToHtml(content);
-		pageContents = buildMarkdownPdfPages(html, fileName, date);
+		if (/<pre><code class="language-mermaid"/.test(html)) {
+			// Mermaid diagrams detected — render via webview so they produce SVG,
+			// then the serializer rasterises each SVG to JPEG for embedding.
+			let rendered = html;
+			try {
+				rendered = await renderMermaidViaWebview(
+					buildMermaidPage(html),
+				);
+			} catch {
+				// timeout or CSP block — fall back to showing source text
+			}
+			pageContents = buildMarkdownPdfPages(
+				rendered,
+				fileName,
+				date,
+				"Markdown",
+				imageCollector,
+			);
+		} else {
+			pageContents = buildMarkdownPdfPages(html, fileName, date);
+		}
 		fontSet = MARKDOWN_PDF_FONTS;
 	} else if (languageId === "html") {
 		// Render via webview so CSS + JS produce the real DOM, then serialize it.
@@ -438,7 +606,13 @@ async function generateAndSavePdf(
 			// Timeout or error — fall back to static regex extraction
 			htmlBody = content;
 		}
-		pageContents = buildMarkdownPdfPages(htmlBody, fileName, date, "HTML");
+		pageContents = buildMarkdownPdfPages(
+			htmlBody,
+			fileName,
+			date,
+			"HTML",
+			imageCollector,
+		);
 		fontSet = MARKDOWN_PDF_FONTS;
 	} else {
 		// Render source code → syntax-highlighted PDF pages using Courier fonts
@@ -460,7 +634,12 @@ async function generateAndSavePdf(
 		fontSet = CODE_PDF_FONTS;
 	}
 
-	const pdfBuffer = assemblePdf(pageContents, fileName, fontSet);
+	const pdfBuffer = assemblePdf(
+		pageContents,
+		fileName,
+		fontSet,
+		imageCollector,
+	);
 
 	const activeFile = vscode.window.activeTextEditor?.document.fileName;
 	const defaultUri = activeFile
