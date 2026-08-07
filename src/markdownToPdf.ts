@@ -23,6 +23,12 @@
 import { assemblePdf as _unused, PdfImage } from "./pdfAssembler"; // keep import tree connected
 export { assemblePdf } from "./pdfAssembler";
 export type { PdfImage } from "./pdfAssembler";
+import {
+	StyledRun,
+	CODE_TOKENIZERS,
+	buildStyledRuns,
+	runsToLines,
+} from "./codeTokenizer";
 
 // ─── Page geometry ────────────────────────────────────────────────────────────
 const W = 595; // A4 width  pts
@@ -93,6 +99,29 @@ const ALERT_TITLE_C: Record<string, string> = {
 	important: pdfRgb("#6639ba"),
 	warning: pdfRgb("#7d4e00"),
 	caution: pdfRgb("#a40e26"),
+};
+
+// Maps fenced-code-block language identifiers to the extensions CODE_TOKENIZERS recognises
+const LANG_TO_EXT: Record<string, string> = {
+	js: ".js",
+	javascript: ".js",
+	mjs: ".js",
+	cjs: ".js",
+	ts: ".ts",
+	typescript: ".ts",
+	jsx: ".jsx",
+	tsx: ".tsx",
+	kdl: ".kdl",
+	asp: ".asp",
+	vbhtml: ".vbhtml",
+	php: ".php",
+	nginx: ".conf",
+	conf: ".conf",
+	http: ".http",
+	https: ".http",
+	bash: ".bash",
+	sh: ".sh",
+	shell: ".sh",
 };
 
 // ─── PDF string escape ────────────────────────────────────────────────────────
@@ -229,7 +258,7 @@ function parseInlineHtml(html: string): InlineSpan[] {
 type BlockType =
 	| { kind: "h"; level: number; html: string }
 	| { kind: "p"; html: string }
-	| { kind: "pre"; text: string }
+	| { kind: "pre"; text: string; lang?: string }
 	| { kind: "hr" }
 	| { kind: "ul"; items: string[] }
 	| { kind: "ol"; items: string[]; start: number }
@@ -334,12 +363,15 @@ function extractBlocks(html: string): BlockType[] {
 		const preMatch = html
 			.slice(i)
 			.match(
-				/^<pre(?:[^>]*)>(?:<code(?:[^>]*)>)?([\s\S]*?)(?:<\/code>)?<\/pre>/i,
+				/^<pre(?:[^>]*)>(<code(?:[^>]*)>)?([\s\S]*?)(?:<\/code>)?<\/pre>/i,
 			);
 		if (preMatch) {
+			const codeTag = preMatch[1] ?? "";
+			const langMatch = codeTag.match(/class="language-([^"\s]+)"/i);
 			blocks.push({
 				kind: "pre",
-				text: preMatch[1]
+				lang: langMatch?.[1],
+				text: preMatch[2]
 					.replace(/&amp;/g, "&")
 					.replace(/&lt;/g, "<")
 					.replace(/&gt;/g, ">")
@@ -727,20 +759,53 @@ export function buildMarkdownPdfPages(
 			}
 
 			case "pre": {
-				const codeLines = block.text.split("\n");
-				const blockH = codeLines.length * CODE_LH + 16;
+				const ext = LANG_TO_EXT[(block.lang ?? "").toLowerCase()] ?? "";
+				const profile = ext
+					? CODE_TOKENIZERS.find((p) => p.extensions.includes(ext))
+					: undefined;
+				const lineRuns: StyledRun[][] = profile
+					? runsToLines(
+							buildStyledRuns(
+								block.text,
+								profile.tokenize(block.text),
+							),
+						)
+					: block.text
+							.split("\n")
+							.map((l) => (l ? [{ text: l }] : []));
+
+				const lineCount = lineRuns.length;
+				const blockH = lineCount * CODE_LH + 16;
 				needSpace(Math.min(blockH, (H - MY * 2) / 2));
-				// Light gray background for code blocks
 				parts.push(
 					`q\n0.965 0.969 0.976 rg\n` +
-						`${MX} ${y - codeLines.length * CODE_LH - 8} ${CW} ${codeLines.length * CODE_LH + 16} re f\nQ\n`,
+						`${MX} ${y - lineCount * CODE_LH - 8} ${CW} ${lineCount * CODE_LH + 16} re f\nQ\n`,
 				);
 				y -= 8;
-				for (const line of codeLines) {
+				for (const runs of lineRuns) {
 					needSpace(CODE_LH);
-					parts.push(
-						`BT\n/F5 ${CODE_FS} Tf\n${MX + 8} ${y} Td\n${C_CODE} rg (${esc(line)}) Tj\nET\n`,
-					);
+					if (runs.length > 0) {
+						parts.push(`BT\n${MX + 8} ${y} Td\n`);
+						for (const run of runs) {
+							const font =
+								run.bold && run.italic
+									? "F8"
+									: run.bold
+										? "F6"
+										: run.italic
+											? "F7"
+											: "F5";
+							const color = run.color
+								? pdfRgb(run.color)
+								: profile
+									? C_BODY
+									: C_CODE;
+							parts.push(
+								`/${font} ${CODE_FS} Tf\n${color} rg (${esc(run.text)}) Tj\n`,
+							);
+						}
+						parts.push(`ET\n`);
+					}
 					y -= CODE_LH;
 				}
 				y -= 8;
@@ -808,40 +873,122 @@ export function buildMarkdownPdfPages(
 					break;
 				}
 				const colCount = allRows[0].cells.length;
-				const colW = (CW - 2) / colCount;
+				const HPAD = 6;
+				const ROW_ASCENT = 10; // pts above first-line baseline inside row
+				const ROW_DESCENT = 5; // pts below last-line baseline inside row
+
+				// Distribute column widths proportional to max natural content width
+				const colMaxW = Array<number>(colCount).fill(0);
 				for (const row of allRows) {
-					needSpace(BODY_LH + 4);
-					// Row background: header = light blue-gray, body = very light gray
-					parts.push(
-						`q\n${row.header ? "0.922 0.933 0.945 rg" : "0.980 0.980 0.980 rg"}\n` +
-							`${MX} ${y - BODY_LH - 2} ${CW} ${BODY_LH + 6} re f\nQ\n`,
-					);
 					row.cells.forEach((cell, ci) => {
-						const cx = MX + ci * colW + 4;
-						const spans = parseInlineHtml(cell);
-						let tx = cx;
-						parts.push(`BT\n`);
-						for (const sp of spans) {
-							if (!sp.text) {
-								continue;
-							}
-							const font = bodyFont(
-								row.header || sp.bold,
-								sp.italic,
-							);
-							parts.push(
-								`/${font} ${BODY_FS} Tf\n${tx} ${y} Td\n${row.header ? C_HEAD : C_BODY} rg (${esc(sp.text.slice(0, 30))}) Tj\n`,
-							);
-							tx += approxWidth(
-								sp.text.slice(0, 30),
-								BODY_FS,
-								false,
-							);
-						}
-						parts.push(`ET\n`);
+						const w = parseInlineHtml(cell).reduce(
+							(s, sp) =>
+								s + approxWidth(sp.text, BODY_FS, sp.code),
+							0,
+						);
+						colMaxW[ci] = Math.max(colMaxW[ci], w);
 					});
-					y -= BODY_LH + 4;
 				}
+				const totalMaxW = colMaxW.reduce((a, b) => a + b, 0) || 1;
+				// each column gets at least half of an equal-split share
+				const minColW = CW / (colCount * 2);
+				let colWs = colMaxW.map((w) =>
+					Math.max((w / totalMaxW) * CW, minColW),
+				);
+				const scaleW = CW / colWs.reduce((a, b) => a + b, 0);
+				colWs = colWs.map((w) => w * scaleW);
+
+				let pastHeader = false;
+
+				for (const row of allRows) {
+					const isFirstBody = !row.header && !pastHeader;
+					if (!row.header) pastHeader = true;
+
+					const wrapped = row.cells.map((cell, ci) =>
+						wrapInlineSpans(
+							parseInlineHtml(cell),
+							colWs[ci] - HPAD * 2,
+							BODY_FS,
+						),
+					);
+					const maxLines = Math.max(
+						1,
+						...wrapped.map((w) => w.length),
+					);
+					const rowH =
+						ROW_ASCENT + (maxLines - 1) * BODY_LH + ROW_DESCENT;
+					needSpace(rowH + 1);
+
+					// ruleY = top edge of this row; rows touch exactly so there is
+					// no gap for the background-fill of the next row to cover the rule
+					const ruleY = y + ROW_ASCENT;
+
+					// Row background
+					parts.push(
+						`q\n${row.header ? "0.910 0.918 0.926 rg" : "0.980 0.982 0.984 rg"}\n` +
+							`${MX} ${ruleY - rowH} ${CW} ${rowH} re f\nQ\n`,
+					);
+
+					// Top rule drawn after fill so it is not covered
+					const ruleThick = isFirstBody ? "0.8" : "0.4";
+					parts.push(
+						`q\n${C_RULE} RG\n${ruleThick} w\n` +
+							`${MX} ${ruleY} m ${MX + CW} ${ruleY} l S\nQ\n`,
+					);
+
+					// Cell text
+					let colX = MX;
+					wrapped.forEach((lines, ci) => {
+						const cx = colX + HPAD;
+						lines.forEach((wl, li) => {
+							if (!wl.spans.some((s) => s.text)) return;
+							parts.push(`BT\n${cx} ${y - li * BODY_LH} Td\n`);
+							for (const sp of wl.spans) {
+								if (!sp.text) continue;
+								const isCode = sp.code && !row.header;
+								const font = isCode
+									? codeFont(sp.bold)
+									: bodyFont(
+											row.header || sp.bold,
+											sp.italic,
+										);
+								const color = isCode
+									? C_CODE
+									: sp.del
+										? C_DEL
+										: sp.link
+											? pdfRgb("#0969da")
+											: row.header
+												? C_HEAD
+												: C_BODY;
+								parts.push(
+									`/${font} ${BODY_FS} Tf\n${color} rg (${esc(sp.text)}) Tj\n`,
+								);
+							}
+							parts.push(`ET\n`);
+						});
+						colX += colWs[ci];
+					});
+
+					// Vertical column separators
+					colX = MX;
+					for (let ci = 0; ci < colCount - 1; ci++) {
+						colX += colWs[ci];
+						parts.push(
+							`q\n${C_RULE} RG\n0.4 w\n` +
+								`${colX} ${ruleY - rowH} m ${colX} ${ruleY} l S\nQ\n`,
+						);
+					}
+
+					y -= rowH;
+				}
+
+				// Bottom border
+				parts.push(
+					`q\n${C_RULE} RG\n0.4 w\n` +
+						`${MX} ${y + ROW_ASCENT} m ${MX + CW} ${y + ROW_ASCENT} l S\nQ\n`,
+				);
+
 				emitParagraphSpacing();
 				break;
 			}
