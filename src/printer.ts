@@ -3,7 +3,11 @@ import * as path from "path";
 import { randomBytes } from "crypto";
 import { assemblePdf, CODE_PDF_FONTS, PdfImage } from "./pdfAssembler";
 import { renderMarkdownToHtml } from "./markdownRenderer";
-import { buildMarkdownPdfPages, MARKDOWN_PDF_FONTS } from "./markdownToPdf";
+import { prepareShikiCodeHighlighter } from "./shikiHighlighter";
+import {
+	buildMarkdownPdfPages,
+	MARKDOWN_PDF_FONTS,
+} from "./markdownToPdf";
 import {
 	StyledRun,
 	CODE_TOKENIZERS as TOKENIZERS,
@@ -271,6 +275,30 @@ const SERIALIZER_SCRIPT = `<script>
       if (imgData) return \`<img src="\${imgData.jpeg}" width="\${imgData.w}" height="\${imgData.h}">\\n\`;
       return "";
     }
+    // Preserve Toy Box alert semantics across the Mermaid DOM round-trip.
+    // Generic div serialization intentionally drops classes, which previously
+    // reduced alerts to ordinary paragraphs and leaked icon ligature names.
+    if (tag === "div" && node.classList.contains("markdown-alert")) {
+      const types = ["note", "tip", "important", "warning", "caution"];
+      const type = types.find(t => node.classList.contains(t)) || "note";
+      const icons = { note: "info", tip: "lightbulb", important: "priority_high", warning: "warning", caution: "cancel" };
+      const titleEl = node.querySelector(":scope > .alert-title");
+      let title = "";
+      if (titleEl) {
+        title = Array.from(titleEl.childNodes)
+          .filter(c => !(c.nodeType === 1 && c.classList && c.classList.contains("alert-icon")))
+          .map(c => walk(c, d))
+          .join("")
+          .trim();
+      }
+      let body = "";
+      for (const child of node.children) {
+        if (child !== titleEl) body += walk(child, d);
+      }
+      return '<div class="markdown-alert ' + type + '">\\n' +
+        '<p class="alert-title"><span class="alert-icon">' + icons[type] + '</span> ' + title + '</p>\\n' +
+        body + '</div>\\n';
+    }
     if (tag === "strong" || tag === "b")   return "<strong>" + kids(node,d) + "</strong>";
     if (tag === "em"     || tag === "i")   return "<em>"     + kids(node,d) + "</em>";
     if (tag === "del"    || tag === "s")   return "<del>"    + kids(node,d) + "</del>";
@@ -286,6 +314,23 @@ const SERIALIZER_SCRIPT = `<script>
     if (tag === "p") {
       const t = kids(node, d).trim();
       return t ? "<p>" + t + "</p>\\n" : "";
+    }
+    if (tag === "ul" && node.classList.contains("task-list")) {
+      let out = '<ul class="task-list">\\n';
+      for (const li of node.children) {
+        if (li.tagName.toLowerCase() !== "li") continue;
+        const box = li.querySelector(":scope > .task-box");
+        const checked = Boolean(box && box.classList.contains("task-checked"));
+        const content = Array.from(li.childNodes)
+          .filter(child => child !== box)
+          .map(child => walk(child, d))
+          .join("")
+          .trim();
+        out += '<li class="task-item"><span class="task-box' +
+          (checked ? ' task-checked' : '') + '">' +
+          (checked ? '&#x2713;' : '') + '</span> ' + content + '</li>\\n';
+      }
+      return out + "</ul>\\n";
     }
     if (tag === "ul" || tag === "ol") {
       const startAttr = tag === "ol" ? (' start="' + (node.getAttribute("start") || "1") + '"') : "";
@@ -317,7 +362,11 @@ const SERIALIZER_SCRIPT = `<script>
     }
     if (tag === "pre") {
       const ce = node.querySelector("code");
-      return "<pre><code>" + esc((ce || node).textContent || "") + "</code></pre>\\n";
+      const languageClass = ce
+        ? Array.from(ce.classList).find(c => /^language-[A-Za-z0-9_+-]+$/.test(c))
+        : undefined;
+      const classAttr = languageClass ? ' class="' + languageClass + '"' : "";
+      return "<pre><code" + classAttr + ">" + esc((ce || node).textContent || "") + "</code></pre>\\n";
     }
     // Inline-only elements: treat as transparent and just emit their text content
     if (INLINES.has(tag)) {
@@ -338,15 +387,17 @@ const SERIALIZER_SCRIPT = `<script>
   window.addEventListener("load", function () {
     setTimeout(async function () {
       try {
-        const api = acquireVsCodeApi();
+        const api = globalThis.__toyboxVscodeApi || acquireVsCodeApi();
         // Pre-render all SVG elements to JPEG before DOM serialization
         for (const svgEl of document.querySelectorAll("svg")) {
           const result = await svgToJpeg(svgEl);
           if (result) svgImages.set(svgEl, result);
         }
+        // The progress overlay is UI-only and must not enter the PDF DOM.
+        document.getElementById("toybox-preparing-overlay")?.remove();
         api.postMessage({ type: "serialized", html: walk(document.body, 0) });
       } catch (e) {
-        try { acquireVsCodeApi().postMessage({ type: "error", message: String(e) }); } catch (_) {}
+        try { (globalThis.__toyboxVscodeApi || acquireVsCodeApi()).postMessage({ type: "error", message: String(e) }); } catch (_) {}
       }
     }, 2500);
   });
@@ -406,14 +457,20 @@ function renderHtmlViaWebview(htmlContent: string): Promise<string> {
  * Renders a pre-built Mermaid HTML page in a temporary webview.
  * The HTML already has a nonce-based CSP and serializer — it is NOT sanitized.
  */
-function renderMermaidViaWebview(pageHtml: string): Promise<string> {
+function renderMermaidViaWebview(
+	markdownHtml: string,
+	context: vscode.ExtensionContext,
+): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
+		const mermaidRoot = vscode.Uri.joinPath(context.extensionUri, "dist", "assets");
 		const panel = vscode.window.createWebviewPanel(
 			"theToyBox.mermaidRenderer",
 			"The Toy Box: Preparing PDF\u2026",
 			{ viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-			{ enableScripts: true },
+			{ enableScripts: true, localResourceRoots: [mermaidRoot] },
 		);
+		const mermaidScriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(mermaidRoot, "mermaid.min.js"));
+		const pageHtml = buildMermaidPage(markdownHtml, mermaidScriptUri.toString(), panel.webview.cspSource);
 
 		const timer = setTimeout(() => {
 			panel.dispose();
@@ -441,12 +498,16 @@ function renderMermaidViaWebview(pageHtml: string): Promise<string> {
 }
 
 /**
- * Builds a standalone HTML page that loads Mermaid.js (from CDN) to render
+ * Builds a standalone HTML page that loads Mermaid.js to render
  * diagrams.  Fenced-mermaid code blocks are converted to Mermaid divs, and
  * the DOM serializer script is embedded.  A per-call nonce keeps script-src
  * free of unsafe inline script (nonce is attached to each <script> tag).
  */
-function buildMermaidPage(markdownHtml: string): string {
+function buildMermaidPage(
+	markdownHtml: string,
+	mermaidScriptUri: string,
+	webviewCspSource: string,
+): string {
 	const nonce = randomBytes(16).toString("hex");
 
 	// Replace <pre><code class="language-mermaid">…</code></pre> with
@@ -470,10 +531,10 @@ function buildMermaidPage(markdownHtml: string): string {
 		},
 	);
 
-	// Nonce-based CSP: CDN scripts allowed; inline scripts only via nonce
+	// Use the packaged script so webview loading does not depend on network access.
 	const csp = [
 		"default-src 'none'",
-		`script-src https://cdn.jsdelivr.net 'nonce-${nonce}'`,
+		`script-src ${webviewCspSource} 'nonce-${nonce}'`,
 		"style-src 'unsafe-inline'", // Mermaid injects inline styles at runtime — unavoidable
 		"img-src data: blob:",
 		"object-src 'none'",
@@ -496,12 +557,31 @@ function buildMermaidPage(markdownHtml: string): string {
 		"  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
 		"         background: #fff; color: #1a1a1a; padding: 20px; max-width: 900px; margin: 0 auto; }",
 		"  .mermaid { background: #fff; text-align: center; margin: 1em 0; }",
+		"  #toybox-preparing-overlay { position: fixed; inset: 0; z-index: 2147483647;",
+		"    display: flex; align-items: center; justify-content: center;",
+		"    background: rgba(0, 0, 0, 0.58); backdrop-filter: blur(1px); }",
+		"  .toybox-preparing-card { display: flex; align-items: center; gap: 14px;",
+		"    padding: 18px 22px; border-radius: 8px; color: #f3f3f3; background: #252526;",
+		"    box-shadow: 0 8px 28px rgba(0,0,0,.45); font-size: 14px; font-weight: 600; }",
+		"  .toybox-spinner { width: 24px; height: 24px; box-sizing: border-box;",
+		"    border: 3px solid rgba(255,255,255,.25); border-top-color: #75beff;",
+		"    border-radius: 50%; animation: toybox-spin .8s linear infinite; }",
+		"  @keyframes toybox-spin { to { transform: rotate(360deg); } }",
 		"</style>",
 		"</head>",
 		"<body>",
 		withMermaid,
-		`<script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>`,
-		`<script nonce="${nonce}">mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });</script>`,
+		'<div id="toybox-preparing-overlay" role="status" aria-live="polite">' +
+			'<div class="toybox-preparing-card"><div class="toybox-spinner"></div>' +
+			'<span>Preparing PDF…</span></div></div>',
+		`<script nonce="${nonce}">
+			globalThis.__toyboxVscodeApi = acquireVsCodeApi();
+			window.addEventListener("error", event => globalThis.__toyboxVscodeApi.postMessage({ type: "error", message: "webview error: " + event.message }));
+		</script>`,
+		`<script nonce="${nonce}" src="${mermaidScriptUri}"></script>`,
+		`<script nonce="${nonce}">
+			mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });
+		</script>`,
 		serializer,
 		"</body>",
 		"</html>",
@@ -528,14 +608,24 @@ async function generateAndSavePdf(
 	if (languageId === "markdown") {
 		// Render markdown → HTML → PDF pages using Helvetica fonts
 		const html = renderMarkdownToHtml(content);
+		const fencedLanguages = [...content.matchAll(/^```([^\s`]*)/gm)]
+			.map((match) => match[1])
+			.filter(Boolean);
+		let codeHighlighter: Awaited<ReturnType<typeof prepareShikiCodeHighlighter>> | undefined;
+		try {
+			codeHighlighter = await prepareShikiCodeHighlighter(fencedLanguages);
+		} catch {
+			// Fall back to the built-in tokenizers below.
+		}
 		if (/<pre><code class="language-mermaid"/.test(html)) {
 			// Mermaid diagrams detected — render via webview so they produce SVG,
 			// then the serializer rasterises each SVG to JPEG for embedding.
 			let rendered = html;
 			try {
-				rendered = await renderMermaidViaWebview(
-					buildMermaidPage(html),
-				);
+				if (!context) {
+					throw new Error("Extension context is unavailable for Mermaid rendering");
+				}
+				rendered = await renderMermaidViaWebview(html, context);
 			} catch {
 				// timeout or CSP block — fall back to showing source text
 			}
@@ -545,9 +635,10 @@ async function generateAndSavePdf(
 				date,
 				"Markdown",
 				imageCollector,
+				codeHighlighter,
 			);
 		} else {
-			pageContents = buildMarkdownPdfPages(html, fileName, date);
+			pageContents = buildMarkdownPdfPages(html, fileName, date, "Markdown", undefined, codeHighlighter);
 		}
 		fontSet = MARKDOWN_PDF_FONTS;
 	} else if (languageId === "html") {

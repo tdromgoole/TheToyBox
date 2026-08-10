@@ -2,7 +2,19 @@
 
 "use strict";
 
+const fs = require("fs");
 const path = require("path");
+
+class CopyMermaidBrowserBundlePlugin {
+	apply(compiler) {
+		compiler.hooks.afterEmit.tap("CopyMermaidBrowserBundlePlugin", () => {
+			const source = require.resolve("mermaid/dist/mermaid.min.js");
+			const destination = path.resolve(compiler.options.output.path, "assets", "mermaid.min.js");
+			fs.mkdirSync(path.dirname(destination), { recursive: true });
+			fs.copyFileSync(source, destination);
+		});
+	}
+}
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -46,6 +58,7 @@ const extensionConfig = {
 			},
 		],
 	},
+	plugins: [new CopyMermaidBrowserBundlePlugin()],
 	devtool: "nosources-source-map",
 	infrastructureLogging: {
 		level: "log", // enables logging required for problem matchers

@@ -350,6 +350,16 @@ suite("tokenizePhpSql", () => {
 		);
 	});
 
+	test("highlights general PHP syntax", () => {
+		const src = `<?php\n$token = getenv('TOKEN');\nif ($token === false) { throw new RuntimeException('missing'); }`;
+		const tokens = tokenizePhpSql(src);
+		assertValidSpans(tokens, src);
+		assert.ok(tokensOfType(tokens, "phpVariable", src).includes("$token"));
+		assert.ok(tokensOfType(tokens, "phpFunction", src).includes("getenv"));
+		assert.ok(tokensOfType(tokens, "keyword", src).includes("if"));
+		assert.ok(tokensOfType(tokens, "string", src).includes("'TOKEN'"));
+	});
+
 	test("SQL in PHP double-quoted string → sqlKeyword tokens", () => {
 		const src = `$q = "SELECT id FROM users";`;
 		const tokens = tokenizePhpSql(src);
