@@ -105,16 +105,29 @@ export function renderMarkdownToHtml(markdown: string): string {
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		const trimmed = line.trim();
+		const bareAlert = trimmed.match(
+			/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?[ \t]*(.*)$/i,
+		);
+
+		if (!inBlockquote && bareAlert) {
+			result +=
+				formatAlert(
+					bareAlert[1].toLowerCase(),
+					bareAlert[3].trim(),
+					bareAlert[2]?.trim() ?? "",
+				) + "\n\n";
+			continue;
+		}
 
 		if (trimmed.startsWith("> [!") || trimmed.startsWith(">[!")) {
 			const match = trimmed.match(
-				/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?/i,
+				/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?[ \t]*(.*)$/i,
 			);
 			if (match) {
 				alertType = match[1].toLowerCase();
 				alertCustomTitle = match[2]?.trim() ?? "";
 				inBlockquote = true;
-				blockquoteContent = "";
+				blockquoteContent = match[3]?.trim() ?? "";
 				continue;
 			}
 		}
@@ -142,13 +155,24 @@ export function renderMarkdownToHtml(markdown: string): string {
 				}
 			} else {
 				inBlockquote = false;
+				// Older Toy Box documents commonly put the first alert body line
+				// directly below the marker without another `>` prefix. Preserve
+				// that shorthand, while leaving structural Markdown outside.
+				const consumeAsLegacyBody =
+					!blockquoteContent &&
+					!/^#{1,6}\s|^(?:[-*+] |\d+\. )|^```|^\|/.test(trimmed);
+				if (consumeAsLegacyBody) {
+					blockquoteContent = line;
+				}
 				result +=
 					formatAlert(
 						alertType,
 						blockquoteContent.trim(),
 						alertCustomTitle,
 					) + "\n\n";
-				result += line + "\n";
+				if (!consumeAsLegacyBody) {
+					result += line + "\n";
+				}
 				alertType = "";
 				alertCustomTitle = "";
 				blockquoteContent = "";
@@ -276,6 +300,20 @@ export function renderMarkdownToHtml(markdown: string): string {
 		/%%INLINECODE_(\d+)%%/g,
 		(_m, i) => inlineCodes[Number(i)],
 	);
+
+	// Earlier list/table transforms can consume one of the blank lines that
+	// separated a block from following prose. Re-establish block boundaries so
+	// a chunk beginning with </ul> cannot pull a paragraph and heading into the
+	// same unwrapped HTML fragment.
+	markdown = markdown
+		.replace(
+			/([^\n])(<(?:h[1-6]|div|ul|ol|table|hr|img)\b)/gi,
+			"$1\n\n$2",
+		)
+		.replace(
+			/(<\/(?:h[1-6]|div|ul|ol|table)>)(?!\n{2})/gi,
+			"$1\n\n",
+		);
 
 	// Paragraphs — code block placeholders must be restored AFTER this step so
 	// blank lines inside fenced blocks don't get split into separate paragraphs.

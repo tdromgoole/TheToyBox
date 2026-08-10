@@ -15,7 +15,7 @@
  *   F7  Courier-Oblique
  *   F8  Courier-BoldOblique
  *
- * Heading sizes (pts): h1=20 h2=17 h3=15 h4=13 h5=11 h6=10
+ * Heading sizes (pts): h1=22 h2=18 h3=15 h4=13 h5=11 h6=10
  * Body text size: 10pt, line height 14pt
  * Code text size: 9pt, line height 13pt
  */
@@ -42,7 +42,7 @@ const BODY_FS = 10;
 const BODY_LH = 14;
 const CODE_FS = 9;
 const CODE_LH = 13;
-const H_SIZES = [0, 20, 17, 15, 13, 11, 10]; // index = heading level 1–6
+const H_SIZES = [0, 22, 18, 15, 13, 11, 10]; // index = heading level 1–6
 
 function bodyFont(bold: boolean, italic: boolean): string {
 	if (bold && italic) {
@@ -586,6 +586,16 @@ function extractBlocks(html: string): BlockType[] {
 	return blocks;
 }
 
+/** Diagnostic summary of the private HTML block extraction stage. */
+export function describeMarkdownPdfBlocks(html: string): string[] {
+	return extractBlocks(html).map((block, index) => {
+		if (block.kind === "alert") {
+			return `${index}:alert:${block.type}:title=${block.titleHtml}:body=${block.bodyHtml}`;
+		}
+		return `${index}:${block.kind}`;
+	});
+}
+
 // ─── Word-wrap ────────────────────────────────────────────────────────────────
 interface WrappedLine {
 	spans: InlineSpan[];
@@ -637,6 +647,7 @@ export function buildMarkdownPdfPages(
 	date: string,
 	languageLabel = "Markdown",
 	imageCollector?: PdfImage[],
+	codeHighlighter?: (text: string, language: string) => StyledRun[][] | undefined,
 ): string[] {
 	const blocks = extractBlocks(html);
 	const pages: string[] = [];
@@ -739,14 +750,17 @@ export function buildMarkdownPdfPages(
 			case "h": {
 				const fs = H_SIZES[block.level] ?? BODY_FS;
 				const lh = fs + 5;
-				needSpace(lh + 8);
-				if (block.level <= 2) {
-					y -= 6; // extra space before h1/h2
-				}
+				const topMargin = block.level <= 2 ? 14 : 10;
+				needSpace(lh + topMargin + 14);
+				y -= topMargin;
+				const headingBaseline = y;
 				emitInlineText(block.html, fs, lh, 0, C_HEAD);
 				if (block.level <= 2) {
-					strokeRule(y - 2, 0.4, `${C_RULE} rg`);
-					y -= 8;
+					// Anchor the divider to the visible text rather than the full
+					// heading line box, matching GitHub/VS Code Markdown spacing.
+					const ruleY = headingBaseline - 9;
+					strokeRule(ruleY, 0.4, `${C_RULE} rg`);
+					y = ruleY - 10;
 				}
 				emitParagraphSpacing();
 				break;
@@ -759,11 +773,14 @@ export function buildMarkdownPdfPages(
 			}
 
 			case "pre": {
+				const shikiRuns = block.lang
+					? codeHighlighter?.(block.text, block.lang)
+					: undefined;
 				const ext = LANG_TO_EXT[(block.lang ?? "").toLowerCase()] ?? "";
 				const profile = ext
 					? CODE_TOKENIZERS.find((p) => p.extensions.includes(ext))
 					: undefined;
-				const lineRuns: StyledRun[][] = profile
+				const lineRuns: StyledRun[][] = shikiRuns ?? (profile
 					? runsToLines(
 							buildStyledRuns(
 								block.text,
@@ -772,7 +789,7 @@ export function buildMarkdownPdfPages(
 						)
 					: block.text
 							.split("\n")
-							.map((l) => (l ? [{ text: l }] : []));
+							.map((l) => (l ? [{ text: l }] : [])));
 
 				const lineCount = lineRuns.length;
 				const blockH = lineCount * CODE_LH + 16;
@@ -851,12 +868,24 @@ export function buildMarkdownPdfPages(
 
 			case "task": {
 				for (const item of block.items) {
-					const mark = item.checked ? "\u2713" : "\u25A1";
+					needSpace(BODY_LH);
+					const boxX = MX + 1;
+					const boxY = y - 2;
+					parts.push(
+						`q\n${C_DIM} RG\n0.8 w\n${boxX} ${boxY} 8 8 re S\nQ\n`,
+					);
+					if (item.checked) {
+						parts.push(
+							`q\n${C_HEAD} RG\n1.2 w\n` +
+								`${boxX + 1.5} ${boxY + 4} m ${boxX + 3.5} ${boxY + 2} l ` +
+								`${boxX + 7} ${boxY + 6.5} l S\nQ\n`,
+						);
+					}
 					emitInlineText(
-						`${mark}  ${item.html}`,
+						item.html,
 						BODY_FS,
 						BODY_LH,
-						12,
+						15,
 						C_BODY,
 					);
 				}
@@ -994,14 +1023,23 @@ export function buildMarkdownPdfPages(
 			}
 
 			case "alert": {
+				const ALERT_TOP_PAD = 16;
+				const ALERT_BOTTOM_PAD = 10;
+				const ALERT_BOTTOM_MARGIN = 12;
+				const ALERT_TITLE_GAP = 4;
 				const alertLines = parseInlineHtml(block.bodyHtml);
 				const wrappedBody = wrapInlineSpans(
 					alertLines,
 					CW - 24,
 					BODY_FS,
 				);
-				const alertH = (wrappedBody.length + 1) * BODY_LH + 20;
-				needSpace(alertH);
+				const alertH =
+					ALERT_TOP_PAD +
+					BODY_LH +
+					ALERT_TITLE_GAP +
+					wrappedBody.length * BODY_LH +
+					ALERT_BOTTOM_PAD;
+				needSpace(alertH + ALERT_BOTTOM_MARGIN);
 
 				const ac = ALERT_COLORS[block.type] ?? ALERT_COLORS.note;
 				const bg = ALERT_BG[block.type] ?? ALERT_BG.note;
@@ -1017,24 +1055,42 @@ export function buildMarkdownPdfPages(
 					`q\n${ac} rg\n${MX} ${bottom} 4 ${alertH} re f\nQ\n`,
 				);
 
-				y -= 10;
+				y -= ALERT_TOP_PAD;
 
-				// Title (strip alert-icon span text — it's a Material Symbol name word)
-				const titleSpans = parseInlineHtml(block.titleHtml).filter(
-					(s) =>
-						!s.text.match(
-							/^(info|lightbulb|priority_high|warning|cancel)$/,
-						),
+				// Material Symbols are font ligatures and cannot be embedded using the
+				// PDF's standard fonts. Remove the source span before parsing so its
+				// ligature name (for example, "info") never leaks into printed text.
+				const titleHtml = block.titleHtml.replace(
+					/<span\b[^>]*class=["'][^"']*\balert-icon\b[^"']*["'][^>]*>[\s\S]*?<\/span>\s*/i,
+					"",
 				);
+				const titleSpans = parseInlineHtml(titleHtml);
 				if (titleSpans.length) {
+					// Draw a resolution-independent circled callout glyph.
+					const iconX = MX + 19;
+					const iconY = y + 3;
+					const radius = 6;
+					const bezier = 3.314;
 					parts.push(
-						`BT\n/F2 ${BODY_FS} Tf\n${MX + 12} ${y} Td\n${tc} rg `,
+						`q\n${tc} RG\n1.2 w\n` +
+							`${iconX + radius} ${iconY} m ` +
+							`${iconX + radius} ${iconY + bezier} ${iconX + bezier} ${iconY + radius} ${iconX} ${iconY + radius} c ` +
+							`${iconX - bezier} ${iconY + radius} ${iconX - radius} ${iconY + bezier} ${iconX - radius} ${iconY} c ` +
+							`${iconX - radius} ${iconY - bezier} ${iconX - bezier} ${iconY - radius} ${iconX} ${iconY - radius} c ` +
+							`${iconX + bezier} ${iconY - radius} ${iconX + radius} ${iconY - bezier} ${iconX + radius} ${iconY} c S\nQ\n`,
+					);
+					const iconLabel = block.type === "note" ? "i" : "!";
+					parts.push(
+						`BT\n/F2 8 Tf\n${iconX - 1.5} ${iconY - 2.5} Td\n${tc} rg (${iconLabel}) Tj\nET\n`,
+					);
+					parts.push(
+						`BT\n/F2 ${BODY_FS} Tf\n${MX + 32} ${y} Td\n${tc} rg `,
 					);
 					for (const s of titleSpans) {
 						parts.push(`(${esc(s.text)}) Tj `);
 					}
 					parts.push(`\nET\n`);
-					y -= BODY_LH + 4;
+					y -= BODY_LH + ALERT_TITLE_GAP;
 				}
 
 				// Body
@@ -1048,8 +1104,8 @@ export function buildMarkdownPdfPages(
 					parts.push(`\nET\n`);
 					y -= BODY_LH;
 				}
-				y -= 10;
-				emitParagraphSpacing();
+				y -= ALERT_BOTTOM_PAD;
+				y -= ALERT_BOTTOM_MARGIN;
 				break;
 			}
 

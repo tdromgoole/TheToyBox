@@ -55,6 +55,9 @@ export const TOKEN_COLORS: Record<string, string> = {
 	shellVar: "#8250df",
 	shellString: "#0a3069",
 	shellFlag: "#0969da",
+	phpVariable: "#8250df",
+	phpConstant: "#0550ae",
+	phpFunction: "#953800",
 };
 
 export const TOKEN_BOLD = new Set([

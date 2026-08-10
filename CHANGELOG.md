@@ -2,6 +2,18 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [1.2.0] - 2026-08-09
+
+- **New Feature: Broad PDF syntax highlighting** — Markdown code blocks are now highlighted with Shiki, providing consistent print-friendly coloring for its bundled languages instead of relying on a small set of hand-written language rules. Unknown languages still fall back safely to plain code.
+- **Improvement: Reliable, offline Mermaid export** — Mermaid diagrams are rendered from a library packaged with The Toy Box. Export no longer depends on a CDN or internet connection, and a production-build check verifies that the required browser bundle is present and correct.
+- **Improvement: GitHub-style alerts in PDFs** — Note, tip, important, warning, and caution blocks retain their title, body, icon, colors, padding, and spacing when exported. Standard GitHub syntax and the existing Toy Box custom-title syntax remain supported.
+- **Improvement: Cleaner Markdown PDF layout** — Heading sizes, spacing, divider placement, lists, paragraphs, tables, and page flow now more closely match the Markdown preview.
+- **Improvement: Printable task lists** — Markdown task-list items now export as clear checked or unchecked boxes instead of ordinary bullet points.
+- **Improvement: Preparing PDF indicator** — Rendering windows are dimmed behind a loading card and spinner while Mermaid diagrams and HTML content are prepared.
+- **Bug Fix: Mermaid document round-trip** — Rendering Mermaid no longer strips alert structure, task-list state, or fenced-code language information from the rest of the document.
+- **Bug Fix: PHP code coloring** — PHP fenced code blocks now receive full syntax highlighting in exported PDFs.
+- **Maintenance: Release packaging check** — Production packaging now fails early if the local Mermaid runtime asset is missing or does not match the installed dependency.
+
 ## [1.1.9]
 
 - **Bug Fix**: **Save as PDF — Tables in Markdown now always render correctly** — Tables were silently dropped when exporting Markdown files saved with Windows line endings (CRLF). Line endings are now normalised before rendering, so tables appear correctly regardless of how the file was saved.

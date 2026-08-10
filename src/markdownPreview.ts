@@ -20,9 +20,51 @@ export function extendMarkdownItWithAlerts(md: any): any {
 		}
 
 		const tokens = state.tokens;
+		const alertPattern =
+			/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?[ \t]*/i;
+		const renderAlert = (content: string): string | undefined => {
+			const match = content.match(alertPattern);
+			if (!match) {
+				return undefined;
+			}
+
+			const type = match[1].toLowerCase();
+			const info = alertData[type];
+			const displayTitle = match[2]?.trim() || info.title;
+			const rendered = md.renderInline(content.slice(match[0].length).trim());
+			const safeTitle = displayTitle
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;");
+			const body = rendered ? `<p>${rendered}</p>` : "";
+			return (
+				`<div class="markdown-alert ${type}">` +
+				`<p class="alert-title"><span class="alert-icon">${info.icon}</span> ${safeTitle}</p>` +
+				body +
+				`</div>\n`
+			);
+		};
 
 		for (let i = 0; i < tokens.length; i++) {
-			if (tokens[i].type !== "blockquote_open") continue;
+			// Backward-compatible shorthand: [!NOTE] Body or [!NOTE][Heading]
+			if (
+				tokens[i].type === "paragraph_open" &&
+				tokens[i + 1]?.type === "inline" &&
+				tokens[i + 2]?.type === "paragraph_close"
+			) {
+				const html = renderAlert(tokens[i + 1].content);
+				if (html) {
+					const token = new state.Token("html_block", "", 0);
+					token.content = html;
+					tokens.splice(i, 3, token);
+				}
+				continue;
+			}
+
+			if (tokens[i].type !== "blockquote_open") {
+				continue;
+			}
 
 			let closeIdx = i + 1;
 			while (
@@ -42,9 +84,7 @@ export function extendMarkdownItWithAlerts(md: any): any {
 			if (firstInlineIdx === -1) continue;
 
 			const firstContent = tokens[firstInlineIdx].content;
-			const match = firstContent.match(
-				/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\[([^\]]*)\])?[ \t]*/i,
-			);
+			const match = firstContent.match(alertPattern);
 			if (!match) continue;
 
 			const type = match[1].toLowerCase();

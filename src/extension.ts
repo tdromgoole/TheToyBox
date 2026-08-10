@@ -15,6 +15,8 @@ import {
 	registerMarkdownPreviewProvider,
 	extendMarkdownItWithAlerts,
 } from "./markdownPreview";
+import { renderMarkdownToHtml } from "./markdownRenderer";
+import { prepareShikiCodeHighlighter } from "./shikiHighlighter";
 import { installJetBrainsMonoNerdFont } from "./fontInstaller";
 import { registerWordFrequency } from "./wordFrequency";
 import {
@@ -239,8 +241,13 @@ function _activate(context: vscode.ExtensionContext) {
 
 	// Return the markdown-it extension hook so the built-in preview picks up alert styling
 	return {
-		extendMarkdownIt(md: any) {
+		 extendMarkdownIt(md: any) {
 			return extendMarkdownItWithAlerts(md);
+		},
+		renderMarkdownToHtml,
+		async highlightCodeForPdf(code: string, language: string) {
+			const highlight = await prepareShikiCodeHighlighter([language]);
+			return highlight(code, language);
 		},
 	};
 }

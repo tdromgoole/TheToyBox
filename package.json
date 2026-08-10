@@ -1,8 +1,8 @@
 {
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
-	"description": "The Toy Box is a VS Code extension that bundles essential productivity tools: auto-cleanup on save, a smarter code outline for SQL/PHP/Web, custom comment highlighting, GitHub-style Markdown alerts, JSON formatting, equals alignment, real-time HTML/XML tag renaming, and Quick Notes — all in one package.",
-	"version": "1.1.9",
+	"description": "A practical VS Code toolkit for navigation, editing, notes, Markdown, PDF export, Git safety, and everyday developer productivity.",
+	"version": "1.2.0",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -46,10 +46,8 @@
 		"session restore",
 		"scratch pad",
 		"quick notes",
-		"notes",
 		"print",
 		"pdf",
-		"save as pdf",
 		"mermaid",
 		"diagram",
 		"http",
@@ -794,7 +792,7 @@
 		"vscode:prepublish": "npm run package",
 		"compile": "webpack",
 		"watch": "webpack --watch",
-		"package": "webpack --mode production --devtool hidden-source-map",
+		"package": "webpack --mode production --devtool hidden-source-map && node scripts/verify-package-assets.mjs",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -815,5 +813,9 @@
 		"typescript-eslint": "^8.56.1",
 		"webpack": "^5.105.3",
 		"webpack-cli": "^4.10.0"
+	},
+	"dependencies": {
+		"mermaid": "^11.16.1",
+		"shiki": "^4.0.2"
 	}
 }
