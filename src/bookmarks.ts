@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
+import { bookmarkMessage } from "./webviewMessages.js";
 
 interface Bookmark {
 	uri: string;
@@ -48,6 +49,10 @@ export class BookmarksProvider implements vscode.WebviewViewProvider {
 		};
 
 		webviewView.webview.onDidReceiveMessage((msg) => {
+			msg = bookmarkMessage(msg);
+			if (!msg) {
+				return;
+			}
 			switch (msg.command) {
 				case "goTo":
 					this._jumpTo(msg.uri, msg.line);

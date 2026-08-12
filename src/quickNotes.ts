@@ -2,10 +2,14 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { stringRecord } from "./persistedState.js";
 
 const LANG_MAP_KEY = "toybox.quickNotes.languages";
-const NEXT_ID_KEY = "toybox.quickNotes.nextId";
 const UNTITLED_MAP_KEY = "toybox.quickNotes.untitledMap";
+
+function loadStringMap(key: string): Record<string, string> {
+	return stringRecord(extContext.globalState.get<unknown>(key));
+}
 
 let notesDir: string;
 let extContext: vscode.ExtensionContext;
@@ -257,10 +261,7 @@ async function applyStoredLanguage(
 	doc: vscode.TextDocument,
 	noteName: string,
 ): Promise<void> {
-	const langMap = extContext.globalState.get<Record<string, string>>(
-		LANG_MAP_KEY,
-		{},
-	);
+	const langMap = loadStringMap(LANG_MAP_KEY);
 	const savedLang = langMap[noteName];
 	if (savedLang && savedLang !== doc.languageId) {
 		try {
@@ -333,10 +334,7 @@ async function openQuickNote(): Promise<void> {
 		return;
 	}
 
-	const langMap = extContext.globalState.get<Record<string, string>>(
-		LANG_MAP_KEY,
-		{},
-	);
+	const langMap = loadStringMap(LANG_MAP_KEY);
 	const items = files.map((f) => ({
 		label: f,
 		description: langMap[f] ?? "plaintext",
@@ -378,10 +376,7 @@ async function onDocumentOpened(doc: vscode.TextDocument): Promise<void> {
 		// it via "Select Language Mode" (which fires a close+reopen) or
 		// applyStoredLanguage previously set it. Persist the current language so
 		// we don't revert it on the next open.
-		const langMap = extContext.globalState.get<Record<string, string>>(
-			LANG_MAP_KEY,
-			{},
-		);
+		const langMap = loadStringMap(LANG_MAP_KEY);
 		if (langMap[noteName] !== doc.languageId) {
 			langMap[noteName] = doc.languageId;
 			extContext.globalState.update(LANG_MAP_KEY, langMap);
@@ -452,10 +447,7 @@ function onDocumentChanged(e: vscode.TextDocumentChangeEvent): void {
 			}
 			await doc.save();
 			// Persist the current language alongside the save.
-			const langMap = extContext.globalState.get<Record<string, string>>(
-				LANG_MAP_KEY,
-				{},
-			);
+			const langMap = loadStringMap(LANG_MAP_KEY);
 			langMap[noteName] = doc.languageId;
 			extContext.globalState.update(LANG_MAP_KEY, langMap);
 		}, 1000),
@@ -478,10 +470,7 @@ function handleUntitledChange(doc: vscode.TextDocument): void {
 	);
 
 	// Assign a note name on first change so it stays stable across timer resets.
-	const untitledMap = extContext.globalState.get<Record<string, string>>(
-		UNTITLED_MAP_KEY,
-		{},
-	);
+	const untitledMap = loadStringMap(UNTITLED_MAP_KEY);
 	if (!untitledMap[uriStr]) {
 		const existingIds = new Set(
 			fs
@@ -566,19 +555,13 @@ async function convertUntitledToNote(
 	// Remove from untitled tracking BEFORE closing the tab. The close triggers
 	// onDocumentClosed synchronously; if the map entry is still present when
 	// that fires, the handler shows the "auto-saved" notification incorrectly.
-	const untitledMap = extContext.globalState.get<Record<string, string>>(
-		UNTITLED_MAP_KEY,
-		{},
-	);
+	const untitledMap = loadStringMap(UNTITLED_MAP_KEY);
 	delete untitledMap[uriStr];
 	extContext.globalState.update(UNTITLED_MAP_KEY, untitledMap);
 	untitledContent.delete(uriStr);
 
 	// Persist the language.
-	const langMap = extContext.globalState.get<Record<string, string>>(
-		LANG_MAP_KEY,
-		{},
-	);
+	const langMap = loadStringMap(LANG_MAP_KEY);
 	langMap[noteName] = doc.languageId;
 	extContext.globalState.update(LANG_MAP_KEY, langMap);
 
@@ -611,10 +594,7 @@ async function onDocumentClosed(doc: vscode.TextDocument): Promise<void> {
 	if (doc.uri.scheme === "untitled") {
 		const uriStr = doc.uri.toString();
 		out.appendLine(`[close] untitled closed: ${uriStr}`);
-		const untitledMap = extContext.globalState.get<Record<string, string>>(
-			UNTITLED_MAP_KEY,
-			{},
-		);
+		const untitledMap = loadStringMap(UNTITLED_MAP_KEY);
 		const noteName = untitledMap[uriStr];
 		if (!noteName) {
 			out.appendLine(
@@ -695,10 +675,7 @@ async function onDocumentClosed(doc: vscode.TextDocument): Promise<void> {
 		saveTimers.delete(noteName);
 		try {
 			fs.writeFileSync(filePath, doc.getText(), "utf8");
-			const langMap = extContext.globalState.get<Record<string, string>>(
-				LANG_MAP_KEY,
-				{},
-			);
+			const langMap = loadStringMap(LANG_MAP_KEY);
 			langMap[noteName] = doc.languageId;
 			extContext.globalState.update(LANG_MAP_KEY, langMap);
 		} catch {
@@ -801,10 +778,7 @@ function deleteNote(filePath: string, noteName: string): void {
 	} catch {
 		/* ignore */
 	}
-	const langMap = extContext.globalState.get<Record<string, string>>(
-		LANG_MAP_KEY,
-		{},
-	);
+	const langMap = loadStringMap(LANG_MAP_KEY);
 	delete langMap[noteName];
 	extContext.globalState.update(LANG_MAP_KEY, langMap);
 }

@@ -81,11 +81,11 @@ export function extendMarkdownItWithAlerts(md: any): any {
 					break;
 				}
 			}
-			if (firstInlineIdx === -1) continue;
+			if (firstInlineIdx === -1) {continue;}
 
 			const firstContent = tokens[firstInlineIdx].content;
 			const match = firstContent.match(alertPattern);
-			if (!match) continue;
+			if (!match) {continue;}
 
 			const type = match[1].toLowerCase();
 			const info = alertData[type];
@@ -93,7 +93,7 @@ export function extendMarkdownItWithAlerts(md: any): any {
 
 			const contentParts: string[] = [];
 			const firstRemainder = firstContent.slice(match[0].length).trim();
-			if (firstRemainder) contentParts.push(firstRemainder);
+			if (firstRemainder) {contentParts.push(firstRemainder);}
 			for (let k = firstInlineIdx + 1; k < closeIdx; k++) {
 				if (tokens[k].type === "inline" && tokens[k].content.trim()) {
 					contentParts.push(tokens[k].content.trim());

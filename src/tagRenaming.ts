@@ -35,32 +35,32 @@ function findStructuralPartner(
 		for (let i = matches.length - 1; i >= 0; i--) {
 			const match = matches[i];
 			const matchText = match[0];
-			if (matchText.endsWith("/>")) continue;
+			if (matchText.endsWith("/>")) {continue;}
 
 			if (matchText.startsWith("</")) {
 				depth++;
 			} else {
-				if (depth === 0) return match.index;
+				if (depth === 0) {return match.index;}
 				depth--;
 			}
 		}
 	} else {
 		const firstBracketClose = text.indexOf(">", offset);
-		if (firstBracketClose === -1) return null;
+		if (firstBracketClose === -1) {return null;}
 
 		// Check if the current tag is self-closing
-		if (text[firstBracketClose - 1] === "/") return null;
+		if (text[firstBracketClose - 1] === "/") {return null;}
 
 		tagRegex.lastIndex = firstBracketClose + 1;
 		let m: RegExpExecArray | null;
 		while ((m = tagRegex.exec(text))) {
 			const matchText = m[0];
-			if (matchText.endsWith("/>")) continue;
+			if (matchText.endsWith("/>")) {continue;}
 
 			if (!matchText.startsWith("</")) {
 				depth++;
 			} else {
-				if (depth === 0) return m.index;
+				if (depth === 0) {return m.index;}
 				depth--;
 			}
 		}
@@ -75,13 +75,13 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 	const disposable = vscode.workspace.onDidChangeTextDocument(
 		async (event) => {
 			// 1. Initial Guards
-			if (isApplyingRename || event.contentChanges.length !== 1) return;
+			if (isApplyingRename || event.contentChanges.length !== 1) {return;}
 
 			const editor = vscode.window.activeTextEditor;
-			if (!editor || editor.document !== event.document) return;
+			if (!editor || editor.document !== event.document) {return;}
 
 			const config = vscode.workspace.getConfiguration("theToyBox");
-			if (!config.get<boolean>("autoRenameMatchingTags", true)) return;
+			if (!config.get<boolean>("autoRenameMatchingTags", true)) {return;}
 
 			const activeLanguages = config.get<string[]>(
 				"autoRenameTag.activationOnLanguage",
@@ -95,13 +95,13 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 				"javascriptreact",
 				"typescriptreact",
 			];
-			if (!activeLanguages.includes(editor.document.languageId)) return;
+			if (!activeLanguages.includes(editor.document.languageId)) {return;}
 
 			const maxLines = config.get<number>(
 				"performance.maxLinesForTagRename",
 				5000,
 			);
-			if (editor.document.lineCount > maxLines) return;
+			if (editor.document.lineCount > maxLines) {return;}
 
 			const document = event.document;
 			const change = event.contentChanges[0];
@@ -114,25 +114,25 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 				charPos + change.text.length,
 			);
 			const lastOpen = textBeforeCursor.lastIndexOf("<");
-			if (lastOpen === -1) return;
+			if (lastOpen === -1) {return;}
 
 			const tagContent = line.substring(lastOpen);
 			const nameMatch = tagContent.match(/^<\/?([a-zA-Z0-9_:-]*)/);
-			if (!nameMatch) return;
+			if (!nameMatch) {return;}
 
 			const tagName = nameMatch[1];
 			const isClosing = tagContent.startsWith("</");
 
 			// Blacklist Check
-			if (cachedVoidElements.has(tagName.toLowerCase())) return;
+			if (cachedVoidElements.has(tagName.toLowerCase())) {return;}
 
 			// Skip empty tag names (e.g. user deleted entire name, producing "<>")
-			if (!tagName) return;
+			if (!tagName) {return;}
 
 			// Verify cursor is in the tag name
 			const nameEndInLine =
 				lastOpen + (isClosing ? 2 : 1) + tagName.length;
-			if (charPos + change.text.length > nameEndInLine) return;
+			if (charPos + change.text.length > nameEndInLine) {return;}
 
 			// Skip incomplete/new tags that have no closing ">".
 			// When typing a brand-new tag like "<di", there is no matching ">"
@@ -152,14 +152,14 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 							isCompleteTag = true;
 							break scanAhead;
 						}
-						if (ch === "<") break scanAhead;
+						if (ch === "<") {break scanAhead;}
 					}
 				}
-				if (!isCompleteTag) return;
+				if (!isCompleteTag) {return;}
 			}
 
 			// 3. DEBOUNCE LOGIC
-			if (renameTimeout) clearTimeout(renameTimeout);
+			if (renameTimeout) {clearTimeout(renameTimeout);}
 
 			renameTimeout = setTimeout(async () => {
 				// Re-read the document state to avoid stale closure values
@@ -171,14 +171,14 @@ export function registerAutoTagRenaming(context: vscode.ExtensionContext) {
 					charPos + change.text.length,
 				);
 				const currentLastOpen = currentTextBefore.lastIndexOf("<");
-				if (currentLastOpen === -1) return;
+				if (currentLastOpen === -1) {return;}
 
 				const currentTagContent =
 					currentLine.substring(currentLastOpen);
 				const currentNameMatch = currentTagContent.match(
 					/^<\/?([a-zA-Z0-9_:-]*)/,
 				);
-				if (!currentNameMatch || !currentNameMatch[1]) return;
+				if (!currentNameMatch || !currentNameMatch[1]) {return;}
 
 				const currentTagName = currentNameMatch[1];
 				const currentIsClosing = currentTagContent.startsWith("</");

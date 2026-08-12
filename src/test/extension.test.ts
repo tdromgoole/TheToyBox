@@ -5,6 +5,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 // @ts-expect-error markdown-it does not ship TypeScript declarations.
 import MarkdownIt from 'markdown-it';
+import { renderMarkdownToHtml } from '../markdownRenderer.js';
+import { prepareShikiCodeHighlighter } from '../shikiHighlighter.js';
 // import * as myExtension from '../../extension';
 
 suite('Extension Test Suite', () => {
@@ -51,7 +53,7 @@ suite('Extension Test Suite', () => {
 		const extension = vscode.extensions.getExtension('ThomasDromgoole.theToyBox');
 		assert.ok(extension, 'The Toy Box extension was not found');
 		const api = await extension.activate();
-		const html = api.renderMarkdownToHtml('> [!NOTE]\nThe client provides:\n\nNext paragraph');
+		const html = renderMarkdownToHtml('> [!NOTE]\nThe client provides:\n\nNext paragraph');
 
 		assert.match(
 			html,
@@ -63,8 +65,9 @@ suite('Extension Test Suite', () => {
 	test('uses Shiki tokens for fenced-code languages', async () => {
 		const extension = vscode.extensions.getExtension('ThomasDromgoole.theToyBox');
 		assert.ok(extension, 'The Toy Box extension was not found');
-		const api = await extension.activate();
-		const lines = await api.highlightCodeForPdf('$token = getenv("TOKEN");', 'php');
+		await extension.activate();
+		const highlight = await prepareShikiCodeHighlighter(['php']);
+		const lines = highlight('$token = getenv("TOKEN");', 'php');
 
 		assert.ok(lines?.length);
 		assert.ok(lines.flat().some((run: { color?: string }) => Boolean(run.color)));
@@ -74,7 +77,7 @@ suite('Extension Test Suite', () => {
 		const extension = vscode.extensions.getExtension('ThomasDromgoole.theToyBox');
 		assert.ok(extension, 'The Toy Box extension was not found');
 		const api = await extension.activate();
-		const html = api.renderMarkdownToHtml(
+		const html = renderMarkdownToHtml(
 			'- First item\n\nSupplied during onboarding.\n\n## 14. Client Readiness Checklist\n\n- [ ] Ready',
 		);
 

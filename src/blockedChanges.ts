@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { execFileSync } from "child_process";
+import { ensurePreCommitHook, removePreCommitHook } from "./blockedChangesHook.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -9,36 +10,24 @@ import { execFileSync } from "child_process";
  *  the repo root. Used both by the extension and by the git pre-commit hook. */
 const BLOCKED_FILE = ".toybox-blocked.txt";
 
-/** Marker that lets us detect whether our hook snippet is already present. */
-const HOOK_MARKER = "# theToyBox:blocked-changes";
-
-/** Pure-sh pre-commit hook snippet.  Requires only git and a POSIX shell —
- *  no Node.js dependency — so it works with Git for Windows (Git Bash). */
-const PRE_COMMIT_HOOK_SNIPPET = `${HOOK_MARKER}
-TOYBOX_BLOCKED=".toybox-blocked.txt"
-if [ -f "$TOYBOX_BLOCKED" ]; then
-    TOYBOX_STAGED=$(git diff --cached --name-only)
-    if [ -n "$TOYBOX_STAGED" ]; then
-        TOYBOX_HITS=""
-        while IFS= read -r f || [ -n "$f" ]; do
-            [ -z "$f" ] && continue
-            if printf '%s\\n' "$TOYBOX_STAGED" | grep -qxF "$f"; then
-                TOYBOX_HITS="$TOYBOX_HITS   $f\\n"
-            fi
-        done < "$TOYBOX_BLOCKED"
-        if [ -n "$TOYBOX_HITS" ]; then
-            printf "\\nThe Toy Box: Commit blocked.\\nThese files are in \\"Blocked Changes\\":\\n%b\\n" "$TOYBOX_HITS"
-            printf "Unblock them via the Source Control view before committing.\\n\\n"
-            exit 1
-        fi
-    fi
-fi
-`;
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getWorkspaceRoot(): string | undefined {
-	return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+function getWorkspaceRoots(): string[] {
+	return vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
+}
+
+function getOwningRoot(uri: vscode.Uri): string | undefined {
+	const contains = (root: string) => {
+		const relative = path.relative(root, uri.fsPath);
+		return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+	};
+	const resolved = vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
+	if (resolved && contains(resolved)) {
+		return resolved;
+	}
+	return getWorkspaceRoots()
+		.filter(contains)
+		.sort((a, b) => b.length - a.length)[0];
 }
 
 function loadBlockedPaths(root: string): string[] {
@@ -174,7 +163,7 @@ function hideFromChanges(
 class BlockedFileItem extends vscode.TreeItem {
 	constructor(
 		public readonly relPath: string,
-		root: string,
+		public readonly root: string,
 	) {
 		super(path.basename(relPath), vscode.TreeItemCollapsibleState.None);
 		this.resourceUri = vscode.Uri.file(path.join(root, relPath));
@@ -195,7 +184,7 @@ class BlockedChangesProvider implements vscode.TreeDataProvider<BlockedFileItem>
 		new vscode.EventEmitter<undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-	constructor(private readonly root: string) {}
+	constructor(private readonly roots: string[]) {}
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire(undefined);
@@ -206,8 +195,8 @@ class BlockedChangesProvider implements vscode.TreeDataProvider<BlockedFileItem>
 	}
 
 	getChildren(): BlockedFileItem[] {
-		return loadBlockedPaths(this.root).map(
-			(p) => new BlockedFileItem(p, this.root),
+		return this.roots.flatMap((root) =>
+			loadBlockedPaths(root).map((p) => new BlockedFileItem(p, root)),
 		);
 	}
 }
@@ -256,60 +245,23 @@ function removeGitignoreEntry(root: string): void {
 	}
 }
 
-/** Installs (or appends) the hook snippet to .git/hooks/pre-commit.
- *  Silently skips if the .git/hooks directory does not exist. */
-function ensurePreCommitHook(root: string): void {
-	const hookPath = path.join(root, ".git", "hooks", "pre-commit");
-	const hooksDir = path.dirname(hookPath);
-
-	if (!fs.existsSync(hooksDir)) {
-		return;
-	}
-
-	try {
-		if (!fs.existsSync(hookPath)) {
-			fs.writeFileSync(
-				hookPath,
-				`#!/bin/sh\n${PRE_COMMIT_HOOK_SNIPPET}`,
-				{
-					mode: 0o755,
-				},
-			);
-			return;
-		}
-
-		const existing = fs.readFileSync(hookPath, "utf8");
-		if (!existing.includes(HOOK_MARKER)) {
-			fs.writeFileSync(
-				hookPath,
-				`${existing.trimEnd()}\n\n${PRE_COMMIT_HOOK_SNIPPET}`,
-				{ mode: 0o755 },
-			);
-		}
-	} catch {
-		// Non-fatal: hook installation failure should not break the extension
-	}
-}
-
 // ─── Public registration ──────────────────────────────────────────────────────
 
 export function registerBlockedChanges(context: vscode.ExtensionContext): void {
-	const root = getWorkspaceRoot();
-	if (!root) {
+	const roots = getWorkspaceRoots();
+	if (roots.length === 0) {
 		return;
 	}
 
 	// A TreeDataProvider is used instead of an SCM provider so the
 	// "Blocked Changes" section is permanently visible in the Source Control
 	// panel and is never hidden by VS Code when the list is empty.
-	const provider = new BlockedChangesProvider(root);
+	const provider = new BlockedChangesProvider(roots);
 	const treeView = vscode.window.createTreeView("blockedChangesView", {
 		treeDataProvider: provider,
 	});
 
 	context.subscriptions.push(treeView);
-
-	ensurePreCommitHook(root);
 
 	// On activation, ensure all already-blocked files are hidden from Changes
 	// (the git index flag may have been lost after a clone or index reset).
@@ -319,8 +271,15 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 			.get<boolean>("blockedChanges.enabled", true);
 
 	if (isEnabled()) {
-		for (const relPath of loadBlockedPaths(root)) {
-			hideFromChanges(root, relPath, true);
+		for (const root of roots) {
+			ensurePreCommitHook(root);
+			for (const relPath of loadBlockedPaths(root)) {
+				hideFromChanges(root, relPath, true);
+			}
+		}
+	} else {
+		for (const root of roots) {
+			removePreCommitHook(root);
 		}
 	}
 
@@ -329,8 +288,15 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration("theToyBox.blockedChanges.enabled")) {
 				const enabled = isEnabled();
-				for (const relPath of loadBlockedPaths(root)) {
-					hideFromChanges(root, relPath, enabled);
+				for (const root of roots) {
+					if (enabled) {
+						ensurePreCommitHook(root);
+					} else {
+						removePreCommitHook(root);
+					}
+					for (const relPath of loadBlockedPaths(root)) {
+						hideFromChanges(root, relPath, enabled);
+					}
 				}
 			}
 		}),
@@ -345,7 +311,9 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 			.get<boolean>("blockedChanges.addToGitignore", false);
 
 	if (isGitignoreEnabled()) {
-		ensureGitignoreEntry(root);
+		for (const root of roots) {
+			ensureGitignoreEntry(root);
+		}
 	}
 
 	context.subscriptions.push(
@@ -356,7 +324,9 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				)
 			) {
 				if (isGitignoreEnabled()) {
-					ensureGitignoreEntry(root);
+					for (const root of roots) {
+						ensureGitignoreEntry(root);
+					}
 				} else {
 					const choice = await vscode.window.showWarningMessage(
 						`Remove "${BLOCKED_FILE}" from .gitignore?`,
@@ -365,7 +335,9 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 						"No",
 					);
 					if (choice === "Yes") {
-						removeGitignoreEntry(root);
+						for (const root of roots) {
+							removeGitignoreEntry(root);
+						}
 					}
 				}
 			}
@@ -380,9 +352,10 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 
 	let branchWarnShown = false;
 
-	const getDirtyBlocked = (): string[] => {
-		try {
-			return loadBlockedPaths(root).filter((relPath) => {
+	const getDirtyBlocked = (): Array<{ root: string; relPath: string }> =>
+		roots.flatMap((root) => {
+			try {
+				return loadBlockedPaths(root).filter((relPath) => {
 				if (!isTrackedByGit(root, relPath)) {
 					return false;
 				}
@@ -400,18 +373,18 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				} catch {
 					return false;
 				}
-			});
-		} catch {
-			return [];
-		}
-	};
+				}).map((relPath) => ({ root, relPath }));
+			} catch {
+				return [];
+			}
+		});
 
 	/** Re-read the persisted list, refresh the tree, and update status messages.
 	 *  Also checks for dirty blocked files and shows a branch-switch warning. */
 
 	const refresh = () => {
 		provider.refresh();
-		const blocked = loadBlockedPaths(root);
+		const blocked = roots.flatMap((root) => loadBlockedPaths(root));
 
 		if (blocked.length === 0) {
 			treeView.message =
@@ -430,7 +403,7 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 			if (!branchWarnShown) {
 				branchWarnShown = true;
 				const names = dirty
-					.map((p) => `"${path.basename(p)}"`)
+					.map(({ relPath }) => `"${path.basename(relPath)}"`)
 					.join(", ");
 				vscode.window
 					.showWarningMessage(
@@ -467,6 +440,11 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				if (!resource?.resourceUri || !isEnabled()) {
 					return;
 				}
+				const root = getOwningRoot(resource.resourceUri);
+				if (!root) {
+					vscode.window.showWarningMessage("The Toy Box: The selected file is outside the workspace.");
+					return;
+				}
 				const rel = toRelativePosix(root, resource.resourceUri.fsPath);
 				const blocked = loadBlockedPaths(root);
 				if (!blocked.includes(rel)) {
@@ -481,9 +459,7 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 					// Force VS Code's Git extension to re-scan immediately so the
 					// file disappears from the Changes view without waiting for
 					// the next poll cycle (which causes a 2–3 s visible delay).
-					const api = vscode.extensions
-						.getExtension("vscode.git")
-						?.exports?.getAPI(1);
+					const api = getActiveGitApi();
 					await api?.getRepository(resource.resourceUri)?.status();
 					refresh();
 				}
@@ -494,17 +470,15 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand(
 			"theToyBox.unblockChange",
 			async (item: BlockedFileItem) => {
-				if (!item?.relPath) {
+				if (!item?.relPath || !item.root) {
 					return;
 				}
-				hideFromChanges(root, item.relPath, false);
+				hideFromChanges(item.root, item.relPath, false);
 				saveBlockedPaths(
-					root,
-					loadBlockedPaths(root).filter((p) => p !== item.relPath),
+					item.root,
+					loadBlockedPaths(item.root).filter((p) => p !== item.relPath),
 				);
-				const api = vscode.extensions
-					.getExtension("vscode.git")
-					?.exports?.getAPI(1);
+				const api = getActiveGitApi();
 				await api?.getRepository(item.resourceUri)?.status();
 				refresh();
 			},
@@ -529,9 +503,7 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 					return;
 				}
 
-				const gitExt =
-					vscode.extensions.getExtension("vscode.git")?.exports;
-				const api = gitExt?.getAPI(1);
+				const api = getActiveGitApi();
 				const repo = api?.getRepository(item.resourceUri);
 
 				if (!repo) {
@@ -542,12 +514,12 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				}
 
 				try {
-					hideFromChanges(root, item.relPath, false);
+					hideFromChanges(item.root, item.relPath, false);
 					await repo.clean([item.resourceUri]);
 				} catch (err: unknown) {
 					// Re-apply the hide so the file stays hidden in Changes
 					// and remains in the Blocked Changes list in a consistent state.
-					hideFromChanges(root, item.relPath, true);
+					hideFromChanges(item.root, item.relPath, true);
 					const msg =
 						err instanceof Error ? err.message : String(err);
 					vscode.window.showErrorMessage(
@@ -557,8 +529,8 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 				}
 
 				saveBlockedPaths(
-					root,
-					loadBlockedPaths(root).filter((p) => p !== item.relPath),
+					item.root,
+					loadBlockedPaths(item.root).filter((p) => p !== item.relPath),
 				);
 				refresh();
 			},
@@ -569,6 +541,10 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 	// Re-check dirty state whenever the user saves a blocked file.
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument((doc) => {
+			const root = getOwningRoot(doc.uri);
+			if (!root) {
+				return;
+			}
 			const rel = toRelativePosix(root, doc.uri.fsPath);
 			if (loadBlockedPaths(root).includes(rel)) {
 				refresh();
@@ -581,14 +557,25 @@ export function registerBlockedChanges(context: vscode.ExtensionContext): void {
 	// so the warning clears automatically once the user resolves the situation.
 	// Debounced to avoid hammering git on rapid-fire change events.
 	let stateRefreshTimer: ReturnType<typeof setTimeout> | undefined;
-	const gitExt = vscode.extensions.getExtension("vscode.git")?.exports;
-	const gitRepo = gitExt?.getAPI(1)?.getRepository(vscode.Uri.file(root));
-	if (gitRepo) {
-		context.subscriptions.push(
-			gitRepo.state.onDidChange(() => {
-				clearTimeout(stateRefreshTimer);
-				stateRefreshTimer = setTimeout(refresh, 1500);
-			}),
-		);
+	const gitApi = getActiveGitApi();
+	for (const root of roots) {
+		const gitRepo = gitApi?.getRepository(vscode.Uri.file(root));
+		if (gitRepo) {
+			context.subscriptions.push(
+				gitRepo.state.onDidChange(() => {
+					clearTimeout(stateRefreshTimer);
+					stateRefreshTimer = setTimeout(refresh, 1500);
+				}),
+			);
+		}
+	}
+}
+
+function getActiveGitApi(): any | undefined {
+	try {
+		const extension = vscode.extensions.getExtension("vscode.git");
+		return extension?.isActive ? extension.exports?.getAPI(1) : undefined;
+	} catch {
+		return undefined;
 	}
 }

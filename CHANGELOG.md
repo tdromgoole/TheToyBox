@@ -2,6 +2,18 @@
 
 All notable changes to the "theToyBox" extension will be documented in this file.
 
+## [Unreleased]
+
+## [1.3.0] - 2026-08-11
+
+- **New Feature: Feature documentation links** — Add an `@docs` reference near the top of a source file to display a clickable book link that opens the related Markdown document. Workspace-relative, source-relative, and quoted paths are supported across programming languages.
+- **Reliability: Complete validation pass** — Added clean deterministic builds, packaged-extension smoke checks, persistence and lifecycle coverage, strict webview message validation, and safe Git hook cleanup.
+- **Bug Fix: Early Git API access** — Extension activation no longer fails when the built-in Git extension is installed but not yet active, restoring Print to PDF and other later registrations.
+- **Maintenance: Clean audits and lint** — Updated vulnerable development dependencies, enforced zero lint warnings, and removed test-only renderer helpers from the activation API.
+- **Removed: Scratch Pad** — Removed the inactive Scratch Pad implementation. Quick Notes remains the supported note-taking feature.
+- **Security: Verified font downloads** — The JetBrainsMono Nerd Font installer now uses a pinned release, enforces its published SHA-256 checksum and a download-size limit, validates required archive contents, and reports when a newer upstream font release is available.
+- **Reliability: Shiki initialization retry** — A transient syntax-highlighter startup failure no longer disables PDF code highlighting for the rest of the extension-host session.
+
 ## [1.2.0] - 2026-08-09
 
 - **New Feature: Broad PDF syntax highlighting** — Markdown code blocks are now highlighted with Shiki, providing consistent print-friendly coloring for its bundled languages instead of relying on a small set of hand-written language rules. Unknown languages still fall back safely to plain code.

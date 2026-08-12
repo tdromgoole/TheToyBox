@@ -20,15 +20,15 @@
  * Code text size: 9pt, line height 13pt
  */
 
-import { assemblePdf as _unused, PdfImage } from "./pdfAssembler"; // keep import tree connected
-export { assemblePdf } from "./pdfAssembler";
-export type { PdfImage } from "./pdfAssembler";
+import { assemblePdf as _unused, PdfImage } from "./pdfAssembler.js"; // keep import tree connected
+export { assemblePdf } from "./pdfAssembler.js";
+export type { PdfImage } from "./pdfAssembler.js";
 import {
 	StyledRun,
 	CODE_TOKENIZERS,
 	buildStyledRuns,
 	runsToLines,
-} from "./codeTokenizer";
+} from "./codeTokenizer.js";
 
 // ─── Page geometry ────────────────────────────────────────────────────────────
 const W = 595; // A4 width  pts
@@ -500,7 +500,7 @@ function extractBlocks(html: string): BlockType[] {
 					i < html.length &&
 					(html[i] === "\n" || html[i] === "\r" || html[i] === " ")
 				)
-					i++;
+					{i++;}
 				continue;
 			}
 		}
@@ -522,7 +522,7 @@ function extractBlocks(html: string): BlockType[] {
 			while (j < lo.length) {
 				const nOpen = lo.indexOf(`<${tagName}`, j);
 				const nClose = lo.indexOf(closingTag, j);
-				if (nClose === -1) break;
+				if (nClose === -1) {break;}
 				if (nOpen !== -1 && nOpen < nClose) {
 					const ca = lo[nOpen + tagName.length + 1] ?? "";
 					if (
@@ -931,7 +931,7 @@ export function buildMarkdownPdfPages(
 
 				for (const row of allRows) {
 					const isFirstBody = !row.header && !pastHeader;
-					if (!row.header) pastHeader = true;
+					if (!row.header) {pastHeader = true;}
 
 					const wrapped = row.cells.map((cell, ci) =>
 						wrapInlineSpans(
@@ -970,10 +970,10 @@ export function buildMarkdownPdfPages(
 					wrapped.forEach((lines, ci) => {
 						const cx = colX + HPAD;
 						lines.forEach((wl, li) => {
-							if (!wl.spans.some((s) => s.text)) return;
+							if (!wl.spans.some((s) => s.text)) {return;}
 							parts.push(`BT\n${cx} ${y - li * BODY_LH} Td\n`);
 							for (const sp of wl.spans) {
-								if (!sp.text) continue;
+								if (!sp.text) {continue;}
 								const isCode = sp.code && !row.header;
 								const font = isCode
 									? codeFont(sp.bold)

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { todoMessage } from "./webviewMessages.js";
 import * as crypto from "crypto";
 
 interface TodoItem {
@@ -98,6 +99,10 @@ export class TodoAggregatorProvider implements vscode.WebviewViewProvider {
 		};
 
 		webviewView.webview.onDidReceiveMessage(async (msg) => {
+			msg = todoMessage(msg);
+			if (!msg) {
+				return;
+			}
 			if (msg.command === "refresh") {
 				await this.scan();
 			} else if (msg.command === "goTo") {

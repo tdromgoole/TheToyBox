@@ -34,8 +34,8 @@ export function tokenizeShell(text: string): TokenMatch[] {
 					break;
 				}
 			}
-			if (overlap) continue;
-			for (let i = start; i < end; i++) claimed[i] = 1;
+			if (overlap) {continue;}
+			for (let i = start; i < end; i++) {claimed[i] = 1;}
 			tokens.push({ start, end, type });
 		}
 	}

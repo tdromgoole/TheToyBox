@@ -29,7 +29,7 @@ const OPERATORS: { label: string; description: string; regex: RegExp }[] = [
 
 export async function alignWithTabs() {
 	const editor = vscode.window.activeTextEditor;
-	if (!editor) return;
+	if (!editor) {return;}
 
 	const selection = editor.selection;
 	const selectedLines: string[] = [];

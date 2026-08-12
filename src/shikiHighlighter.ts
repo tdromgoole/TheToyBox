@@ -5,12 +5,27 @@ const THEME = "github-light";
 const MAX_CODE_BLOCK_CHARS = 200_000;
 
 let highlighterPromise: ReturnType<typeof createHighlighter> | undefined;
+let highlighterFactory = createHighlighter;
 
 function getHighlighter() {
 	if (!highlighterPromise) {
-		highlighterPromise = createHighlighter({ langs: [], themes: [THEME] });
+		const pending = highlighterFactory({ langs: [], themes: [THEME] });
+		highlighterPromise = pending;
+		void pending.catch(() => {
+			if (highlighterPromise === pending) {
+				highlighterPromise = undefined;
+			}
+		});
 	}
 	return highlighterPromise;
+}
+
+/** Test seam for simulating transient Shiki startup failures. */
+export function setShikiHighlighterFactoryForTests(
+	factory: typeof createHighlighter = createHighlighter,
+): void {
+	highlighterFactory = factory;
+	highlighterPromise = undefined;
 }
 
 /**
@@ -45,8 +60,8 @@ export async function prepareShikiCodeHighlighter(languages: string[]): Promise<
 				line.map((token) => ({
 					text: token.content,
 					color: token.color,
-					italic: token.fontStyle != null && (token.fontStyle & 1) !== 0 || undefined,
-					bold: token.fontStyle != null && (token.fontStyle & 2) !== 0 || undefined,
+					italic: typeof token.fontStyle === "number" && (token.fontStyle & 1) !== 0 || undefined,
+					bold: typeof token.fontStyle === "number" && (token.fontStyle & 2) !== 0 || undefined,
 				})),
 			);
 		} catch {

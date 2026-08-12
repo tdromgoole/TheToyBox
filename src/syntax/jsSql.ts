@@ -18,7 +18,7 @@ function findStringEnd(text: string, start: number, closeChar: string): number {
 			i += 2;
 			continue;
 		}
-		if (text[i] === closeChar) return i + 1;
+		if (text[i] === closeChar) {return i + 1;}
 		i++;
 	}
 	return i;
@@ -36,7 +36,7 @@ function findTemplateLiteralEnd(text: string, start: number): number {
 			i = skipBracedBlock(text, i + 1);
 			continue;
 		}
-		if (text[i] === "`") return i + 1;
+		if (text[i] === "`") {return i + 1;}
 		i++;
 	}
 	return i;

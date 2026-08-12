@@ -4,6 +4,11 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import * as cp from "child_process";
+import { createHash } from "crypto";
+
+export const NERD_FONTS_VERSION = "v3.3.0";
+const JETBRAINS_MONO_SHA256 = "2d83782a350b604bfa70fce880604a41a7f77c3eec8f922f9cdc3c20952ddbe4";
+export const MAX_ARCHIVE_BYTES = 150 * 1024 * 1024;
 
 /**
  * The four essential weights for editor use (includes ligatures, full Nerd glyph width).
@@ -45,11 +50,13 @@ function getUserFontDir(): string | null {
 	}
 }
 
-function downloadFile(
+export function downloadFile(
 	url: string,
 	dest: string,
 	token: vscode.CancellationToken,
 	onProgress: (downloaded: number, total: number) => void,
+	request: typeof https.get = https.get,
+	maxBytes = MAX_ARCHIVE_BYTES,
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
 		let redirectCount = 0;
@@ -71,8 +78,7 @@ function downloadFile(
 				);
 			}
 
-			const req = https
-				.get(
+			const req = request(
 					requestUrl,
 					{ headers: { "User-Agent": "VSCode-TheToyBox" } },
 					(res) => {
@@ -87,7 +93,7 @@ function downloadFile(
 								return reject(new Error("Too many redirects"));
 							}
 							res.resume();
-							doRequest(res.headers.location);
+							doRequest(new URL(res.headers.location, requestUrl).toString());
 							return;
 						}
 
@@ -100,6 +106,10 @@ function downloadFile(
 							res.headers["content-length"] ?? "0",
 							10,
 						);
+						if (total > maxBytes) {
+							res.resume();
+							return reject(new Error("Font archive exceeds the 150 MB safety limit"));
+						}
 						let downloaded = 0;
 						const file = fs.createWriteStream(dest);
 
@@ -111,6 +121,11 @@ function downloadFile(
 
 						res.on("data", (chunk: Buffer) => {
 							downloaded += chunk.length;
+							if (downloaded > maxBytes) {
+								res.destroy(new Error("Font archive exceeds the 150 MB safety limit"));
+								file.destroy();
+								return;
+							}
 							onProgress(downloaded, total);
 						});
 
@@ -142,45 +157,64 @@ function downloadFile(
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
-async function getLatestNerdFontsVersion(): Promise<string> {
+export function verifyFileSha256(filePath: string, expected: string): void {
+	const actual = createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+	if (actual !== expected.toLowerCase()) {
+		throw new Error(`Checksum mismatch (expected ${expected}, received ${actual})`);
+	}
+}
+
+export function parseReleaseTag(body: string): string | undefined {
+	try {
+		const tag = JSON.parse(body)?.tag_name;
+		return typeof tag === "string" && /^v\d+\.\d+\.\d+$/.test(tag) ? tag : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+export function isNewerRelease(candidate: string, current: string): boolean {
+	const parts = (version: string) => version.slice(1).split(".").map(Number);
+	const candidateParts = parts(candidate);
+	const currentParts = parts(current);
+	for (let index = 0; index < 3; index++) {
+		if (candidateParts[index] !== currentParts[index]) {
+			return candidateParts[index] > currentParts[index];
+		}
+	}
+	return false;
+}
+
+async function getLatestNerdFontsVersion(): Promise<string | undefined> {
 	return new Promise((resolve) => {
-		const req = https
-			.get(
-				"https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest",
-				{ headers: { "User-Agent": "VSCode-TheToyBox" } },
-				(res) => {
-					let data = "";
-					const MAX_BODY = 1_000_000;
-					res.on("data", (chunk) => {
-						data += chunk;
-						if (data.length > MAX_BODY) {
-							res.destroy();
-							resolve("v3.3.0");
-						}
-					});
-					res.on("end", () => {
-						try {
-							const json = JSON.parse(data);
-							const tag =
-								typeof json.tag_name === "string"
-									? json.tag_name
-									: "";
-							resolve(
-								/^v?\d+\.\d+\.\d+/.test(tag) ? tag : "v3.3.0",
-							);
-						} catch {
-							resolve("v3.3.0");
-						}
-					});
-					res.on("error", () => resolve("v3.3.0"));
-				},
-			)
-			.on("error", () => resolve("v3.3.0"));
+		const req = https.get(
+			"https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest",
+			{ headers: { "User-Agent": "VSCode-TheToyBox" } },
+			(res) => {
+				let body = "";
+				res.on("data", (chunk) => {
+					body += chunk;
+					if (body.length > 1_000_000) {
+						res.destroy();
+						resolve(undefined);
+					}
+				});
+				res.on("end", () => resolve(res.statusCode === 200 ? parseReleaseTag(body) : undefined));
+				res.on("error", () => resolve(undefined));
+			},
+		).on("error", () => resolve(undefined));
 		req.setTimeout(REQUEST_TIMEOUT_MS, () => {
 			req.destroy();
-			resolve("v3.3.0");
+			resolve(undefined);
 		});
 	});
+}
+
+export function assertRequiredFonts(destDir: string): void {
+	const missing = FONT_FILES.filter((file) => !fs.existsSync(path.join(destDir, file)));
+	if (missing.length > 0) {
+		throw new Error(`Archive did not contain required fonts: ${missing.join(", ")}`);
+	}
 }
 
 /**
@@ -188,7 +222,7 @@ async function getLatestNerdFontsVersion(): Promise<string> {
  * Uses PowerShell on Windows, unzip on macOS/Linux.
  * Filenames are hardcoded — no user-controlled input enters the extraction path.
  */
-function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
+export function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (process.platform === "win32") {
 			// Write a PowerShell script to a random temp file to avoid symlink attacks
@@ -199,6 +233,7 @@ function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
 			const fileList = FONT_FILES.map((f) => `'${f}'`).join(",");
 
 			const script = [
+				"$ErrorActionPreference = 'Stop'",
 				"Add-Type -AssemblyName System.IO.Compression.FileSystem",
 				`$zip = [System.IO.Compression.ZipFile]::OpenRead('${escapedZip}')`,
 				`$wanted = @(${fileList})`,
@@ -213,11 +248,12 @@ function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
 
 			fs.writeFileSync(scriptPath, script, "utf8");
 
-			cp.exec(
-				`powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`,
+			cp.execFile(
+				"powershell.exe",
+				["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath],
 				(err) => {
 					try {
-						fs.unlinkSync(scriptPath);
+						fs.rmSync(tmpDir, { recursive: true, force: true });
 					} catch {}
 					if (err) {
 						reject(new Error(`Extraction failed: ${err.message}`));
@@ -248,9 +284,9 @@ function extractFontsFromZip(zipPath: string, destDir: string): Promise<void> {
 /** Registers a per-user font in the Windows registry (graceful fallback on error). */
 function registerFontWindows(fontPath: string, displayName: string): void {
 	try {
-		cp.execSync(
-			`reg add "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"` +
-				` /v "${displayName} (TrueType)" /t REG_SZ /d "${fontPath}" /f`,
+		cp.execFileSync(
+			"reg",
+			["add", "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts", "/v", `${displayName} (TrueType)`, "/t", "REG_SZ", "/d", fontPath, "/f"],
 			{ stdio: "ignore" },
 		);
 	} catch {
@@ -259,9 +295,15 @@ function registerFontWindows(fontPath: string, displayName: string): void {
 }
 
 export async function installJetBrainsMonoNerdFont(): Promise<void> {
+	const latestVersion = await getLatestNerdFontsVersion();
+	if (latestVersion && isNewerRelease(latestVersion, NERD_FONTS_VERSION)) {
+		vscode.window.showInformationMessage(
+			`A newer Nerd Fonts release (${latestVersion}) is available. The Toy Box will continue using checksum-verified ${NERD_FONTS_VERSION} until the extension is updated.`,
+		);
+	}
 	// Step 1: Confirm
 	const confirm = await vscode.window.showInformationMessage(
-		"This will download JetBrainsMono Nerd Font (~25 MB) from github.com/ryanoasis/nerd-fonts and install it to your user fonts folder. Continue?",
+		`This will download JetBrainsMono Nerd Font ${NERD_FONTS_VERSION} (~128 MB) from github.com/ryanoasis/nerd-fonts, verify its SHA-256 checksum, and install it to your user fonts folder. Continue?`,
 		{ modal: true },
 		"Download & Install",
 	);
@@ -289,12 +331,7 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 			const zipDest = path.join(os.tmpdir(), "JetBrainsMono-nerd.zip");
 
 			try {
-				// Step 2: Resolve version
-				progress.report({
-					message: "Checking latest release…",
-					increment: 2,
-				});
-				const version = await getLatestNerdFontsVersion();
+				const version = NERD_FONTS_VERSION;
 				if (token.isCancellationRequested) {
 					return;
 				}
@@ -319,6 +356,7 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 						}
 					}
 				});
+				verifyFileSha256(zipDest, JETBRAINS_MONO_SHA256);
 
 				if (token.isCancellationRequested) {
 					return;
@@ -330,6 +368,7 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 					increment: 5,
 				});
 				await extractFontsFromZip(zipDest, fontDir);
+				assertRequiredFonts(fontDir);
 
 				// Step 5: Platform post-processing
 				if (process.platform === "win32") {
@@ -350,7 +389,7 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 						increment: 5,
 					});
 					try {
-						cp.execSync("fc-cache -f", { stdio: "ignore" });
+						cp.execFileSync("fc-cache", ["-f"], { stdio: "ignore" });
 					} catch {}
 				}
 
