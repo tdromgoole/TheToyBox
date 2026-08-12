@@ -1,18 +1,17 @@
 import * as vscode from "vscode";
-
-interface Session {
-	name: string;
-	files: string[]; // file URIs as strings
-	active?: string; // active file URI
-	createdAt: string; // ISO timestamp
-}
+import {
+	normalizeSessions,
+	removeSessions,
+	Session,
+	storeSession,
+} from "./sessionState.js";
 
 const STORAGE_KEY = "toybox.sessions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function loadSessions(context: vscode.ExtensionContext): Session[] {
-	return context.workspaceState.get<Session[]>(STORAGE_KEY, []);
+	return normalizeSessions(context.workspaceState.get<unknown>(STORAGE_KEY));
 }
 
 function saveSessions(
@@ -91,12 +90,9 @@ async function saveSession(context: vscode.ExtensionContext) {
 		if (choice !== "Overwrite") {
 			return;
 		}
-		sessions[existingIdx] = session;
-	} else {
-		sessions.push(session);
 	}
 
-	saveSessions(context, sessions);
+	saveSessions(context, storeSession(sessions, session));
 	vscode.window.showInformationMessage(
 		`The Toy Box: Session "${trimmedName}" saved (${files.length} file${files.length !== 1 ? "s" : ""}).`,
 	);
@@ -214,10 +210,6 @@ async function manageSessions(context: vscode.ExtensionContext) {
 		? sessions.map((s) => s.name)
 		: selected.filter((p) => p.name !== "__ALL__").map((p) => p.name);
 
-	const remaining = deleteAll
-		? []
-		: sessions.filter((s) => !toDelete.includes(s.name));
-
 	const choice = await vscode.window.showWarningMessage(
 		deleteAll
 			? "Delete all sessions?"
@@ -230,7 +222,10 @@ async function manageSessions(context: vscode.ExtensionContext) {
 		return;
 	}
 
-	saveSessions(context, remaining);
+	saveSessions(
+		context,
+		deleteAll ? [] : removeSessions(sessions, new Set(toDelete)),
+	);
 	vscode.window.showInformationMessage(
 		`The Toy Box: ${toDelete.length} session${toDelete.length !== 1 ? "s" : ""} deleted.`,
 	);

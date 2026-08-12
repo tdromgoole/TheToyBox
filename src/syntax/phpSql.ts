@@ -15,7 +15,7 @@ function findStringEnd(text: string, start: number, closeChar: string): number {
 			i += 2;
 			continue;
 		}
-		if (text[i] === closeChar) return i + 1;
+		if (text[i] === closeChar) {return i + 1;}
 		i++;
 	}
 	return i;

@@ -8,6 +8,7 @@ import { parseYaml } from "./outline/parseYaml";
 import { parseIni } from "./outline/parseIni";
 import { parseJson } from "./outline/parseJson";
 import { collectEntities } from "./outline/collectEntities";
+import { outlineMessage } from "./webviewMessages.js";
 
 function getNonce(): string {
 	const chars =
@@ -45,6 +46,10 @@ export class BetterOutlineProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
 		webviewView.webview.onDidReceiveMessage((data) => {
+			data = outlineMessage(data);
+			if (!data) {
+				return;
+			}
 			if (data.command === "jumpTo") {
 				const editor = vscode.window.activeTextEditor;
 				if (!editor) {

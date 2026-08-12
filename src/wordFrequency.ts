@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { wordFrequencyMessage } from "./webviewMessages.js";
 
 export class WordFrequencyProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = "wordFrequencyView";
@@ -16,12 +17,16 @@ export class WordFrequencyProvider implements vscode.WebviewViewProvider {
 
 		// Handle messages from the webview
 		webviewView.webview.onDidReceiveMessage((msg) => {
+			msg = wordFrequencyMessage(msg);
+			if (!msg) {
+				return;
+			}
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				return;
 			}
 
-			if (msg.command === "goTo" && typeof msg.line === "number") {
+			if (msg.command === "goTo") {
 				// Navigate to a specific 1-based line number
 				const pos = new vscode.Position(msg.line - 1, 0);
 				editor.selection = new vscode.Selection(pos, pos);

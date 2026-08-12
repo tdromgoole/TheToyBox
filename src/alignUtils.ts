@@ -39,7 +39,7 @@ export function buildAlignedLines(
 	const targetTabColumn = Math.ceil((maxVisualWidth + 1) / tabSize) * tabSize;
 
 	return parsedLines.map((item) => {
-		if (!item.isMatch) return item.line;
+		if (!item.isMatch) {return item.line;}
 		const currentWidth = getVisualWidth(item.prefix, tabSize);
 		const remainingWidth = targetTabColumn - currentWidth;
 		const numTabsNeeded = Math.ceil(remainingWidth / tabSize);

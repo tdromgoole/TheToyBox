@@ -15,8 +15,6 @@ import {
 	registerMarkdownPreviewProvider,
 	extendMarkdownItWithAlerts,
 } from "./markdownPreview";
-import { renderMarkdownToHtml } from "./markdownRenderer";
-import { prepareShikiCodeHighlighter } from "./shikiHighlighter";
 import { installJetBrainsMonoNerdFont } from "./fontInstaller";
 import { registerWordFrequency } from "./wordFrequency";
 import {
@@ -26,13 +24,16 @@ import {
 import { registerNginxHoverProvider } from "./syntax/nginxHover";
 import { registerAspHoverProvider } from "./syntax/aspHover";
 import { registerBlockedChanges } from "./blockedChanges";
-import { registerPrintCommand } from "./printer";
+import { deactivatePrinter, registerPrintCommand } from "./printer";
 import { registerBookmarks, updateBookmarkDecorations } from "./bookmarks";
 import { registerTodoAggregator } from "./todoAggregator";
 import { registerQuickNotes, deactivateQuickNotes } from "./quickNotes";
 import { registerSessionRestore } from "./sessionRestore";
+import { ManagedTimeout } from "./managedTimeout.js";
+import { registerFeatureDocs } from "./featureDocs";
 
-let startupTimeout: NodeJS.Timeout | undefined;
+const startupTimeout = new ManagedTimeout();
+const typingUpdateTimeout = new ManagedTimeout();
 
 export function activate(context: vscode.ExtensionContext) {
 	try {
@@ -67,29 +68,18 @@ function _activate(context: vscode.ExtensionContext) {
 	registerNginxHoverProvider(context);
 	registerAspHoverProvider(context);
 
-	// Blocked Changes depends on git operations and reads the vscode.git
-	// contributed configuration. Defer until vscode.git has activated to avoid
-	// "Extension 'vscode.git' is not known or not activated" errors when our
-	// extension activates before the built-in Git extension.
-	const gitExtension = vscode.extensions.getExtension("vscode.git");
-	const doRegisterBlockedChanges = () => registerBlockedChanges(context);
-	if (gitExtension?.isActive) {
-		doRegisterBlockedChanges();
-	} else {
-		const waitForGit = vscode.extensions.onDidChange(() => {
-			if (vscode.extensions.getExtension("vscode.git")?.isActive) {
-				waitForGit.dispose();
-				doRegisterBlockedChanges();
-			}
-		});
-		context.subscriptions.push(waitForGit);
-	}
+	// Register immediately. Core blocking uses the Git executable directly, and
+	// the optional vscode.git API calls are retrieved lazily by each operation.
+	// This keeps the feature available when the built-in Git extension starts
+	// later or is unavailable, without delaying any unrelated Toy Box features.
+	registerBlockedChanges(context);
 
 	registerPrintCommand(context);
 	const bookmarksProvider = registerBookmarks(context);
 	const todoProvider = registerTodoAggregator(context);
 	registerQuickNotes(context);
 	registerSessionRestore(context);
+	registerFeatureDocs(context);
 
 	// Auto-scan tagged comments once VS Code has fully settled after startup.
 	// The delay lets the workspace index finish so file discovery is complete.
@@ -188,8 +178,6 @@ function _activate(context: vscode.ExtensionContext) {
 		),
 	);
 
-	let updateTimeout: NodeJS.Timeout | undefined;
-
 	// 3. Editor Event Listeners
 	context.subscriptions.push(
 		// Triggered when switching between different files (Immediate)
@@ -205,11 +193,8 @@ function _activate(context: vscode.ExtensionContext) {
 			const editor = vscode.window.activeTextEditor;
 			if (editor && event.document === editor.document) {
 				// Clear the previous timer if the user is still typing
-				if (updateTimeout) {
-					clearTimeout(updateTimeout);
-				}
 				// Set a new timer to wait 300ms after the last change
-				updateTimeout = setTimeout(() => {
+				typingUpdateTimeout.schedule(() => {
 					triggerVisualUpdates(editor);
 				}, 300);
 			}
@@ -223,8 +208,7 @@ function _activate(context: vscode.ExtensionContext) {
 		// VS Code may not have fully rendered the editor at activation time,
 		// so schedule a second pass after a short delay to ensure decorations
 		// are applied even when the file was already open on launch.
-		startupTimeout = setTimeout(() => {
-			startupTimeout = undefined;
+		startupTimeout.schedule(() => {
 			for (const editor of vscode.window.visibleTextEditors) {
 				triggerVisualUpdates(editor);
 			}
@@ -244,18 +228,12 @@ function _activate(context: vscode.ExtensionContext) {
 		 extendMarkdownIt(md: any) {
 			return extendMarkdownItWithAlerts(md);
 		},
-		renderMarkdownToHtml,
-		async highlightCodeForPdf(code: string, language: string) {
-			const highlight = await prepareShikiCodeHighlighter([language]);
-			return highlight(code, language);
-		},
 	};
 }
 
 export function deactivate() {
 	deactivateQuickNotes();
-	if (startupTimeout) {
-		clearTimeout(startupTimeout);
-		startupTimeout = undefined;
-	}
+	deactivatePrinter();
+	startupTimeout.clear();
+	typingUpdateTimeout.clear();
 }

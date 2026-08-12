@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
+import { printMessage, serializerMessage } from "./webviewMessages.js";
 import * as path from "path";
 import { randomBytes } from "crypto";
+import { buildSafeHtmlRendererPage } from "./htmlPrintSanitizer";
 import { assemblePdf, CODE_PDF_FONTS, PdfImage } from "./pdfAssembler";
 import { renderMarkdownToHtml } from "./markdownRenderer";
 import { prepareShikiCodeHighlighter } from "./shikiHighlighter";
@@ -418,17 +420,8 @@ function renderHtmlViaWebview(htmlContent: string): Promise<string> {
 			{ enableScripts: true },
 		);
 
-		// Strip any Content-Security-Policy meta tags from the source HTML so they
-		// don't block our injected serializer script from running in the webview.
-		const sanitized = htmlContent.replace(
-			/<meta[^>]+http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/gi,
-			"",
-		);
-
-		// Inject the serializer before </body>, or append it if no </body>.
-		const injected = /\<\/body\>/i.test(sanitized)
-			? sanitized.replace(/<\/body>/i, SERIALIZER_SCRIPT + "\n</body>")
-			: sanitized + "\n" + SERIALIZER_SCRIPT;
+		const nonce = randomBytes(16).toString("base64");
+		const injected = buildSafeHtmlRendererPage(htmlContent, SERIALIZER_SCRIPT, nonce);
 
 		const timer = setTimeout(() => {
 			panel.dispose();
@@ -436,10 +429,14 @@ function renderHtmlViaWebview(htmlContent: string): Promise<string> {
 		}, 10_000);
 
 		panel.webview.onDidReceiveMessage(
-			(msg: { type: string; html?: string; message?: string }) => {
+			(value: unknown) => {
+				const msg = serializerMessage(value);
+				if (!msg) {
+					return;
+				}
 				clearTimeout(timer);
 				panel.dispose();
-				if (msg.type === "serialized" && msg.html != null) {
+				if (msg.type === "serialized") {
 					resolve(msg.html);
 				} else {
 					reject(
@@ -478,10 +475,14 @@ function renderMermaidViaWebview(
 		}, 15_000);
 
 		panel.webview.onDidReceiveMessage(
-			(msg: { type: string; html?: string; message?: string }) => {
+			(value: unknown) => {
+				const msg = serializerMessage(value);
+				if (!msg) {
+					return;
+				}
 				clearTimeout(timer);
 				panel.dispose();
-				if (msg.type === "serialized" && msg.html != null) {
+				if (msg.type === "serialized") {
 					resolve(msg.html);
 				} else {
 					reject(
@@ -708,6 +709,28 @@ async function generateAndSavePdf(
 	await vscode.env.openExternal(saveUri);
 }
 
+async function runPdfExport(
+	fileName: string,
+	languageId: string,
+	content: string,
+	context: vscode.ExtensionContext,
+): Promise<void> {
+	try {
+		await vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Notification,
+				title: "The Toy Box: Preparing PDF…",
+			},
+			() => generateAndSavePdf(fileName, languageId, content, context),
+		);
+	} catch (error) {
+		const detail = error instanceof Error ? error.message : String(error);
+		void vscode.window.showErrorMessage(
+			`The Toy Box: PDF generation failed: ${detail}`,
+		);
+	}
+}
+
 function renderRun(run: StyledRun): string {
 	const escaped = escapeHtml(run.text);
 	const styleParts: string[] = [];
@@ -861,6 +884,12 @@ let currentPrintData:
 	| { fileName: string; languageId: string; content: string }
 	| undefined;
 
+export function deactivatePrinter(): void {
+	currentPanel?.dispose();
+	currentPanel = undefined;
+	currentPrintData = undefined;
+}
+
 async function openPrintPanel(
 	context: vscode.ExtensionContext,
 	uri?: vscode.Uri,
@@ -928,10 +957,10 @@ async function openPrintPanel(
 	// Register the message handler exactly ONCE per panel lifetime.
 	// It reads currentPrintData which is kept up-to-date on every invocation.
 	currentPanel.webview.onDidReceiveMessage((msg) => {
-		if (msg.command !== "print" || !currentPrintData) {
+		if (!printMessage(msg) || !currentPrintData) {
 			return;
 		}
-		void generateAndSavePdf(
+		void runPdfExport(
 			currentPrintData.fileName,
 			currentPrintData.languageId,
 			currentPrintData.content,
@@ -985,7 +1014,7 @@ export function registerPrintCommand(context: vscode.ExtensionContext): void {
 					? path.basename(document.fileName)
 					: "Untitled";
 
-				await generateAndSavePdf(
+				await runPdfExport(
 					fileName,
 					document.languageId,
 					document.getText(),
@@ -1021,7 +1050,7 @@ export function registerPrintCommand(context: vscode.ExtensionContext): void {
 				? path.basename(document.fileName)
 				: "Untitled";
 
-			await generateAndSavePdf(
+			await runPdfExport(
 				fileName,
 				document.languageId,
 				document.getText(),

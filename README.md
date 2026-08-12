@@ -74,6 +74,12 @@ HTML is rendered before export, and other file types are printed as readable sou
 
 **Quick Notes** turns an untitled editor into an automatically saved note. Notes reopen with VS Code and can be saved as permanent files whenever they are ready.
 
+Keep feature notes close to the code they describe. Add an `@docs` reference near the top of a source file, and The Toy Box displays a book link that opens the related Markdown document:
+
+```ts
+// @docs: docs/authentication.md
+```
+
 The **Tagged Comments** panel scans the workspace for your configured comment labels and gathers them into a filterable list. Select an entry to jump directly to its file and line.
 
 ## Safer Local Git Changes

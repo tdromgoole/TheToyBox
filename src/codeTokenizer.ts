@@ -5,15 +5,15 @@
  * (printer.ts) and the markdown PDF renderer (markdownToPdf.ts).
  */
 
-import type { TokenMatch } from "./syntax/types";
-import { tokenizeKdl } from "./syntax/kdl";
-import { tokenizeAsp } from "./syntax/asp";
-import { tokenizeRazorVb } from "./syntax/razorVb";
-import { tokenizePhpSql } from "./syntax/phpSql";
-import { tokenizeJsSql } from "./syntax/jsSql";
-import { tokenizeNginx } from "./syntax/nginx";
-import { tokenizeHttp } from "./syntax/http";
-import { tokenizeShell } from "./syntax/shell";
+import type { TokenMatch } from "./syntax/types.js";
+import { tokenizeKdl } from "./syntax/kdl.js";
+import { tokenizeAsp } from "./syntax/asp.js";
+import { tokenizeRazorVb } from "./syntax/razorVb.js";
+import { tokenizePhpSql } from "./syntax/phpSql.js";
+import { tokenizeJsSql } from "./syntax/jsSql.js";
+import { tokenizeNginx } from "./syntax/nginx.js";
+import { tokenizeHttp } from "./syntax/http.js";
+import { tokenizeShell } from "./syntax/shell.js";
 
 export interface StyledRun {
 	text: string;
