@@ -4,6 +4,18 @@ All notable changes to the "theToyBox" extension will be documented in this file
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-13
+
+- **New Feature: Guided project setup** — Install and set up ESLint for JavaScript or TypeScript and PHPStan for PHP from the Command Palette. Review changes before applying them, preserve existing configurations, and choose optional ESLint fixes on save or Laravel/Symfony support.
+- **Improvement: More precise SQL highlighting** — Embedded SQL highlighting leaves surrounding HTML, PHP, and ordinary strings alone. Added support for DECLARE statements and PHP queries assembled from multiple string pieces, with better handling of variables and quoted SQL values.
+- **Bug Fix: Consistent cleanup** — Cleanup follows the editor's Tabs or Spaces setting and tab width, preserving visual alignment when fixing mixed indentation. Selected lines, multiple selections, and background saves are handled consistently.
+- **Bug Fix: Preserve string content** — Cleanup protects multiline strings, including PHP heredocs and JavaScript templates. Apostrophes in surrounding HTML and quoted PHP interpolation no longer cause unrelated PHP code to be skipped.
+- **Bug Fix: Matching tags and bookmarks** — Matching-tag rename handles HTML elements such as img and br correctly. Bookmark navigation and removal work with the panel's security restrictions.
+- **Privacy: Quick Notes** — Capturing ordinary untitled files is now optional and off by default. Notes storage is controlled through User Settings.
+- **Privacy: Markdown preview** — Remote images are blocked by default in The Toy Box custom preview, with a User Settings option to allow HTTPS images.
+- **Security: Font installation** — Hardened temporary downloads and Windows archive extraction, including safe handling of special characters in file paths.
+- **Documentation** — Simplified the feature overview and clarified project setup and indentation behavior.
+
 ## [1.3.0] - 2026-08-11
 
 - **New Feature: Feature documentation links** — Add an `@docs` reference near the top of a source file to display a clickable book link that opens the related Markdown document. Workspace-relative, source-relative, and quoted paths are supported across programming languages.

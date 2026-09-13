@@ -111,7 +111,7 @@ export function downloadFile(
 							return reject(new Error("Font archive exceeds the 150 MB safety limit"));
 						}
 						let downloaded = 0;
-						const file = fs.createWriteStream(dest);
+						const file = fs.createWriteStream(dest, { flags: "wx", mode: 0o600 });
 
 						const cancelSub = token.onCancellationRequested(() => {
 							res.destroy();
@@ -228,18 +228,17 @@ export function extractFontsFromZip(zipPath: string, destDir: string): Promise<v
 			// Write a PowerShell script to a random temp file to avoid symlink attacks
 			const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-"));
 			const scriptPath = path.join(tmpDir, "extract-fonts.ps1");
-			const escapedZip = zipPath.replace(/\\/g, "\\\\");
-			const escapedDest = destDir.replace(/\\/g, "\\\\");
 			const fileList = FONT_FILES.map((f) => `'${f}'`).join(",");
 
 			const script = [
+				"param([string]$ArchivePath, [string]$DestinationPath)",
 				"$ErrorActionPreference = 'Stop'",
 				"Add-Type -AssemblyName System.IO.Compression.FileSystem",
-				`$zip = [System.IO.Compression.ZipFile]::OpenRead('${escapedZip}')`,
+				"$zip = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)",
 				`$wanted = @(${fileList})`,
 				`foreach ($entry in $zip.Entries) {`,
 				`  if ($wanted -contains $entry.Name) {`,
-				`    $dest = Join-Path '${escapedDest}' $entry.Name`,
+				"    $dest = Join-Path $DestinationPath $entry.Name",
 				`    [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)`,
 				`  }`,
 				`}`,
@@ -250,7 +249,8 @@ export function extractFontsFromZip(zipPath: string, destDir: string): Promise<v
 
 			cp.execFile(
 				"powershell.exe",
-				["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath],
+				["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "-ArchivePath", zipPath, "-DestinationPath", destDir],
+				{ windowsHide: true },
 				(err) => {
 					try {
 						fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -328,9 +328,11 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 			cancellable: true,
 		},
 		async (progress, token) => {
-			const zipDest = path.join(os.tmpdir(), "JetBrainsMono-nerd.zip");
+			let downloadDir: string | undefined;
 
 			try {
+				downloadDir = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-font-download-"));
+				const zipDest = path.join(downloadDir, "JetBrainsMono-nerd.zip");
 				const version = NERD_FONTS_VERSION;
 				if (token.isCancellationRequested) {
 					return;
@@ -396,21 +398,15 @@ export async function installJetBrainsMonoNerdFont(): Promise<void> {
 				progress.report({ message: "Done!", increment: 5 });
 			} catch (err: unknown) {
 				const msg = err instanceof Error ? err.message : String(err);
-				// Clean up partial download
-				try {
-					if (fs.existsSync(zipDest)) {
-						fs.unlinkSync(zipDest);
-					}
-				} catch {}
 				vscode.window.showErrorMessage(
 					`The Toy Box: Font installation failed — ${msg}`,
 				);
 				return;
 			} finally {
-				// Always clean up zip
+				// Remove only this installation's private temporary directory.
 				try {
-					if (fs.existsSync(zipDest)) {
-						fs.unlinkSync(zipDest);
+					if (downloadDir) {
+						fs.rmSync(downloadDir, { recursive: true, force: true });
 					}
 				} catch {}
 			}

@@ -2,7 +2,7 @@
 	"name": "theToyBox",
 	"displayName": "The Toy Box",
 	"description": "A practical VS Code toolkit for navigation, editing, notes, Markdown, PDF export, Git safety, and everyday developer productivity.",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"publisher": "ThomasDromgoole",
 	"repository": {
 		"type": "git",
@@ -52,7 +52,10 @@
 		"http",
 		"bash",
 		"shell",
-		"documentation"
+		"documentation",
+		"eslint",
+		"phpstan",
+		"php"
 	],
 	"extensionDependencies": [
 		"vscode.markdown-language-features"
@@ -154,6 +157,16 @@
 			]
 		},
 		"commands": [
+			{
+				"command": "theToyBox.setupEslint",
+				"title": "The Toy Box: Set Up ESLint",
+				"enablement": "isWorkspaceTrusted && workspaceFolderCount > 0"
+			},
+			{
+				"command": "theToyBox.setupPhpstan",
+				"title": "The Toy Box: Set Up PHPStan",
+				"enablement": "isWorkspaceTrusted && workspaceFolderCount > 0"
+			},
 			{
 				"command": "theToyBox.alignWithTabs",
 				"title": "The Toy Box: Align with Tabs"
@@ -450,11 +463,11 @@
 					"theToyBox.convertSpacesToTabs": {
 						"type": "boolean",
 						"default": true,
-						"description": "Convert leading spaces to tabs during cleanup."
+						"description": "Normalize leading indentation to the active editor's tabs or spaces setting during cleanup, preserving its visual width."
 					},
 					"theToyBox.ignoreTabConversion": {
 						"type": "array",
-						"description": "List of file extensions to ignore when converting spaces to tabs (e.g., .yaml, .json).",
+						"description": "List of file extensions to skip when normalizing indentation (e.g., .yaml, .json).",
 						"default": [
 							".yaml",
 							".yml",
@@ -603,6 +616,12 @@
 						"type": "boolean",
 						"default": true,
 						"description": "Enable or disable the Markdown Preview with Alerts command."
+					},
+					"theToyBox.markdownPreview.allowRemoteImages": {
+						"type": "boolean",
+						"scope": "application",
+						"default": false,
+						"description": "Allow HTTPS images in The Toy Box custom Markdown preview. Remote servers can see when images are loaded. Does not change VS Code built-in preview."
 					}
 				}
 			},
@@ -642,7 +661,14 @@
 					"theToyBox.quickNotes.notesFolder": {
 						"type": "string",
 						"default": "",
-						"description": "Folder where quick note files are stored. Leave empty to use the extension's built-in storage location. Use the 'The Toy Box: Reset Quick Notes Folder to Default' command to clear a custom path."
+						"description": "User-level folder where quick notes are stored. Workspace overrides are ignored. Leave empty to use the built-in storage location.",
+						"scope": "application"
+					},
+					"theToyBox.quickNotes.captureUntitled": {
+						"type": "boolean",
+						"scope": "application",
+						"default": false,
+						"description": "Automatically save ordinary untitled documents as Quick Notes on disk, including potentially sensitive text. Disabled by default."
 					}
 				}
 			},

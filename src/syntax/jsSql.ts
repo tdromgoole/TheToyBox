@@ -1,14 +1,10 @@
 import { TokenMatch } from "./types.js";
-import { scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
+import { isSqlString, scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
 
 // JS / TS SQL tokenizer
 // Finds SQL in double-quoted strings, single-quoted strings, and template
 // literals, then highlights T-SQL syntax within them.
 // Token types emitted: sqlKeyword, sqlType, sqlFunction, sqlVariable, comment, number
-
-// Only scan strings that contain at least one unambiguous SQL statement keyword.
-const SQL_ANCHOR_RE =
-	/\b(?:select|insert|update|delete|create|alter|drop|merge|truncate)\b/i;
 
 // Find the index just past the closing quote, handling escape sequences.
 function findStringEnd(text: string, start: number, closeChar: string): number {
@@ -88,8 +84,8 @@ export function tokenizeJsSql(text: string): TokenMatch[] {
 		// ── Double-quoted string ─────────────────────────────────────────────
 		if (ch === '"') {
 			const strEnd = findStringEnd(text, i + 1, '"');
-			if (SQL_ANCHOR_RE.test(text.slice(i + 1, strEnd - 1))) {
-				scanSqlTokens(text, i + 1, tokens, '"');
+			if (isSqlString(text.slice(i + 1, strEnd - 1))) {
+				scanSqlTokens(text.slice(0, strEnd - 1), i + 1, tokens, '"');
 			}
 			i = strEnd;
 			continue;
@@ -98,8 +94,8 @@ export function tokenizeJsSql(text: string): TokenMatch[] {
 		// ── Single-quoted string ─────────────────────────────────────────────────────
 		if (ch === "'") {
 			const strEnd = findStringEnd(text, i + 1, "'");
-			if (SQL_ANCHOR_RE.test(text.slice(i + 1, strEnd - 1))) {
-				scanSqlTokens(text, i + 1, tokens, "'");
+			if (isSqlString(text.slice(i + 1, strEnd - 1))) {
+				scanSqlTokens(text.slice(0, strEnd - 1), i + 1, tokens, "'");
 			}
 			i = strEnd;
 			continue;
@@ -108,17 +104,16 @@ export function tokenizeJsSql(text: string): TokenMatch[] {
 		// ── Template literal ─────────────────────────────────────────────────────────
 		if (ch === "`") {
 			const strEnd = findTemplateLiteralEnd(text, i + 1);
-			if (SQL_ANCHOR_RE.test(text.slice(i + 1, strEnd - 1))) {
-				i = scanSqlTokens(
-					text,
+			if (isSqlString(text.slice(i + 1, strEnd - 1))) {
+				scanSqlTokens(
+					text.slice(0, strEnd - 1),
 					i + 1,
 					tokens,
 					"`",
 					jsTemplateInterpolation,
 				);
-			} else {
-				i = strEnd;
 			}
+			i = strEnd;
 			continue;
 		}
 

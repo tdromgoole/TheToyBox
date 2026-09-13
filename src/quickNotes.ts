@@ -128,10 +128,15 @@ function isFeatureEnabled(): boolean {
 		.get<boolean>("enabled", true);
 }
 
+function autoCaptureUntitled(): boolean {
+	return vscode.workspace.getConfiguration("theToyBox.quickNotes")
+		.inspect<boolean>("captureUntitled")?.globalValue === true;
+}
+
 function resolveNotesDir(ctx?: vscode.ExtensionContext): string {
 	const custom = vscode.workspace
 		.getConfiguration("theToyBox.quickNotes")
-		.get<string>("notesFolder", "");
+		.inspect<string>("notesFolder")?.globalValue ?? "";
 	if (custom && custom.trim() !== "") {
 		let resolved = custom.trim();
 		if (resolved.startsWith("~")) {
@@ -418,6 +423,7 @@ function onDocumentChanged(e: vscode.TextDocumentChangeEvent): void {
 
 	// Handle standard untitled files (Ctrl+N / double-click new tab)
 	if (e.document.uri.scheme === "untitled") {
+		if (!autoCaptureUntitled()) { return; }
 		out.appendLine(
 			`[change] untitled: ${e.document.uri.toString()}, changes: ${e.contentChanges.length}`,
 		);
@@ -502,6 +508,10 @@ function handleUntitledChange(doc: vscode.TextDocument): void {
 		uriStr,
 		setTimeout(() => {
 			saveTimers.delete(uriStr);
+			if (!isFeatureEnabled() || !autoCaptureUntitled()) {
+				untitledContent.delete(uriStr);
+				return;
+			}
 			if (!alreadyConverted.has(uriStr)) {
 				alreadyConverted.add(uriStr);
 				void convertUntitledToNote(doc, noteName);
@@ -593,6 +603,17 @@ async function onDocumentClosed(doc: vscode.TextDocument): Promise<void> {
 	// ── Untitled file closed ──────────────────────────────────────────────────
 	if (doc.uri.scheme === "untitled") {
 		const uriStr = doc.uri.toString();
+		if (!isFeatureEnabled() || !autoCaptureUntitled()) {
+			const timer = saveTimers.get(uriStr);
+			if (timer) { clearTimeout(timer); }
+			saveTimers.delete(uriStr);
+			untitledContent.delete(uriStr);
+			alreadyConverted.delete(uriStr);
+			const mapping = loadStringMap(UNTITLED_MAP_KEY);
+			delete mapping[uriStr];
+			void extContext.globalState.update(UNTITLED_MAP_KEY, mapping);
+			return;
+		}
 		out.appendLine(`[close] untitled closed: ${uriStr}`);
 		const untitledMap = loadStringMap(UNTITLED_MAP_KEY);
 		const noteName = untitledMap[uriStr];

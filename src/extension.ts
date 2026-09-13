@@ -31,6 +31,7 @@ import { registerQuickNotes, deactivateQuickNotes } from "./quickNotes";
 import { registerSessionRestore } from "./sessionRestore";
 import { ManagedTimeout } from "./managedTimeout.js";
 import { registerFeatureDocs } from "./featureDocs";
+import { registerProjectSetup } from "./projectSetup.js";
 
 const startupTimeout = new ManagedTimeout();
 const typingUpdateTimeout = new ManagedTimeout();
@@ -80,6 +81,7 @@ function _activate(context: vscode.ExtensionContext) {
 	registerQuickNotes(context);
 	registerSessionRestore(context);
 	registerFeatureDocs(context);
+	registerProjectSetup(context);
 
 	// Auto-scan tagged comments once VS Code has fully settled after startup.
 	// The delay lets the workspace index finish so file discovery is complete.

@@ -1,16 +1,17 @@
 import { TokenMatch } from "./types.js";
-import { scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
+import { isSqlString, scanSqlTokens, skipBracedBlock } from "./sqlScanner.js";
 
 // PHP tokenizer with embedded SQL support.
-
-// Only scan strings that contain at least one unambiguous SQL statement keyword.
-const SQL_ANCHOR_RE =
-	/\b(?:select|insert|update|delete|create|alter|drop|merge|truncate)\b/i;
 
 // Find the index just past the closing quote, handling escape sequences.
 function findStringEnd(text: string, start: number, closeChar: string): number {
 	let i = start;
 	while (i < text.length) {
+		const next = phpInterpolation(text, i);
+		if (next !== -1) {
+			i = next;
+			continue;
+		}
 		if (text[i] === "\\" && i + 1 < text.length) {
 			i += 2;
 			continue;
@@ -38,6 +39,12 @@ function phpInterpolation(text: string, i: number): number {
 		while (i < text.length && /\w/.test(text[i])) {
 			i++;
 		}
+		if (text.startsWith("->", i)) {
+			i += 2;
+			while (i < text.length && /\w/.test(text[i])) {
+				i++;
+			}
+		}
 		if (i < text.length && text[i] === "[") {
 			while (i < text.length && text[i] !== "]") {
 				i++;
@@ -59,9 +66,11 @@ function phpInterpolation(text: string, i: number): number {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function tokenizePhpSql(text: string): TokenMatch[] {
+export function tokenizePhpSql(text: string, sqlOnly = false): TokenMatch[] {
 	const tokens: TokenMatch[] = [];
 	let i = 0;
+	let inPhp = !/<\?(?:php\b|=)/i.test(text) && !/^\s*</.test(text);
+	let lastSqlStringEnd = -1;
 	const keywords = new Set([
 		"as", "break", "case", "catch", "class", "const", "continue", "declare",
 		"default", "do", "echo", "else", "elseif", "extends", "false", "finally",
@@ -71,11 +80,25 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 		"throw", "trait", "true", "try", "use", "while", "yield",
 	]);
 	const push = (type: string, start: number, end: number): void => {
-		tokens.push({ type, start, end });
+		if (!sqlOnly) { tokens.push({ type, start, end }); }
 	};
 
 	while (i < text.length) {
 		const ch = text[i];
+		if (sqlOnly && !inPhp) {
+			const opening = /<\?(?:php\b|=)/ig;
+			opening.lastIndex = i;
+			const match = opening.exec(text);
+			if (!match) { break; }
+			i = opening.lastIndex;
+			inPhp = true;
+			continue;
+		}
+		if (sqlOnly && text.startsWith("?>", i)) {
+			inPhp = false;
+			i += 2;
+			continue;
+		}
 
 		if (text.startsWith("<?php", i) || text.startsWith("?>", i)) {
 			const end = text.startsWith("<?php", i) ? i + 5 : i + 2;
@@ -106,7 +129,7 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 		// ── Skip PHP line comment (//) ───────────────────────────────────────
 		if (ch === "/" && text[i + 1] === "/") {
 			const start = i;
-			while (i < text.length && text[i] !== "\n") {
+			while (i < text.length && text[i] !== "\n" && !text.startsWith("?>", i)) {
 				i++;
 			}
 			push("comment", start, i);
@@ -116,7 +139,7 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 		// ── Skip PHP hash comment (#) ────────────────────────────────────────
 		if (ch === "#") {
 			const start = i;
-			while (i < text.length && text[i] !== "\n") {
+			while (i < text.length && text[i] !== "\n" && !text.startsWith("?>", i)) {
 				i++;
 			}
 			push("comment", start, i);
@@ -143,8 +166,17 @@ export function tokenizePhpSql(text: string): TokenMatch[] {
 		// ── Double-quoted string — scan SQL tokens inside ────────────────────
 		if (ch === '"') {
 			const strEnd = findStringEnd(text, i + 1, '"');
-			if (SQL_ANCHOR_RE.test(text.slice(i + 1, strEnd - 1))) {
-				i = scanSqlTokens(text, i + 1, tokens, '"', phpInterpolation);
+			const content = text.slice(i + 1, strEnd - 1);
+			// Keep recognizing the next statement after a concatenated PHP variable
+			// closes a SQL value, as in "DECLARE @email VARCHAR(255) = '".$email."'; SELECT ...".
+			const continuesSql = lastSqlStringEnd >= 0
+				&& /^\s*\.\s*\$[a-z_]\w*\s*\.\s*$/i.test(text.slice(lastSqlStringEnd, i))
+				&& isSqlString(content.replace(/^\s*'\s*;\s*/, ""));
+			if (isSqlString(content) || continuesSql) {
+				const continuationPrefix = continuesSql ? content.match(/^\s*'\s*;\s*/)?.[0].length ?? 0 : 0;
+				scanSqlTokens(text.slice(0, strEnd - 1), i + 1 + continuationPrefix, tokens, '"', phpInterpolation);
+				lastSqlStringEnd = strEnd;
+				i = strEnd;
 			} else {
 				push("string", i, strEnd);
 				i = strEnd;

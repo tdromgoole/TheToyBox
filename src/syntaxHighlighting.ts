@@ -66,7 +66,7 @@ const PROFILES: LanguageProfile[] = [
 	{
 		extensions: [".php"],
 		settingKey: "phpSql",
-		tokenize: tokenizePhpSql,
+		tokenize: (text) => tokenizePhpSql(text, true),
 	},
 	{
 		extensions: [".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"],

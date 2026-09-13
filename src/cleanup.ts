@@ -1,34 +1,7 @@
 ﻿import * as vscode from "vscode";
 import * as path from "path";
-
-/**
- * Detects the space indentation unit for a range of lines by finding the
- * minimum pure-space leading width of 2 or more characters. Single-space
- * widths are ignored as they are almost always continuation lines, not real
- * indent levels. Falls back to `fallback` (tabSize) when the range has no
- * qualifying space-indented lines.
- */
-function detectSpaceUnit(
-	document: vscode.TextDocument,
-	lineStart: number,
-	lineEnd: number,
-	fallback: number,
-): number {
-	let min = 0;
-	for (let i = lineStart; i <= lineEnd; i++) {
-		const line = document.lineAt(i);
-		if (!line.isEmptyOrWhitespace) {
-			const match = line.text.match(/^ {2,}/);
-			if (match) {
-				const len = match[0].length;
-				if (min === 0 || len < min) {
-					min = len;
-				}
-			}
-		}
-	}
-	return min > 0 ? min : fallback;
-}
+import { getVisualWidth } from "./alignUtils.js";
+import { literalLines } from "./cleanupStrings.js";
 
 export function getCleanEdits(
 	document: vscode.TextDocument,
@@ -38,9 +11,10 @@ export function getCleanEdits(
 	clearWhitespaceOnlyLines: boolean = true,
 ): vscode.TextEdit[] {
 	const edits: vscode.TextEdit[] = [];
+	const protectedLines = literalLines(document.getText(), document.languageId);
 
 	// 1. Configuration: Get ignored extensions for tab conversion
-	const config = vscode.workspace.getConfiguration("theToyBox");
+	const config = vscode.workspace.getConfiguration("theToyBox", document);
 	const convertSpacesToTabs = config.get<boolean>(
 		"convertSpacesToTabs",
 		true,
@@ -59,19 +33,22 @@ export function getCleanEdits(
 	const fileExtension = path.extname(document.fileName).toLowerCase();
 	const skipTrimWhitespace = ignoreTrimExtensions.includes(fileExtension);
 
-	// Use VS Code's tabSize setting for the document (respects per-language overrides)
+	// Live options include status-bar changes and VS Code's detected indentation.
+	const activeEditor = vscode.window.activeTextEditor;
+	const editor = activeEditor?.document === document
+		? activeEditor
+		: vscode.window.visibleTextEditors.find((candidate) => candidate.document === document);
 	const editorConfig = vscode.workspace.getConfiguration(
 		"editor",
-		document.uri,
+		document,
 	);
-	const indentUnit = editorConfig.get<number>("tabSize", 4);
-	// Respect VS Code's own insertSpaces setting: if the document is configured
-	// to use spaces, do not convert spaces to tabs even if convertSpacesToTabs
-	// is enabled — the editor setting is the authoritative source of truth for
-	// what kind of whitespace this document should use.
-	const editorInsertSpaces = editorConfig.get<boolean>("insertSpaces", false);
-	const skipTabConversion =
-		ignoredExtensions.includes(fileExtension) || editorInsertSpaces;
+	const configuredTabSize = editorConfig.get<number>("tabSize", 4);
+	const tabSize = Number(editor?.options.tabSize ?? configuredTabSize);
+	const indentUnit = Number.isInteger(tabSize) && tabSize > 0 ? tabSize : 4;
+	const editorInsertSpaces = typeof editor?.options.insertSpaces === "boolean"
+		? editor.options.insertSpaces
+		: editorConfig.get<boolean>("insertSpaces", true);
+	const skipTabConversion = ignoredExtensions.includes(fileExtension);
 
 	// Normalize cursorLines to a Set for efficient lookup
 	const ignoredLines = new Set<number>();
@@ -87,22 +64,11 @@ export function getCleanEdits(
 	const lineStart = startLine !== undefined ? startLine : 0;
 	const lineEnd = endLine !== undefined ? endLine : document.lineCount - 1;
 
-	// Detect the space indentation unit for the lines being processed: the
-	// minimum pure-space leading width ≥ 2 in the range. Scoping to the range
-	// prevents other code in the file from skewing the result. Widths of 1 are
-	// excluded as they are almost always continuation lines, not indent levels.
-	// Floor-division then gives the fewest tabs that preserve the hierarchy:
-	// e.g. spaceUnit=3 → 3→1 tab, 6→2, 9→3; spaceUnit=2 → 2→1, 4→2, 6→3.
-	const spaceUnit =
-		convertSpacesToTabs && !skipTabConversion
-			? detectSpaceUnit(document, lineStart, lineEnd, indentUnit)
-			: indentUnit;
-
 	for (let i = lineStart; i <= lineEnd; i++) {
 		const line = document.lineAt(i);
 
 		// Skip processing lines with cursors
-		if (ignoredLines.has(i)) {
+		if (ignoredLines.has(i) || protectedLines.has(i)) {
 			continue;
 		}
 
@@ -126,28 +92,15 @@ export function getCleanEdits(
 			newText = newText.replace(/[ \t]+$/, "");
 		}
 
-		// 3. Convert Leading Spaces to Tabs (Skip if disabled or file extension is ignored)
+		// 3. Normalize indentation without moving code to a different visual column.
 		if (convertSpacesToTabs && !skipTabConversion) {
 			const leadingMatch = newText.match(/^[ \t]+/);
 			if (leadingMatch) {
 				const raw = leadingMatch[0];
-				let newLeading = "";
-				let idx = 0;
-				while (idx < raw.length) {
-					if (raw[idx] === "\t") {
-						newLeading += "\t";
-						idx++;
-					} else {
-						const start = idx;
-						while (idx < raw.length && raw[idx] === " ") {
-							idx++;
-						}
-						const count = idx - start;
-						newLeading +=
-							"\t".repeat(Math.floor(count / spaceUnit)) +
-							" ".repeat(count % spaceUnit);
-					}
-				}
+				const width = getVisualWidth(raw, indentUnit);
+				const newLeading = editorInsertSpaces
+					? " ".repeat(width)
+					: "\t".repeat(Math.floor(width / indentUnit)) + " ".repeat(width % indentUnit);
 
 				if (newLeading !== raw) {
 					newText = newLeading + newText.slice(raw.length);
@@ -165,6 +118,25 @@ export function getCleanEdits(
 	return edits;
 }
 
+/** Build edits for selected lines, or the file when there is no selection. */
+export function getCleanupCommandEdits(editor: vscode.TextEditor): vscode.TextEdit[] {
+	const selections = editor.selections.filter((selection) => !selection.isEmpty);
+	if (selections.length > 0) {
+		const selectedLines = new Set<number>();
+		for (const selection of selections) {
+			const endLine = selection.end.line - (selection.end.character === 0 ? 1 : 0);
+			for (let line = selection.start.line; line <= endLine; line++) {
+				selectedLines.add(line);
+			}
+		}
+		const lines = [...selectedLines].sort((a, b) => a - b);
+		return getCleanEdits(editor.document, undefined, lines[0], lines[lines.length - 1])
+			.filter((edit) => selectedLines.has(edit.range.start.line));
+	} else {
+		return getCleanEdits(editor.document, editor.selections.map((selection) => selection.active.line));
+	}
+}
+
 export function registerCleanupCommand(
 	context: vscode.ExtensionContext,
 	updateDecorations: (editor?: vscode.TextEditor) => void,
@@ -180,40 +152,7 @@ export function registerCleanupCommand(
 			}
 
 			try {
-				let edits: vscode.TextEdit[];
-
-				// Handle multi-cursor selection (Ctrl+D)
-				if (editor.selections.length > 1) {
-					const cursorLines = editor.selections.map(
-						(sel) => sel.active.line,
-					);
-					edits = getCleanEdits(editor.document, cursorLines);
-				} else {
-					const selection = editor.selection;
-					const startLine = Math.min(
-						selection.start.line,
-						selection.end.line,
-					);
-					const endLine = Math.max(
-						selection.start.line,
-						selection.end.line,
-					);
-					const isMultilineSelection = startLine !== endLine;
-
-					if (isMultilineSelection) {
-						edits = getCleanEdits(
-							editor.document,
-							selection.active.line,
-							startLine,
-							endLine,
-						);
-					} else {
-						edits = getCleanEdits(
-							editor.document,
-							selection.active.line,
-						);
-					}
-				}
+				const edits = getCleanupCommandEdits(editor);
 
 				const workEdit = new vscode.WorkspaceEdit();
 				workEdit.set(editor.document.uri, edits);
@@ -242,16 +181,14 @@ export function registerSaveListener(
 	// applyEdit calls there modify the buffer but are not persisted until the
 	// next save — making tab conversion appear broken.
 	const saveListener = vscode.workspace.onWillSaveTextDocument((event) => {
-		const config = vscode.workspace.getConfiguration("theToyBox");
+		const config = vscode.workspace.getConfiguration("theToyBox", event.document);
 		if (!config.get("cleanOnSave", true)) {
 			return;
 		}
 
 		const document = event.document;
-		const editor = vscode.window.activeTextEditor;
-		if (!editor || editor.document !== document) {
-			return;
-		}
+		const editor = vscode.window.activeTextEditor?.document === document
+			? vscode.window.activeTextEditor : undefined;
 
 		let edits: vscode.TextEdit[];
 
@@ -259,7 +196,7 @@ export function registerSaveListener(
 		// user is actively editing (including all lines in a block-tab selection)
 		// are not modified during save.
 		const selectionLines: number[] = [];
-		for (const sel of editor.selections) {
+		for (const sel of editor?.selections ?? []) {
 			const start = Math.min(sel.start.line, sel.end.line);
 			const end = Math.max(sel.start.line, sel.end.line);
 			for (let l = start; l <= end; l++) {
@@ -280,6 +217,7 @@ export function registerSaveListener(
 
 		// Schedule visual refresh after the save completes
 		setImmediate(() => {
+			if (!editor) { return; }
 			updateDecorations(editor);
 			updateIndentRainbow(editor);
 			updateComments(editor);

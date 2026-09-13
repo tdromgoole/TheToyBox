@@ -337,6 +337,52 @@ suite("tokenizeRazorVb", () => {
 // ─── tokenizePhpSql ──────────────────────────────────────────────────────────
 
 suite("tokenizePhpSql", () => {
+	for (const [label, value] of [
+		["interpolation", "'$email'"],
+		["concatenation", "'\".$email.\"'"],
+	] as const) {
+		test(`DECLARE batch with PHP ${label} highlights both statements`, () => {
+			const src = `<?php $sql = "DECLARE @email VARCHAR(255) = ${value};
+				SELECT isActive, userID FROM e_test WHERE email = @email";`;
+			const tokens = tokenizePhpSql(src, true);
+			assertValidSpans(tokens, src);
+			assert.deepStrictEqual(tokensOfType(tokens, "sqlKeyword", src), ["DECLARE", "SELECT", "FROM", "WHERE"]);
+			assert.deepStrictEqual(tokensOfType(tokens, "sqlType", src), ["VARCHAR"]);
+			assert.deepStrictEqual(tokensOfType(tokens, "sqlVariable", src), ["@email", "@email"]);
+			assert.deepStrictEqual(tokensOfType(tokens, "number", src), ["255"]);
+			const emailStart = src.indexOf("$email");
+			assert.ok(tokens.every((token) => token.end <= emailStart || token.start >= emailStart + 6));
+		});
+	}
+
+	test("DECLARE does not enable highlighting for subsequent unrelated strings", () => {
+		const src = `<?php $sql = "DECLARE @email VARCHAR(255)"; $label = "declare your name";
+			$html = "<select name='email'>1</select>"; $other = "'".$email."'; SELECT id FROM users";`;
+		const tokens = tokenizePhpSql(src, true);
+		assert.deepStrictEqual(tokensOfType(tokens, "sqlKeyword", src), ["DECLARE"]);
+		assert.ok(tokens.every((token) => token.end < src.indexOf("$label")));
+	});
+
+	test("SQL editor mode preserves HTML and ordinary PHP colors", () => {
+		const src = `<select class="select" data-query="SELECT id FROM users"><option>1</option></select>
+<?php $name = "Hello $user"; $count = 42; if ($count) { echo 'update'; } // comment
+?> <div title="SELECT id FROM users">update</div>`;
+		assert.deepStrictEqual(tokenizePhpSql(src, true), []);
+	});
+
+	test("SQL editor mode skips interpolated PHP variables and properties", () => {
+		const src = `<?php $q = "SELECT id FROM users WHERE id = $user->count AND name = {$row["name"]}"; ?>`;
+		const tokens = tokenizePhpSql(src, true);
+		assert.deepStrictEqual(tokensOfType(tokens, "sqlKeyword", src), ["SELECT", "FROM", "WHERE", "AND"]);
+		assert.ok(tokens.every((token) => !src.slice(token.start, token.end).includes("count")));
+		assertValidSpans(tokens, src);
+	});
+
+	test("short echo blocks highlight only SQL strings", () => {
+		const src = `<div><?= "SELECT id FROM users" ?></div>`;
+		assert.deepStrictEqual(tokensOfType(tokenizePhpSql(src, true), "sqlKeyword", src), ["SELECT", "FROM"]);
+	});
+
 	test("empty string → no tokens", () => {
 		assert.deepStrictEqual(tokenizePhpSql(""), []);
 	});
@@ -385,5 +431,43 @@ suite("tokenizePhpSql", () => {
 		const src = `$q = "SELECT name, age FROM people WHERE age > 18";`;
 		const tokens = tokenizePhpSql(src);
 		assertValidSpans(tokens, src);
+	});
+});
+
+suite("embedded SQL boundaries", () => {
+	for (const [language, tokenize] of [
+		["PHP", (text: string) => tokenizePhpSql(text, true)],
+		["JS", tokenizeJsSql],
+	] as const) {
+		test(`${language}: labels and HTML containing SQL words stay unchanged`, () => {
+			for (const value of ["select", "update user", "Please select a user", "<select name='user'>1</select>", "<div>SELECT id FROM users</div>"]) {
+				assert.deepStrictEqual(tokenize(`value = "${value}";`), [], value);
+			}
+		});
+
+		test(`${language}: SQL comments cannot consume following host code`, () => {
+			for (const comment of ["-- comment", "/* unfinished comment"]) {
+				const src = `q = "SELECT id FROM users ${comment}"; count = 42;\nnext = "SELECT name FROM people";`;
+				const tokens = tokenize(src);
+				assert.deepStrictEqual(tokensOfType(tokens, "sqlKeyword", src), ["SELECT", "FROM", "SELECT", "FROM"]);
+				assert.deepStrictEqual(tokensOfType(tokens, "comment", src), [comment]);
+				assert.deepStrictEqual(tokensOfType(tokens, "number", src), []);
+				assertValidSpans(tokens, src);
+			}
+		});
+
+		test(`${language}: common SQL statements remain highlighted`, () => {
+			for (const sql of ["SELECT id FROM users", "SELECT 1", "INSERT INTO users VALUES (1)", "UPDATE users SET name = 1", "DELETE FROM users", "CREATE TABLE t (id INT)", "WITH cte AS (SELECT id FROM users) SELECT * FROM cte"]) {
+				const src = `q = "${sql}";`;
+				assert.ok(tokensOfType(tokenize(src), "sqlKeyword", src).length > 0, sql);
+			}
+		});
+	}
+
+	test("JS template expressions keep their own highlighting", () => {
+		const src = 'const q = `SELECT id FROM users WHERE id = ${user.count + 1}`;';
+		const tokens = tokenizeJsSql(src);
+		assert.deepStrictEqual(tokensOfType(tokens, "sqlKeyword", src), ["SELECT", "FROM", "WHERE"]);
+		assert.deepStrictEqual(tokensOfType(tokens, "number", src), []);
 	});
 });

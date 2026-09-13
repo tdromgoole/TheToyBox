@@ -251,7 +251,11 @@ export function registerMarkdownPreviewProvider(
 						}
 					});
 
+				const privacySubscription = vscode.workspace.onDidChangeConfiguration((event) => {
+					if (event.affectsConfiguration("theToyBox.markdownPreview.allowRemoteImages")) { provider.refreshPrivacy(panel); }
+				});
 				panel.onDidDispose(() => {
+					privacySubscription.dispose();
 					currentPanel = undefined;
 					if (debounceTimer) {
 						clearTimeout(debounceTimer);
@@ -264,7 +268,13 @@ export function registerMarkdownPreviewProvider(
 	);
 }
 
-class CustomMarkdownPreviewProvider {
+export class CustomMarkdownPreviewProvider {
+	private renderedDocument?: { html: string; fontUri: string };
+	refreshPrivacy(panel: vscode.WebviewPanel) {
+		if (this.renderedDocument) {
+			panel.webview.html = this.getWebviewContent(this.renderedDocument.html, this.renderedDocument.fontUri);
+		}
+	}
 	constructor(private context: vscode.ExtensionContext) {}
 
 	updatePreview(panel: vscode.WebviewPanel, document: vscode.TextDocument) {
@@ -277,16 +287,19 @@ class CustomMarkdownPreviewProvider {
 				"MaterialSymbolsOutlined.woff2",
 			),
 		);
-		panel.webview.html = this.getWebviewContent(html, fontUri.toString());
+		this.renderedDocument = { html, fontUri: fontUri.toString() };
+		this.refreshPrivacy(panel);
 	}
 
 	private getWebviewContent(html: string, fontUri: string): string {
+		const allowRemoteImages = vscode.workspace.getConfiguration("theToyBox.markdownPreview")
+			.inspect<boolean>("allowRemoteImages")?.globalValue === true;
 		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri}; img-src https: data:;">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUri}; img-src ${allowRemoteImages ? "https: " : ""}data:;">
 				<title>Markdown Preview</title>
 				<style>
 					@font-face {

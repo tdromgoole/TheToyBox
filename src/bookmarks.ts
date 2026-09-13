@@ -237,10 +237,10 @@ export class BookmarksProvider implements vscode.WebviewViewProvider {
 					.map((b) => {
 						const safeLabel = esc(b.label);
 						const safeUri = encodeURIComponent(b.uri);
-						return `<div class="bm-row" onclick="goTo('${safeUri}',${b.line})">
+						return `<div class="bm-row" data-uri="${safeUri}" data-line="${b.line}">
   <span class="ln">L${b.line + 1}</span>
   <span class="lbl">${safeLabel || "<em>blank line</em>"}</span>
-  <button class="rm" onclick="event.stopPropagation();rm('${safeUri}',${b.line})" title="Remove"><span class="material-symbols-outlined">close</span></button>
+  <button class="rm" title="Remove"><span class="material-symbols-outlined">close</span></button>
 </div>`;
 					})
 					.join("");
@@ -280,13 +280,17 @@ body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);col
 .rm:hover{opacity:1;color:var(--vscode-errorForeground)}
 .rm .material-symbols-outlined{font-size:16px}
 </style></head><body>
-<div class="toolbar"><span class="cnt">${total} bookmark${total !== 1 ? "s" : ""}</span><button class="clr" onclick="clearAll()">Clear All</button></div>
+<div class="toolbar"><span class="cnt">${total} bookmark${total !== 1 ? "s" : ""}</span><button class="clr">Clear All</button></div>
 ${groups}
 <script nonce="${nonce}">
 const vscode=acquireVsCodeApi();
-function goTo(u,l){vscode.postMessage({command:'goTo',uri:decodeURIComponent(u),line:l});}
-function rm(u,l){vscode.postMessage({command:'remove',uri:decodeURIComponent(u),line:l});}
-function clearAll(){vscode.postMessage({command:'clearAll'});}
+document.querySelector('.clr').addEventListener('click', () => vscode.postMessage({command:'clearAll'}));
+document.querySelectorAll('.bm-row').forEach(row => {
+  row.addEventListener('click', event => {
+    const command = event.target.closest('.rm') ? 'remove' : 'goTo';
+    vscode.postMessage({command, uri:decodeURIComponent(row.dataset.uri), line:Number(row.dataset.line)});
+  });
+});
 </script></body></html>`;
 	}
 }

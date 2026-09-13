@@ -15,10 +15,11 @@ export function refreshTagRenaming() {
 	cachedVoidElements = new Set(voidElementsPref.map((t) => t.toLowerCase()));
 }
 
-function findStructuralPartner(
+export function findStructuralPartner(
 	text: string,
 	offset: number,
 	searchBackwards: boolean,
+	voidElements = cachedVoidElements,
 ): number | null {
 	let depth = 0;
 	const tagRegex =
@@ -35,7 +36,7 @@ function findStructuralPartner(
 		for (let i = matches.length - 1; i >= 0; i--) {
 			const match = matches[i];
 			const matchText = match[0];
-			if (matchText.endsWith("/>")) {continue;}
+			if (matchText.endsWith("/>") || voidElements.has((match[1] ?? match[2]).toLowerCase())) {continue;}
 
 			if (matchText.startsWith("</")) {
 				depth++;
@@ -55,7 +56,7 @@ function findStructuralPartner(
 		let m: RegExpExecArray | null;
 		while ((m = tagRegex.exec(text))) {
 			const matchText = m[0];
-			if (matchText.endsWith("/>")) {continue;}
+			if (matchText.endsWith("/>") || voidElements.has((m[1] ?? m[2]).toLowerCase())) {continue;}
 
 			if (!matchText.startsWith("</")) {
 				depth++;

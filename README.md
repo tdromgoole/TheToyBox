@@ -20,6 +20,7 @@ Every major feature can be enabled or disabled, so you can keep the tools that f
 | Markdown | GitHub-style alerts and print-ready PDF export |
 | Productivity | Quick Notes and a workspace-wide tagged-comment list |
 | Git | A safe place for local changes that should not be committed |
+| Project Setup | Guided ESLint and PHPStan installation and setup |
 | Extras | Optional JetBrainsMono Nerd Font installation |
 
 ## Better Navigation
@@ -68,11 +69,26 @@ HTML is rendered before export, and other file types are printed as readable sou
 - **JSON Formatter** turns selected compact JSON into readable, correctly indented content.
 - **Auto Rename Matching Tags** keeps paired HTML and XML tags synchronized while you type.
 
+Cleanup follows the **Spaces** or **Tab Size** choice in VS Code's status bar. Choose **Indent Using Tabs** to convert leading spaces to tabs. Mixed indentation keeps its visual alignment, and multiline string content is preserved. Run **The Toy Box: Fix Tabs and Trim** to clean a selection or the file.
+
 ![Smart Code Alignment](https://raw.githubusercontent.com/tdromgoole/TheToyBox/refs/heads/main/images/smartCodeAlignment.png)
 
 ## Notes and Project Awareness
 
-**Quick Notes** turns an untitled editor into an automatically saved note. Notes reopen with VS Code and can be saved as permanent files whenever they are ready.
+### Project Setup
+
+Run **The Toy Box: Set Up ESLint** or **The Toy Box: Set Up PHPStan** from the Command Palette in a trusted workspace. Choose the project folder and options, review the proposed files and install command, then select **Apply Setup**.
+
+- **ESLint:** Add code checks for JavaScript or TypeScript, with optional automatic fixes on save.
+- **PHPStan:** Add PHP code checks, choose how strict they should be, and optionally include Laravel or Symfony support.
+
+Existing project configurations are preserved. Installation progress appears in a terminal. JavaScript projects need Node.js and a supported package manager; PHP projects need PHP and Composer. Framework projects may need further customization.
+
+See the official [ESLint setup guide](https://eslint.org/docs/latest/use/getting-started) and [PHPStan setup guide](https://phpstan.org/user-guide/getting-started) for further configuration.
+
+**Quick Notes** keeps automatically saved notes that reopen with VS Code. Use **New Quick Note** to capture an idea and save it as a permanent file whenever it is ready. You can optionally turn on automatic capture of untitled files in User Settings, where you also choose your notes folder.
+
+The Toy Box custom Markdown preview blocks remote images by default. You can allow HTTPS images in User Settings; doing so contacts the image host. VS Code's built-in preview has its own settings.
 
 Keep feature notes close to the code they describe. Add an `@docs` reference near the top of a source file, and The Toy Box displays a book link that opens the related Markdown document:
 

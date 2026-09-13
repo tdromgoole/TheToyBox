@@ -41,6 +41,29 @@ function fakeGet(responses: Array<{ status: number; headers?: Record<string, str
 }
 
 suite("Font installer integrity", () => {
+	test("refuses to overwrite an existing download target", async () => {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-font-exclusive-"));
+		const target = path.join(directory, "existing.zip");
+		try {
+			fs.writeFileSync(target, "keep me");
+			await assert.rejects(downloadFile("https://github.com/font.zip", target, token, () => {}, fakeGet([
+				{ status: 200, body: Buffer.from("replacement") },
+			])), /EEXIST/);
+			assert.strictEqual(fs.readFileSync(target, "utf8"), "keep me");
+		} finally { fs.rmSync(directory, { recursive: true, force: true }); }
+	});
+
+	test("extracts safely through paths containing apostrophes and shell characters", async () => {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-O'Brien-$value-"));
+		const archive = path.join(directory, "font's archive.zip");
+		const output = path.join(directory, "output's folder");
+		try {
+			fs.mkdirSync(output);
+			fs.writeFileSync(archive, Buffer.from("UEsDBBQAAAAAAFx9LV1stREHDwAAAA8AAAAhAAAASmV0QnJhaW5zTW9ub05lcmRGb250LVJlZ3VsYXIudHRmdGVzdCBmb250IGJ5dGVzUEsBAhQAFAAAAAAAXH0tXWy1EQcPAAAADwAAACEAAAAAAAAAAAAAAIABAAAAAEpldEJyYWluc01vbm9OZXJkRm9udC1SZWd1bGFyLnR0ZlBLBQYAAAAAAQABAE8AAABOAAAAAAA=", "base64"));
+			await extractFontsFromZip(archive, output);
+			assert.strictEqual(fs.readFileSync(path.join(output, "JetBrainsMonoNerdFont-Regular.ttf"), "utf8"), "test font bytes");
+		} finally { fs.rmSync(directory, { recursive: true, force: true }); }
+	});
 	test("accepts the expected SHA-256 and rejects a mismatch", () => {
 		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "toybox-font-test-"));
 		const archive = path.join(directory, "font.zip");

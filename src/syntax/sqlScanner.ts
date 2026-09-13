@@ -1,5 +1,15 @@
 import { TokenMatch } from "./types.js";
 
+/** Require a statement at the start, rather than SQL words in HTML or labels. */
+export function isSqlString(text: string): boolean {
+	const statement = text.replace(/^(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*(?:\n|$))*/, "");
+	// A typed T-SQL variable declaration also starts a SQL batch.
+	if (/^declare\s+@[a-z_]\w*\s+(?:as\s+)?[a-z_]\w*\b/i.test(statement)) {
+		return true;
+	}
+	return /^(?:select\s+(?:[\s\S]+?\bfrom\s+\S|\d+\b|[@*]|[a-z_]\w*\s*\()|insert\s+into\s+\S|update\s+\S+\s+set\b|delete\s+from\s+\S|merge\s+(?:into\s+)?\S+\s+using\b|(?:create|alter|drop)\s+(?:or\s+alter\s+)?(?:table|view|procedure|proc|function|index|database|schema|trigger)\s+\S|truncate\s+table\s+\S|with\s+\w+\s+as\s*\()/i.test(statement);
+}
+
 // ─── T-SQL keyword / type / function sets (all lowercase) ────────────────────
 // Shared by phpSql.ts and jsSql.ts.
 
@@ -331,6 +341,13 @@ export function scanSqlTokens(
 	interpolationSkipper?: (text: string, i: number) => number,
 ): number {
 	let i = start;
+	// Decode host-escaped quotes just enough to recognize SQL literal boundaries.
+	const quoteAt = (pos: number): { char: string; size: number } => {
+		if (text[pos] === "\\" && text[pos + 1] === closeChar) {
+			return { char: closeChar, size: 2 };
+		}
+		return { char: text[pos], size: 1 };
+	};
 
 	while (i < text.length) {
 		const ch = text[i];
@@ -338,6 +355,25 @@ export function scanSqlTokens(
 		// ── End of string ────────────────────────────────────────────────────
 		if (ch === closeChar) {
 			return i + 1;
+		}
+
+		const quote = quoteAt(i);
+		if (quote.char === "'" || quote.char === '"' || quote.char === "[") {
+			const endQuote = quote.char === "[" ? "]" : quote.char;
+			i += quote.size;
+			while (i < text.length) {
+				const interpolationEnd = interpolationSkipper?.(text, i) ?? -1;
+				if (interpolationEnd !== -1) { i = interpolationEnd; continue; }
+				const current = quoteAt(i);
+				if (current.char === endQuote) {
+					i += current.size;
+					const next = quoteAt(i);
+					if (next.char === endQuote) { i += next.size; continue; }
+					break;
+				}
+				i += text[i] === "\\" ? 2 : 1;
+			}
+			continue;
 		}
 
 		// ── Escape sequence ──────────────────────────────────────────────────
